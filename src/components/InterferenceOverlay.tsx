@@ -74,13 +74,22 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
         </div>
       )}
 
-      {/* Bubble obstruction effect */}
+      {/* Enhanced Bubble obstruction effect - Higher opacity for more challenge */}
       {interferenceEvent.type === 'bubble_obstruction' && (
         <div className="absolute inset-0 z-30 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-white bg-opacity-60 rounded-full animate-bounce" />
-          <div className="absolute top-1/3 right-1/4 w-16 h-16 bg-white bg-opacity-50 rounded-full animate-pulse" />
-          <div className="absolute bottom-1/3 left-1/3 w-12 h-12 bg-white bg-opacity-70 rounded-full animate-bounce" />
-          <div className="absolute top-1/2 right-1/3 w-14 h-14 bg-white bg-opacity-40 rounded-full animate-pulse" />
+          {/* Large bubbles with higher opacity */}
+          <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-white bg-opacity-85 rounded-full animate-bounce shadow-lg" />
+          <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-white bg-opacity-80 rounded-full animate-pulse shadow-lg" />
+          <div className="absolute bottom-1/3 left-1/3 w-16 h-16 bg-white bg-opacity-90 rounded-full animate-bounce shadow-lg" />
+          <div className="absolute top-1/2 right-1/3 w-18 h-18 bg-white bg-opacity-75 rounded-full animate-pulse shadow-lg" />
+          
+          {/* Additional smaller bubbles for more obstruction */}
+          <div className="absolute top-2/3 left-1/5 w-12 h-12 bg-white bg-opacity-70 rounded-full animate-bounce shadow-md" />
+          <div className="absolute bottom-1/4 right-1/5 w-14 h-14 bg-white bg-opacity-85 rounded-full animate-pulse shadow-md" />
+          <div className="absolute top-1/5 right-2/5 w-10 h-10 bg-white bg-opacity-80 rounded-full animate-bounce shadow-md" />
+          
+          {/* Overlay specifically over temperature bar area for maximum challenge */}
+          <div className="absolute top-[218px] left-[25px] w-[340px] h-[39px] bg-white bg-opacity-40 rounded animate-pulse" />
         </div>
       )}
 

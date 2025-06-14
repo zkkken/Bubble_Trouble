@@ -6,7 +6,7 @@ const GAME_CONFIG: GameConfig = {
   TEMPERATURE_CHANGE_RATE: 0.5, // 50% per second
   TEMPERATURE_COOLING_RATE: 0.3, // 30% per second natural cooling
   COMFORT_CHANGE_RATE: 0.2, // 20% per second
-  GAME_DURATION: 60, // 60 seconds
+  GAME_DURATION: 30, // Start with 30 seconds
   SUCCESS_HOLD_TIME: 5, // 5 seconds
   INITIAL_TEMPERATURE: 0.5,
   TARGET_TEMPERATURE_MIN: 0.3,
@@ -25,6 +25,9 @@ export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState>(() => 
     gameStateManager.createInitialState()
   );
+
+  // Track current round for timer reduction
+  const [currentRound, setCurrentRound] = useState(1);
 
   // Temperature control handlers
   const handlePlusPress = useCallback(() => {
@@ -50,8 +53,22 @@ export const useGameState = () => {
 
   // Reset game
   const resetGame = useCallback(() => {
+    setCurrentRound(1);
+    const newConfig = { ...GAME_CONFIG, GAME_DURATION: 30 };
+    gameStateManager.updateConfig(newConfig);
     setGameState(gameStateManager.resetGameState());
   }, [gameStateManager]);
+
+  // Start next round
+  const startNextRound = useCallback(() => {
+    const nextRound = currentRound + 1;
+    const newDuration = Math.max(10, 30 - ((nextRound - 1) * 10)); // Minimum 10 seconds
+    const newConfig = { ...GAME_CONFIG, GAME_DURATION: newDuration };
+    
+    setCurrentRound(nextRound);
+    gameStateManager.updateConfig(newConfig);
+    setGameState(gameStateManager.resetGameState());
+  }, [currentRound, gameStateManager]);
 
   // Main game loop
   useEffect(() => {
@@ -69,6 +86,7 @@ export const useGameState = () => {
 
   return {
     gameState,
+    currentRound,
     handlers: {
       handlePlusPress,
       handlePlusRelease,
@@ -76,6 +94,7 @@ export const useGameState = () => {
       handleMinusRelease,
       handleCenterButtonClick,
       resetGame,
+      startNextRound,
     },
     config: GAME_CONFIG,
     // 暴露各个系统供UI组件使用

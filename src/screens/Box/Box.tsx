@@ -6,7 +6,14 @@ import { ProgressBar } from "../../components/ProgressBar";
 import { InterferenceOverlay } from "../../components/InterferenceOverlay";
 
 export const Box = (): JSX.Element => {
-  const { gameState, handlers, config } = useGameState();
+  const { gameState, currentRound, handlers, config } = useGameState();
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Determine which avatar to show based on comfort level
   const getCurrentAvatar = () => {
@@ -25,44 +32,32 @@ export const Box = (): JSX.Element => {
         <CardContent className="p-0 h-[844px] bg-white">
           <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
             
-            {/* Display_Time - Vertical time indicator - Updated position */}
-            <div 
-              className="absolute"
-              style={{
-                top: '320px',
-                left: '25px',
-                width: '39px',
-                height: '340px',
-                border: '6px solid #36417E',
-                background: '#D9D9D9',
-                borderRadius: '4px'
-              }}
-            >
-              <div className="relative w-full h-full overflow-hidden">
-                <ProgressBar
-                  value={gameState.gameTimer / config.GAME_DURATION}
-                  className="w-full h-full"
-                  barColor="#728CFF"
-                  backgroundColor="transparent"
-                  vertical={true}
-                />
-                
-                {/* Time markers */}
-                <div className="absolute inset-0 pointer-events-none">
-                  {[0.25, 0.5, 0.75].map((marker, index) => (
-                    <div
-                      key={index}
-                      className="absolute w-full h-0.5 bg-gray-600 opacity-50"
-                      style={{ bottom: `${marker * 100}%` }}
-                    />
-                  ))}
-                </div>
-                
-                {/* Water drop icon */}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-blue-500 text-xl">
-                  💧
-                </div>
+            {/* Timer Display - Replacing the vertical bar */}
+            <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
+              {/* Round indicator */}
+              <div className="bg-[#36417E] text-white px-3 py-1 rounded-lg mb-2 text-sm font-bold">
+                Round {currentRound}
               </div>
+              
+              {/* Timer display */}
+              <div 
+                className="bg-[#36417E] text-white px-4 py-3 rounded-lg text-center shadow-lg"
+                style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  minWidth: '80px'
+                }}
+              >
+                {formatTime(gameState.gameTimer)}
+              </div>
+              
+              {/* Next round preview */}
+              {gameState.gameStatus === 'playing' && currentRound < 3 && (
+                <div className="text-xs text-gray-600 mt-1 text-center">
+                  Next: {Math.max(10, 30 - (currentRound * 10))}s
+                </div>
+              )}
             </div>
 
             {/* Avatar_Bad - Left side position */}
@@ -290,7 +285,9 @@ export const Box = (): JSX.Element => {
       {/* Game Over Overlay */}
       <GameOverlay 
         gameState={gameState} 
+        currentRound={currentRound}
         onRestart={handlers.resetGame}
+        onNextRound={handlers.startNextRound}
       />
     </div>
   );

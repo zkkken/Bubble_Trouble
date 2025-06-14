@@ -24,6 +24,14 @@ export class GameStateManager {
   }
 
   /**
+   * Update game configuration
+   */
+  updateConfig(newConfig: GameConfig): void {
+    this.config = newConfig;
+    this.timerSystem = new TimerSystem(newConfig);
+  }
+
+  /**
    * 创建初始游戏状态
    * Create initial game state
    */
@@ -59,9 +67,14 @@ export class GameStateManager {
     newState.gameTimer = this.timerSystem.updateGameTimer(newState.gameTimer, deltaTime);
     newState.interferenceTimer = this.timerSystem.updateInterferenceTimer(newState.interferenceTimer, deltaTime);
 
-    // 2. 检查时间失败条件
+    // 2. 检查时间失败条件 - Game only ends when time runs out
     if (this.timerSystem.isTimeFailure(newState.gameTimer)) {
-      newState.gameStatus = 'failure';
+      // Check if comfort is high enough for success
+      if (newState.currentComfort >= 0.8) {
+        newState.gameStatus = 'success';
+      } else {
+        newState.gameStatus = 'failure';
+      }
       return newState;
     }
 
@@ -106,23 +119,15 @@ export class GameStateManager {
       deltaTime
     );
 
-    // 6. 检查舒适度失败条件
-    if (this.comfortSystem.isComfortFailure(newState.currentComfort)) {
-      newState.gameStatus = 'failure';
-      return newState;
-    }
+    // 6. Comfort can go to 0 but game doesn't end - only when time runs out
 
-    // 7. 处理成功逻辑
+    // 7. 处理成功逻辑 - Success is determined at the end of time
     const isMaxComfort = this.comfortSystem.isMaxComfort(newState.currentComfort);
     newState.successHoldTimer = this.timerSystem.updateSuccessHoldTimer(
       newState.successHoldTimer,
       isMaxComfort,
       deltaTime
     );
-
-    if (this.timerSystem.isSuccessConditionMet(newState.successHoldTimer)) {
-      newState.gameStatus = 'success';
-    }
 
     return newState;
   }
