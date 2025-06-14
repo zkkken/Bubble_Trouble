@@ -1,5 +1,4 @@
 import { GameConfig, GameStatus } from '../types/GameTypes';
-
 /**
  * 计时系统 - 负责游戏时间管理和成功计时
  * Timer System - Handles game time management and success timing
