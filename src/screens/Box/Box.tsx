@@ -15,6 +15,20 @@ export const Box = (): JSX.Element => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calculate timer progress (1 = full time, 0 = no time left)
+  const getTimerProgress = (): number => {
+    const maxTime = Math.max(10, 30 - ((currentRound - 1) * 10));
+    return Math.max(0, gameState.gameTimer / maxTime);
+  };
+
+  // Get timer color based on remaining time
+  const getTimerColor = (): string => {
+    const progress = getTimerProgress();
+    if (progress > 0.5) return '#4ade80'; // Green
+    if (progress > 0.25) return '#f59e0b'; // Yellow
+    return '#ef4444'; // Red
+  };
+
   // Determine which avatar to show based on comfort level
   const getCurrentAvatar = () => {
     if (gameState.currentComfort >= 0.8) {
@@ -32,29 +46,46 @@ export const Box = (): JSX.Element => {
         <CardContent className="p-0 h-[844px] bg-white">
           <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
             
-            {/* Timer Display - Replacing the vertical bar */}
+            {/* Timer Progress Bar - Horizontal */}
             <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
               {/* Round indicator */}
-              <div className="bg-[#36417E] text-white px-3 py-1 rounded-lg mb-2 text-sm font-bold">
+              <div className="bg-[#36417E] text-white px-3 py-1 rounded-lg mb-3 text-sm font-bold">
                 Round {currentRound}
               </div>
               
-              {/* Timer display */}
+              {/* Timer progress bar */}
               <div 
-                className="bg-[#36417E] text-white px-4 py-3 rounded-lg text-center shadow-lg"
+                className="relative"
                 style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  minWidth: '80px'
+                  width: '340px',
+                  height: '24px',
+                  border: '3px solid #36417E',
+                  background: '#D9D9D9',
+                  borderRadius: '12px'
                 }}
               >
-                {formatTime(gameState.gameTimer)}
+                <ProgressBar
+                  value={getTimerProgress()}
+                  className="w-full h-full rounded-lg"
+                  barColor={getTimerColor()}
+                  backgroundColor="transparent"
+                />
+                
+                {/* Timer text overlay */}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm drop-shadow-lg"
+                  style={{
+                    fontFamily: 'Inter, sans-serif',
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                  }}
+                >
+                  {formatTime(gameState.gameTimer)}
+                </div>
               </div>
               
               {/* Next round preview */}
               {gameState.gameStatus === 'playing' && currentRound < 3 && (
-                <div className="text-xs text-gray-600 mt-1 text-center">
+                <div className="text-xs text-gray-600 mt-2 text-center">
                   Next: {Math.max(10, 30 - (currentRound * 10))}s
                 </div>
               )}
