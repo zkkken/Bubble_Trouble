@@ -78,7 +78,22 @@ export class GameStateManager {
       return newState;
     }
 
-    // 3. 处理干扰事件
+    // 3. 更新活跃干扰事件的剩余时间
+    if (newState.interferenceEvent.isActive) {
+      newState.interferenceEvent = {
+        ...newState.interferenceEvent,
+        remainingTime: newState.interferenceEvent.remainingTime - deltaTime
+      };
+
+      // 如果干扰时间耗尽，自动清除干扰
+      if (newState.interferenceEvent.remainingTime <= 0) {
+        newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
+        newState.isControlsReversed = false;
+        newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();
+      }
+    }
+
+    // 4. 处理新的干扰事件触发
     if (this.interferenceSystem.shouldTriggerInterference(newState.interferenceTimer, newState.interferenceEvent.isActive)) {
       const interferenceType = this.interferenceSystem.getRandomInterferenceType();
       newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
@@ -97,7 +112,7 @@ export class GameStateManager {
       }
     }
 
-    // 4. 更新温度
+    // 5. 更新温度
     newState.currentTemperature = this.temperatureSystem.updateTemperature(
       newState.currentTemperature,
       newState.isPlusHeld,
@@ -106,7 +121,7 @@ export class GameStateManager {
       deltaTime
     );
 
-    // 5. 更新舒适度
+    // 6. 更新舒适度
     const isInToleranceRange = this.temperatureSystem.isTemperatureInRange(
       newState.currentTemperature,
       newState.targetTemperature,
@@ -119,9 +134,9 @@ export class GameStateManager {
       deltaTime
     );
 
-    // 6. Comfort can go to 0 but game doesn't end - only when time runs out
+    // 7. Comfort can go to 0 but game doesn't end - only when time runs out
 
-    // 7. 处理成功逻辑 - Success is determined at the end of time
+    // 8. 处理成功逻辑 - Success is determined at the end of time
     const isMaxComfort = this.comfortSystem.isMaxComfort(newState.currentComfort);
     newState.successHoldTimer = this.timerSystem.updateSuccessHoldTimer(
       newState.successHoldTimer,
@@ -138,6 +153,11 @@ export class GameStateManager {
    */
   handleCenterButtonClick(currentState: GameState): GameState {
     if (!currentState.interferenceEvent.isActive) {
+      return currentState;
+    }
+
+    // Controls reversed cannot be cleared by clicking - it auto-clears after 5 seconds
+    if (!this.interferenceSystem.canBeClearedByClick(currentState.interferenceEvent.type)) {
       return currentState;
     }
 

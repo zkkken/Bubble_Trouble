@@ -35,11 +35,14 @@ export class InterferenceSystem {
    * Create new interference event
    */
   createInterferenceEvent(type: InterferenceType): InterferenceEvent {
+    // Controls reversed has a fixed 5-second duration, others use config duration
+    const duration = type === 'controls_reversed' ? 5 : this.config.INTERFERENCE_DURATION;
+    
     return {
       type,
       isActive: true,
-      duration: this.config.INTERFERENCE_DURATION,
-      remainingTime: this.config.INTERFERENCE_DURATION,
+      duration,
+      remainingTime: duration,
     };
   }
 
@@ -111,5 +114,13 @@ export class InterferenceSystem {
     isInterferenceActive: boolean
   ): boolean {
     return interferenceTimer <= 0 && !isInterferenceActive;
+  }
+
+  /**
+   * 检查干扰是否可以通过点击中心按钮清除
+   * Check if interference can be cleared by clicking center button
+   */
+  canBeClearedByClick(type: InterferenceType): boolean {
+    return type !== 'controls_reversed';
   }
 }

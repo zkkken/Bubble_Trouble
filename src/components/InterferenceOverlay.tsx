@@ -48,6 +48,7 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
   };
 
   const content = getInterferenceContent();
+  const canBeClearedByClick = interferenceEvent.type !== 'controls_reversed';
 
   return (
     <>
@@ -59,9 +60,16 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
             <h3 className="font-bold text-lg">{content.title}</h3>
           </div>
           <p className="text-center text-sm">{content.description}</p>
-          <p className="text-center text-xs mt-1 opacity-80">
-            Click the center button to fix!
-          </p>
+          {canBeClearedByClick && (
+            <p className="text-center text-xs mt-1 opacity-80">
+              Click the center button to fix!
+            </p>
+          )}
+          {interferenceEvent.type === 'controls_reversed' && (
+            <p className="text-center text-xs mt-1 opacity-80">
+              Auto-clears in {Math.ceil(interferenceEvent.remainingTime)}s
+            </p>
+          )}
         </div>
       </div>
 
@@ -70,6 +78,9 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
         <div className="absolute bottom-20 left-4 right-4 z-40">
           <div className="bg-purple-600 text-white p-2 rounded-lg text-center animate-bounce">
             <span className="text-lg">🔄 Controls are REVERSED! 🔄</span>
+            <div className="text-sm mt-1">
+              Auto-clears in {Math.ceil(interferenceEvent.remainingTime)}s
+            </div>
           </div>
         </div>
       )}
@@ -93,25 +104,27 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
         </div>
       )}
 
-      {/* Center button activation highlight */}
-      <div className="absolute top-[667px] left-36 w-[111px] h-28 z-50">
-        <button
-          onClick={onCenterButtonClick}
-          className="w-full h-full relative transition-transform duration-100 hover:scale-105 active:scale-95 animate-pulse"
-        >
-          <img
-            className="w-full h-full object-cover"
-            alt="Center interaction button"
-            src="/button-center-interaction.png"
-          />
-          <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
-              CLICK!
-            </span>
-          </div>
-        </button>
-      </div>
+      {/* Center button activation highlight - only for clickable interferences */}
+      {canBeClearedByClick && (
+        <div className="absolute top-[667px] left-36 w-[111px] h-28 z-50">
+          <button
+            onClick={onCenterButtonClick}
+            className="w-full h-full relative transition-transform duration-100 hover:scale-105 active:scale-95 animate-pulse"
+          >
+            <img
+              className="w-full h-full object-cover"
+              alt="Center interaction button"
+              src="/button-center-interaction.png"
+            />
+            <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
+                CLICK!
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
     </>
   );
 };
