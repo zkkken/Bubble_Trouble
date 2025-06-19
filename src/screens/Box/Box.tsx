@@ -228,6 +228,16 @@ export const Box = (): JSX.Element => {
                   alt="Center interaction button"
                   src="/button-center-interaction.png"
                 />
+                {gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed' && (
+                  <>
+                    <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
+                        CLICK!
+                      </span>
+                    </div>
+                  </>
+                )}
               </button>
             </div>
 
@@ -247,8 +257,6 @@ export const Box = (): JSX.Element => {
                 alt="Temperature plus"
                 src="/button-temp-plus.png"
               />
-              {/* Red overlay for heating button */}
-              <div className="absolute inset-0 bg-red-500 bg-opacity-40 rounded" />
               <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-2xl">
                 {gameState.isControlsReversed ? '-' : '+'}
               </div>
