@@ -73,18 +73,6 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
         </div>
       </div>
 
-      {/* Controls reversed indicator */}
-      {isControlsReversed && (
-        <div className="absolute bottom-20 left-4 right-4 z-40">
-          <div className="bg-purple-600 text-white p-2 rounded-lg text-center animate-bounce">
-            <span className="text-lg">🔄 Controls are REVERSED! 🔄</span>
-            <div className="text-sm mt-1">
-              Auto-clears in {Math.ceil(interferenceEvent.remainingTime)}s
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Enhanced Bubble obstruction effect - Higher opacity for more challenge */}
       {interferenceEvent.type === 'bubble_obstruction' && (
         <div className="absolute inset-0 z-30 pointer-events-none">
