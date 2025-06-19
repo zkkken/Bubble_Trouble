@@ -212,23 +212,23 @@ export const Box = (): JSX.Element => {
               </div>
             </button>
 
-            {/* Center interaction button - always visible but styled differently when not active */}
+            {/* Center interaction button - visibility based on interference type */}
             <div className="absolute w-[111px] h-28 top-[667px] left-36">
               <button
                 onClick={handlers.handleCenterButtonClick}
                 className={`w-full h-full relative transition-all duration-200 ${
-                  gameState.interferenceEvent.isActive 
+                  gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed'
                     ? 'hover:scale-105 active:scale-95 animate-pulse' 
                     : 'opacity-50 cursor-default'
                 }`}
-                disabled={!gameState.interferenceEvent.isActive}
+                disabled={!gameState.interferenceEvent.isActive || gameState.interferenceEvent.type === 'controls_reversed'}
               >
                 <img
                   className="w-full h-full object-cover"
                   alt="Center interaction button"
                   src="/button-center-interaction.png"
                 />
-                {gameState.interferenceEvent.isActive && (
+                {gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed' && (
                   <>
                     <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
                     <div className="absolute inset-0 flex items-center justify-center">
