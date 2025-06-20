@@ -1,6 +1,6 @@
 export type GameStatus = 'playing' | 'success' | 'failure' | 'paused';
 
-export type InterferenceType = 'controls_reversed' | 'temperature_shock' | 'bubble_obstruction' | 'none';
+export type InterferenceType = 'controls_reversed' | 'temperature_shock' | 'bubble_obstruction' | 'falling_items' | 'none';
 
 export interface InterferenceEvent {
   type: InterferenceType;

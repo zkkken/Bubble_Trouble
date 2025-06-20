@@ -51,6 +51,12 @@ export const useGameState = () => {
     setGameState(prev => gameStateManager.handleCenterButtonClick(prev));
   }, [gameStateManager]);
 
+  // Falling item click handler
+  const handleFallingItemClick = useCallback((itemType: string) => {
+    console.log(`🎯 Handling falling item click: ${itemType}`); // Debug log
+    setGameState(prev => gameStateManager.handleFallingItemClick(prev, itemType));
+  }, [gameStateManager]);
+
   // Reset game
   const resetGame = useCallback(() => {
     setCurrentRound(1);
@@ -93,6 +99,7 @@ export const useGameState = () => {
       handleMinusPress,
       handleMinusRelease,
       handleCenterButtonClick,
+      handleFallingItemClick,
       resetGame,
       startNextRound,
     },

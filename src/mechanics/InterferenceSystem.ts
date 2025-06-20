@@ -26,8 +26,15 @@ export class InterferenceSystem {
    * Get random interference type
    */
   getRandomInterferenceType(): InterferenceType {
-    const types: InterferenceType[] = ['controls_reversed', 'temperature_shock', 'bubble_obstruction'];
-    return types[Math.floor(Math.random() * types.length)];
+    const types: InterferenceType[] = [
+      'controls_reversed', 
+      'temperature_shock', 
+      'bubble_obstruction',
+      'falling_items'
+    ];
+    const selectedType = types[Math.floor(Math.random() * types.length)];
+    console.log(`🎯 Selected interference type: ${selectedType}`); // Debug log
+    return selectedType;
   }
 
   /**
@@ -35,8 +42,17 @@ export class InterferenceSystem {
    * Create new interference event
    */
   createInterferenceEvent(type: InterferenceType): InterferenceEvent {
-    // Controls reversed has a fixed 5-second duration, others use config duration
-    const duration = type === 'controls_reversed' ? 5 : this.config.INTERFERENCE_DURATION;
+    // Controls reversed has a fixed 5-second duration, falling items 10 seconds, others use config duration
+    let duration: number;
+    if (type === 'controls_reversed') {
+      duration = 5;
+    } else if (type === 'falling_items') {
+      duration = 10;
+    } else {
+      duration = this.config.INTERFERENCE_DURATION;
+    }
+    
+    console.log(`🎯 Creating interference event: ${type} for ${duration}s`); // Debug log
     
     return {
       type,
@@ -71,6 +87,24 @@ export class InterferenceSystem {
   }
 
   /**
+   * 处理掉落物品点击效果
+   * Handle falling item click effects
+   */
+  getFallingItemComfortChange(itemType: string): number {
+    const effects = {
+      'comb': -0.05,           // 梳子 -5%
+      'scale_monster': -0.05,  // 水垢怪 -5%
+      'alarm_clock': -0.10,    // 闹钟 -10%
+      'fish': 0.10,            // 鱼 +10%
+      'rubber_duck': 0.10,     // 鸭子 +10%
+    };
+    
+    const change = effects[itemType as keyof typeof effects] || 0;
+    console.log(`🎯 Item ${itemType} clicked, comfort change: ${change * 100}%`); // Debug log
+    return change;
+  }
+
+  /**
    * 获取干扰事件的显示内容
    * Get interference event display content
    */
@@ -96,6 +130,13 @@ export class InterferenceSystem {
           title: 'Bubble Trouble!',
           description: 'Bubbles are blocking your view!',
           bgColor: 'bg-blue-500',
+        };
+      case 'falling_items':
+        return {
+          icon: '🎁',
+          title: 'Items Falling!',
+          description: 'Click items to affect comfort!',
+          bgColor: 'bg-pink-500',
         };
       default:
         return {
@@ -123,6 +164,6 @@ export class InterferenceSystem {
    * Check if interference can be cleared by clicking center button
    */
   canBeClearedByClick(type: InterferenceType): boolean {
-    return type !== 'controls_reversed';
+    return type !== 'controls_reversed' && type !== 'falling_items';
   }
 }

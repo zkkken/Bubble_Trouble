@@ -4,6 +4,7 @@ import { useGameState } from "../../hooks/useGameState";
 import { GameOverlay } from "../../components/GameOverlay";
 import { ProgressBar } from "../../components/ProgressBar";
 import { InterferenceOverlay } from "../../components/InterferenceOverlay";
+import { FallingItemsOverlay } from "../../components/FallingItemsOverlay";
 
 export const Box = (): JSX.Element => {
   const { gameState, currentRound, handlers, config } = useGameState();
@@ -31,6 +32,12 @@ export const Box = (): JSX.Element => {
       <Card className="fixed w-[390px] h-[844px] top-0 left-0 border-0">
         <CardContent className="p-0 h-[844px] bg-white">
           <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
+            
+            {/* Debug info - Show current interference type */}
+            <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
+              Interference: {gameState.interferenceEvent.type} 
+              {gameState.interferenceEvent.isActive && ` (${Math.ceil(gameState.interferenceEvent.remainingTime)}s)`}
+            </div>
             
             {/* Timer Display - Replacing the vertical bar */}
             <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
@@ -217,18 +224,26 @@ export const Box = (): JSX.Element => {
               <button
                 onClick={handlers.handleCenterButtonClick}
                 className={`w-full h-full relative transition-all duration-200 ${
-                  gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed'
+                  gameState.interferenceEvent.isActive && 
+                  gameState.interferenceEvent.type !== 'controls_reversed' && 
+                  gameState.interferenceEvent.type !== 'falling_items'
                     ? 'hover:scale-105 active:scale-95 animate-pulse' 
                     : 'opacity-50 cursor-default'
                 }`}
-                disabled={!gameState.interferenceEvent.isActive || gameState.interferenceEvent.type === 'controls_reversed'}
+                disabled={
+                  !gameState.interferenceEvent.isActive || 
+                  gameState.interferenceEvent.type === 'controls_reversed' ||
+                  gameState.interferenceEvent.type === 'falling_items'
+                }
               >
                 <img
                   className="w-full h-full object-cover"
                   alt="Center interaction button"
                   src="/button-center-interaction.png"
                 />
-                {gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed' && (
+                {gameState.interferenceEvent.isActive && 
+                 gameState.interferenceEvent.type !== 'controls_reversed' && 
+                 gameState.interferenceEvent.type !== 'falling_items' && (
                   <>
                     <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -272,11 +287,17 @@ export const Box = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Interference system overlay */}
+            {/* Interference system overlays */}
             <InterferenceOverlay
               interferenceEvent={gameState.interferenceEvent}
               onCenterButtonClick={handlers.handleCenterButtonClick}
               isControlsReversed={gameState.isControlsReversed}
+            />
+
+            {/* Falling items overlay */}
+            <FallingItemsOverlay
+              interferenceEvent={gameState.interferenceEvent}
+              onItemClick={handlers.handleFallingItemClick}
             />
           </div>
         </CardContent>
