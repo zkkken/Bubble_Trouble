@@ -110,9 +110,6 @@ export class GameStateManager {
         case 'bubble_obstruction':
           // 视觉干扰在UI层处理
           break;
-        case 'falling_items':
-          // 掉落物品在UI层处理
-          break;
       }
     }
 
@@ -160,7 +157,7 @@ export class GameStateManager {
       return currentState;
     }
 
-    // Controls reversed and falling items cannot be cleared by clicking
+    // Controls reversed cannot be cleared by clicking
     if (!this.interferenceSystem.canBeClearedByClick(currentState.interferenceEvent.type)) {
       return currentState;
     }
@@ -170,24 +167,6 @@ export class GameStateManager {
       interferenceEvent: this.interferenceSystem.clearInterferenceEvent(),
       isControlsReversed: false,
       interferenceTimer: this.interferenceSystem.generateRandomInterferenceInterval(),
-    };
-  }
-
-  /**
-   * 处理掉落物品点击
-   * Handle falling item click
-   */
-  handleFallingItemClick(currentState: GameState, itemType: string): GameState {
-    if (currentState.interferenceEvent.type !== 'falling_items' || !currentState.interferenceEvent.isActive) {
-      return currentState;
-    }
-
-    const comfortChange = this.interferenceSystem.getFallingItemComfortChange(itemType);
-    const newComfort = Math.max(0, Math.min(1, currentState.currentComfort + comfortChange));
-
-    return {
-      ...currentState,
-      currentComfort: newComfort,
     };
   }
 
