@@ -63,7 +63,7 @@ export const GameInterface: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-purple-200 via-pink-200 to-blue-200">
       <div className="w-[390px] h-[844px] relative">
-        <div className="fixed w-[390px] h-[844px] top-0 left-0 border-0">
+        <div className="w-[390px] h-[844px] relative border-0">
           <div className="p-0 h-[844px] bg-white">
             <div 
               className="relative w-[390px] h-[844px] bg-gradient-to-b from-purple-200 via-pink-200 to-blue-200"
@@ -213,9 +213,13 @@ export const GameInterface: React.FC = () => {
                 }}
               />
 
-              {/* Control buttons */}
+              {/* Minus button - Left side */}
               <GameButton
-                className="absolute w-[63px] h-[62px] top-[692px] left-8 transition-all duration-100 hover:scale-105 active:scale-95"
+                className="absolute w-[63px] h-[62px] transition-all duration-100 hover:scale-105 active:scale-95"
+                style={{
+                  top: '692px',
+                  left: '32px'
+                }}
                 onMouseDown={handleMinusPress}
                 onMouseUp={handleMinusRelease}
                 onMouseLeave={handleMinusRelease}
@@ -231,7 +235,13 @@ export const GameInterface: React.FC = () => {
               </GameButton>
 
               {/* Center interaction button */}
-              <div className="absolute w-[111px] h-28 top-[667px] left-36">
+              <div 
+                className="absolute w-[111px] h-28"
+                style={{
+                  top: '667px',
+                  left: '144px'
+                }}
+              >
                 <GameButton
                   onClick={handleCenterButtonClick}
                   className={`w-full h-full relative transition-all duration-200 ${
@@ -255,12 +265,12 @@ export const GameInterface: React.FC = () => {
                 </GameButton>
               </div>
 
-              {/* Plus button - 修正位置：Top 704px, Left 297px */}
+              {/* Plus button - Right side, same height as minus button */}
               <GameButton
                 className="absolute w-[71px] h-16 transition-all duration-100 hover:scale-105 active:scale-95"
                 style={{
-                  top: '704px',
-                  left: '297px'
+                  top: '692px',
+                  left: '295px'
                 }}
                 onMouseDown={handlePlusPress}
                 onMouseUp={handlePlusRelease}
