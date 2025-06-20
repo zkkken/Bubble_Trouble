@@ -213,26 +213,27 @@ export const GameInterface: React.FC = () => {
                 }}
               />
 
-              {/* Minus button - Left side */}
-              <GameButton
-                className="absolute w-[63px] h-[62px] transition-all duration-100 hover:scale-105 active:scale-95"
-                style={{
-                  top: '692px',
-                  left: '32px'
-                }}
+              {/* Minus button - Using exact original positioning */}
+              <button
+                className={`absolute w-[63px] h-[62px] top-[692px] left-8 transition-all duration-100 hover:scale-105 active:scale-95 ${
+                  gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
+                }`}
                 onMouseDown={handleMinusPress}
                 onMouseUp={handleMinusRelease}
                 onMouseLeave={handleMinusRelease}
                 onTouchStart={handleMinusPress}
                 onTouchEnd={handleMinusRelease}
                 disabled={gameState.gameStatus !== 'playing'}
-                imageSrc={IMAGE_ASSETS.buttonMinus}
-                isReversed={gameState.isControlsReversed}
               >
-                <span className="text-white font-bold text-2xl">
+                <img
+                  className="w-full h-full object-cover"
+                  alt="Temperature minus"
+                  src="/button-temp-minus.png"
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-2xl">
                   {gameState.isControlsReversed ? '+' : '-'}
-                </span>
-              </GameButton>
+                </div>
+              </button>
 
               {/* Center interaction button */}
               <div 
@@ -265,26 +266,27 @@ export const GameInterface: React.FC = () => {
                 </GameButton>
               </div>
 
-              {/* Plus button - Right side, same height as minus button */}
-              <GameButton
-                className="absolute w-[71px] h-16 transition-all duration-100 hover:scale-105 active:scale-95"
-                style={{
-                  top: '692px',
-                  left: '295px'
-                }}
+              {/* Plus button - Using exact original positioning */}
+              <button
+                className={`absolute w-[71px] h-16 top-[691px] left-[296px] transition-all duration-100 hover:scale-105 active:scale-95 ${
+                  gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
+                }`}
                 onMouseDown={handlePlusPress}
                 onMouseUp={handlePlusRelease}
                 onMouseLeave={handlePlusRelease}
                 onTouchStart={handlePlusPress}
                 onTouchEnd={handlePlusRelease}
                 disabled={gameState.gameStatus !== 'playing'}
-                imageSrc={IMAGE_ASSETS.buttonPlus}
-                isReversed={gameState.isControlsReversed}
               >
-                <span className="text-white font-bold text-2xl">
+                <img
+                  className="w-full h-full object-cover"
+                  alt="Temperature plus"
+                  src="/button-temp-plus.png"
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-2xl">
                   {gameState.isControlsReversed ? '-' : '+'}
-                </span>
-              </GameButton>
+                </div>
+              </button>
 
               {/* Interference system overlay */}
               <InterferenceOverlay
