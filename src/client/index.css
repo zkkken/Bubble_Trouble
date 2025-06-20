@@ -1,1 +1,20 @@
 @import 'tailwindcss';
+
+/* 强制去除所有 padding，特别是 Card 组件的 padding */
+.p-6 {
+  padding: 0 !important;
+}
+
+.pt-0 {
+  padding-top: 0 !important;
+}
+
+/* 确保 CardContent 没有任何 padding */
+[class*="CardContent"] {
+  padding: 0 !important;
+}
+
+/* 强制去除任何可能的 padding */
+.card-content {
+  padding: 0 !important;
+}

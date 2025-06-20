@@ -52,14 +52,14 @@ export const GameInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-200 via-green-200 via-pink-200 to-blue-200">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      {/* 完全居中的游戏界面 - 恢复为390px宽度 */}
+      {/* 完全居中的游戏界面 - 恢复为390px宽度，强制去除padding */}
       <div className="relative">
         <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
-          <CardContent className="p-0 h-[844px] bg-white">
+          <CardContent className="!p-0 h-[844px] bg-white">
             <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
               
               {/* Debug info - Show current interference type */}

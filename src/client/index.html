@@ -21,7 +21,8 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* 蓝到绿的渐变背景 */
+        background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 25%, #10b981 75%, #22c55e 100%);
       }
       
       /* 响应式优化 */
@@ -53,6 +54,11 @@
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+      
+      /* 强制去除所有可能的 padding */
+      .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
+        padding: 0 !important;
       }
     </style>
   </head>
