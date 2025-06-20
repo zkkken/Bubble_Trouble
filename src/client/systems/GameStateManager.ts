@@ -1,11 +1,11 @@
 /**
- * 游戏状态管理器
- * 统一管理游戏状态更新和事件处理
+ * 游戏状态管理器 - 协调所有游戏系统并管理整体游戏状态
+ * Game State Manager - Coordinates all game systems and manages overall game state
  * 
  * @author 开发者A - 游戏核心逻辑负责人
  */
 
-import { GameConfig, GameState } from '../types/GameTypes';
+import { GameState, GameConfig } from '../types/GameTypes';
 import { TemperatureSystem } from './TemperatureSystem';
 import { ComfortSystem } from './ComfortSystem';
 import { InterferenceSystem } from './InterferenceSystem';
@@ -27,7 +27,6 @@ export class GameStateManager {
   }
 
   /**
-   * 更新游戏配置
    * Update game configuration
    */
   updateConfig(newConfig: GameConfig): void {
@@ -71,8 +70,9 @@ export class GameStateManager {
     newState.gameTimer = this.timerSystem.updateGameTimer(newState.gameTimer, deltaTime);
     newState.interferenceTimer = this.timerSystem.updateInterferenceTimer(newState.interferenceTimer, deltaTime);
 
-    // 2. 检查时间失败条件
+    // 2. 检查时间失败条件 - Game only ends when time runs out
     if (this.timerSystem.isTimeFailure(newState.gameTimer)) {
+      // Check if comfort is high enough for success
       if (newState.currentComfort >= 0.8) {
         newState.gameStatus = 'success';
       } else {
@@ -90,6 +90,7 @@ export class GameStateManager {
 
       // 如果干扰时间耗尽，自动清除干扰
       if (newState.interferenceEvent.remainingTime <= 0) {
+        console.log(`🎯 Interference ${newState.interferenceEvent.type} ended`); // Debug log
         newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
         newState.isControlsReversed = false;
         newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();
@@ -137,7 +138,9 @@ export class GameStateManager {
       deltaTime
     );
 
-    // 7. 处理成功逻辑
+    // 7. Comfort can go to 0 but game doesn't end - only when time runs out
+
+    // 8. 处理成功逻辑 - Success is determined at the end of time
     const isMaxComfort = this.comfortSystem.isMaxComfort(newState.currentComfort);
     newState.successHoldTimer = this.timerSystem.updateSuccessHoldTimer(
       newState.successHoldTimer,
@@ -157,6 +160,7 @@ export class GameStateManager {
       return currentState;
     }
 
+    // Controls reversed cannot be cleared by clicking
     if (!this.interferenceSystem.canBeClearedByClick(currentState.interferenceEvent.type)) {
       return currentState;
     }

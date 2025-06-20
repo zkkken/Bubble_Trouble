@@ -6,10 +6,10 @@
  */
 
 import React from 'react';
-import { GameConfig, ImageAssets } from '../types/GameTypes';
+import { Card, CardContent } from './ui/card';
+import { GameConfig } from '../types/GameTypes';
 import { useGameState } from '../hooks/useGameState';
 import { ProgressBar } from './ProgressBar';
-import { GameButton } from './GameButton';
 import { GameOverlay } from './GameOverlay';
 import { InterferenceOverlay } from './InterferenceOverlay';
 import { TestModeIndicator } from './TestModeIndicator';
@@ -30,17 +30,6 @@ const GAME_CONFIG: GameConfig = {
   INTERFERENCE_DURATION: 8,
 };
 
-// 图片资源配置
-const USE_IMAGES = true;
-const IMAGE_ASSETS: ImageAssets = {
-  background: USE_IMAGES ? '/background.png' : null,
-  avatarBad: USE_IMAGES ? '/avatar-bad.png' : null,
-  avatarHappy: USE_IMAGES ? '/avatar-yellowsmiley.png' : null,
-  buttonMinus: USE_IMAGES ? '/button-temp-minus.png' : null,
-  buttonPlus: USE_IMAGES ? '/button-temp-plus.png' : null,
-  buttonCenter: USE_IMAGES ? '/button-center-interaction.png' : null,
-};
-
 export const GameInterface: React.FC = () => {
   // 使用游戏状态Hook
   const {
@@ -53,13 +42,14 @@ export const GameInterface: React.FC = () => {
     handleCenterButtonClick,
     resetGame,
     startNextRound,
-    formatTime,
   } = useGameState(GAME_CONFIG);
 
-  // 背景样式
-  const backgroundStyle = USE_IMAGES && IMAGE_ASSETS.background 
-    ? { backgroundImage: `url(${IMAGE_ASSETS.background})`, backgroundSize: 'cover', backgroundPosition: '50% 50%' }
-    : {};
+  // 格式化时间函数
+  const formatTimeDisplay = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-purple-200 via-pink-200 to-blue-200">
@@ -67,19 +57,24 @@ export const GameInterface: React.FC = () => {
       <TestModeIndicator />
       
       <div className="w-[390px] h-[844px] relative">
-        <div className="w-[390px] h-[844px] relative border-0">
-          <div className="p-0 h-[844px] bg-white">
-            <div 
-              className="relative w-[390px] h-[844px] bg-gradient-to-b from-purple-200 via-pink-200 to-blue-200"
-              style={backgroundStyle}
-            >
+        <Card className="fixed w-[390px] h-[844px] top-0 left-0 border-0">
+          <CardContent className="p-0 h-[844px] bg-white">
+            <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
               
-              {/* Timer Display */}
+              {/* Debug info - Show current interference type */}
+              <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
+                Interference: {gameState.interferenceEvent.type} 
+                {gameState.interferenceEvent.isActive && ` (${Math.ceil(gameState.interferenceEvent.remainingTime)}s)`}
+              </div>
+              
+              {/* Timer Display - Replacing the vertical bar */}
               <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
+                {/* Round indicator */}
                 <div className="bg-[#36417E] text-white px-3 py-1 rounded-lg mb-2 text-sm font-bold">
                   Round {currentRound}
                 </div>
                 
+                {/* Timer display */}
                 <div 
                   className="bg-[#36417E] text-white px-4 py-3 rounded-lg text-center shadow-lg"
                   style={{
@@ -89,9 +84,10 @@ export const GameInterface: React.FC = () => {
                     minWidth: '80px'
                   }}
                 >
-                  {formatTime(gameState.gameTimer)}
+                  {formatTimeDisplay(gameState.gameTimer)}
                 </div>
                 
+                {/* Next round preview */}
                 {gameState.gameStatus === 'playing' && currentRound < 3 && (
                   <div className="text-xs text-gray-600 mt-1 text-center">
                     Next: {Math.max(10, 30 - (currentRound * 10))}s
@@ -103,15 +99,12 @@ export const GameInterface: React.FC = () => {
               <img
                 className="absolute object-cover transition-all duration-300"
                 alt="Bad cat avatar"
-                src={IMAGE_ASSETS.avatarBad as string}
+                src="/avatar-bad.png"
                 style={{
                   width: '35.5px',
                   height: '36px',
                   top: '131px',
                   left: '25px'
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
 
@@ -119,19 +112,16 @@ export const GameInterface: React.FC = () => {
               <img
                 className="absolute object-cover transition-all duration-300"
                 alt="Happy cat avatar"
-                src={IMAGE_ASSETS.avatarHappy as string}
+                src="/avatar-yellowsmiley.png"
                 style={{
                   width: '35.5px',
                   height: '36px',
                   top: '126px',
                   left: '329px'
                 }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
               />
 
-              {/* Comfort Progress Bar */}
+              {/* Comfort Progress Bar - Custom styled */}
               <div 
                 className="absolute"
                 style={{
@@ -152,6 +142,7 @@ export const GameInterface: React.FC = () => {
                     backgroundColor="transparent"
                   />
                   
+                  {/* Success hold timer */}
                   {gameState.currentComfort >= 1.0 && gameState.successHoldTimer > 0 && (
                     <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
                       <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
@@ -162,7 +153,7 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
-              {/* Temperature Progress Bar */}
+              {/* Temperature Bar Container - Without progress bar */}
               <div 
                 className="absolute"
                 style={{
@@ -176,13 +167,6 @@ export const GameInterface: React.FC = () => {
                 }}
               >
                 <div className="relative w-full h-full overflow-hidden">
-                  <ProgressBar
-                    value={gameState.currentTemperature}
-                    className="w-full h-full"
-                    barColor="#728CFF"
-                    backgroundColor="transparent"
-                  />
-                  
                   {/* Temperature Tolerance Band */}
                   <div
                     className="absolute top-0 h-full opacity-60"
@@ -203,12 +187,29 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
+              {/* Target Temperature Display - Only number */}
+              <div 
+                className="absolute text-center"
+                style={{
+                  top: '275px', // Below the temperature bar
+                  left: '25px',
+                  width: '340px',
+                  fontFamily: 'Elza Condensed Black, sans-serif',
+                  fontSize: '23px',
+                  letterSpacing: '-0.423px',
+                  color: '#36417E',
+                  fontWeight: '900'
+                }}
+              >
+                {Math.round(gameState.targetTemperature * 100)}
+              </div>
+
               {/* Temperature Pointer */}
               <div
                 className="absolute transition-all duration-100 flex items-center justify-center z-20"
                 style={{
                   top: '209px',
-                  left: `${25 + (gameState.currentTemperature * 315)}px`,
+                  left: `${25 + (gameState.currentTemperature * 315)}px`, // 340px - 25px = 315px range
                   width: '25px',
                   height: '57px',
                   border: '6px solid #36417E',
@@ -217,7 +218,7 @@ export const GameInterface: React.FC = () => {
                 }}
               />
 
-              {/* Minus button - Using exact original positioning */}
+              {/* Control buttons */}
               <button
                 className={`absolute w-[63px] h-[62px] top-[692px] left-8 transition-all duration-100 hover:scale-105 active:scale-95 ${
                   gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
@@ -239,38 +240,40 @@ export const GameInterface: React.FC = () => {
                 </div>
               </button>
 
-              {/* Center interaction button */}
-              <div 
-                className="absolute w-[111px] h-28"
-                style={{
-                  top: '667px',
-                  left: '144px'
-                }}
-              >
-                <GameButton
+              {/* Center interaction button - visibility based on interference type */}
+              <div className="absolute w-[111px] h-28 top-[667px] left-36">
+                <button
                   onClick={handleCenterButtonClick}
                   className={`w-full h-full relative transition-all duration-200 ${
-                    gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed'
+                    gameState.interferenceEvent.isActive && 
+                    gameState.interferenceEvent.type !== 'controls_reversed'
                       ? 'hover:scale-105 active:scale-95 animate-pulse' 
                       : 'opacity-50 cursor-default'
                   }`}
-                  disabled={!gameState.interferenceEvent.isActive || gameState.interferenceEvent.type === 'controls_reversed'}
-                  imageSrc={IMAGE_ASSETS.buttonCenter}
+                  disabled={
+                    !gameState.interferenceEvent.isActive || 
+                    gameState.interferenceEvent.type === 'controls_reversed'
+                  }
                 >
-                  {gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed' && (
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="Center interaction button"
+                    src="/button-center-interaction.png"
+                  />
+                  {gameState.interferenceEvent.isActive && 
+                   gameState.interferenceEvent.type !== 'controls_reversed' && (
                     <>
                       <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
-                          FIX!
+                          CLICK!
                         </span>
                       </div>
                     </>
                   )}
-                </GameButton>
+                </button>
               </div>
 
-              {/* Plus button - Using exact original positioning */}
               <button
                 className={`absolute w-[71px] h-16 top-[691px] left-[296px] transition-all duration-100 hover:scale-105 active:scale-95 ${
                   gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
@@ -292,15 +295,25 @@ export const GameInterface: React.FC = () => {
                 </div>
               </button>
 
-              {/* Interference system overlay */}
+              {/* Game status indicators */}
+              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-sm">
+                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  Temp: {Math.round(gameState.currentTemperature * 100)}%
+                </div>
+                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  Target: {Math.round(gameState.targetTemperature * 100)}%
+                </div>
+              </div>
+
+              {/* Interference system overlays */}
               <InterferenceOverlay
                 interferenceEvent={gameState.interferenceEvent}
                 onCenterButtonClick={handleCenterButtonClick}
                 isControlsReversed={gameState.isControlsReversed}
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Game Over Overlay */}
         <GameOverlay 
