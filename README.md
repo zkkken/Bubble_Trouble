@@ -53,78 +53,7 @@ After that, if you run `npm run dev` again, all checks should pass and you shoul
 
 ### Step 4: Testing your app
 
-Once the initial configuration is done, you can test your application by navigating to your test subreddit, clicking the three dots icon on the top-right and creating a new post. The command will be called `[Bolt Cat Comfort Game] New Post`. Once you create a new post you can go back and forth with Bolt by prompting your way to making your app and testing it on Reddit.
-
-## 🚀 Deployment Commands
-
-### Deploy Updated Version to Reddit
-
-After making changes to your game, you need to upload the updated version to Reddit:
-
-```bash
-# Build and deploy the latest version
-npm run deploy
-```
-
-This command will:
-1. Build the client-side code
-2. Upload the updated app to Reddit/Devvit
-3. Make your changes live on Reddit
-
-### Alternative Deployment Commands
-
-```bash
-# Build client only (without deploying)
-npm run build:client
-
-# Deploy without building (if already built)
-devvit upload --copy-paste
-
-# Check deployment status
-devvit logs
-```
-
-### 🔄 Update Workflow
-
-1. **Make changes** to your game in the `/src/client` directory
-2. **Test locally** using `npm run dev:vite` (runs on http://localhost:7474)
-3. **Deploy to Reddit** using `npm run deploy`
-4. **Test on Reddit** by creating a new post in your test subreddit
-5. **Repeat** as needed
-
-### 📱 Testing Your Updates
-
-After deploying:
-
-1. Go to your test subreddit on Reddit
-2. Click the three dots (⋯) in the top-right corner
-3. Select **"[Bolt Cat Comfort Game] New Post"**
-4. Create the post to test your updated game
-5. The new version should now be live!
-
-### 🐛 Troubleshooting Deployment
-
-If deployment fails:
-
-```bash
-# Check if you're logged in
-devvit whoami
-
-# Re-authenticate if needed
-npm run login
-
-# Try deploying again
-npm run deploy
-```
-
-### 🎮 Game Features
-
-Your Cat Comfort Game includes:
-- **Temperature Control**: Use +/- buttons to adjust temperature
-- **Comfort Management**: Keep the cat happy by maintaining optimal temperature
-- **Interference Events**: Handle control reversals, temperature shocks, and bubble obstructions
-- **Multi-Round Challenges**: Progress through increasingly difficult rounds
-- **Visual Feedback**: Real-time indicators and animations
+Once the initial configuration is done, you can test your application by navigating to your test subreddit, clicking the three dots icon on the top-right and creating a new post. The command will be called `[Bolt Word Guesser] New Post`. Once you create a new post you can go back and forth with Bolt by prompting your way to making your app and testing it on Reddit.
 
 Now vibe code away!
 
