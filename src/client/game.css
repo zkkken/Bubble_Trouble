@@ -1,0 +1,66 @@
+/* 游戏专用样式 */
+
+/* 确保按钮在所有状态下都能正常工作 */
+.game-button {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: manipulation;
+}
+
+/* 控制反转时的特殊效果 */
+.controls-reversed {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.4);
+}
+
+/* 干扰事件的动画效果 */
+.interference-active {
+  animation: bounce 1s infinite;
+}
+
+/* 温度指针的平滑移动 */
+.temperature-pointer {
+  transition: left 0.1s ease-out;
+}
+
+/* 进度条的平滑填充 */
+.progress-fill {
+  transition: width 0.1s ease-out;
+}
+
+/* 游戏覆盖层的淡入效果 */
+.game-overlay {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 确保图片加载失败时的回退样式 */
+.image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: bold;
+}
+
+/* 移动端触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .game-button:hover {
+    transform: none;
+  }
+  
+  .game-button:active {
+    transform: scale(0.95);
+  }
+}

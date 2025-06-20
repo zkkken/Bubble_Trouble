@@ -1,0 +1,86 @@
+# Project structure
+
+There are four folders to code in:
+
+- /src/devvit This is a Devvit app. NEVER write React code in here. Use `devvit_search` to understand how Devvit works. Never use web apis in here. This is a sandboxed environment. Import Devvit hooks from public-api like this: `import { Devvit, useWebView } from '@devvit/public-api';`. Devvit apps are shown to the user in the Reddit feed. Devvit apps rely on context to pass down helpful apis including (redis, reddit, media, and more).
+- /src/client This is the full screen, client side webview. To persist data and access the server, call `fetch(/my/api/endpoint)`. This is how you get access to the APIs you write in src/server.
+- src/server: This is a serverless backend written in Node. This is where you can access redis and save data.
+- src/shared: This is where you can place code that is to be shared between the devvit app, client, and server and the webview. It's a great place for shared types.
+
+## Guidelines for src/client/\*_/_:
+
+- Use NPM dependencies if needed, ensure they are web compatible
+- You cannot use websockets.
+- Obey the rules of hooks and only write valid React code
+
+## Guidelines for src/devvit/\*_/_:
+
+- Never write React or reference react, only write valid Devvit
+- Never use web or node APIs. This app is ran in a controlled worker environment.
+- Never suggest using dependencies from NPM since they will likely not work
+
+## Guidelines for src/server/\*_/_:
+
+- This is a serverless node.js environment, you have all node globals (using node: prefix) at your disposal except: fs, http, https, and net.
+
+- Instead of http or https, prefer fetch
+- You cannot write files as you are running on a read only file system
+- Do not install any libraries that rely on these to function
+- Websockets are not supported
+- HTTP streaming is not supported
+- Redis is accessible by importing `@devvit/redis`
+- Reddit-specific functionality such as creating posts and comments is accessible by importing `@devvit/reddit`
+
+## General guidelines
+
+- If the user requires real-time application logic, never suggest Websockets. Instead, import scheduler from the `src/devvit/main.tsx`. Below is an example of using Devvit scheduler:
+
+```
+// Create a job
+Devvit.addSchedulerJob({
+  name: 'thing-todo', // you can use an arbitrary name here
+  onRun: async (event, context) => {
+    // do stuff when the job is executed
+  },
+});
+
+// Run the job:
+const jobId = await context.scheduler.runJob({
+    name: 'thing-todo', // the name of the job that we specified in addSchedulerJob() above
+    runAt: new Date('2099-01-01'),
+});
+```
+
+- If the user requires storage, never suggest external services like Supabase. Instead use Devvit's Redis. Below is an example of using Redis:
+
+```
+import {redis} from '@devvit/redis';
+redis.set('key', 'value');
+redis.get('key');
+```
+
+As this is a serverless runtime (akin to AWS Lambda), do not try to run SQLite or stateful in memory processes.
+
+## Guidelines for webroot
+
+NEVER TOUCH ANYTHING IN THIS FOLDER. DO NOT CONTINUE!
+
+# Dev environment setup
+
+At first run, `npm run dev` will return errors. This is expected. Reassure the user that this is expected behavior.
+Below are the aditional steps to get the app set up and get rid of these errors:
+
+1. Ask the user to run `npm run login` and follow instructions in the terminal
+2. Ask the user to run `npm run devvit:init` and follow instructions in the terminal
+3. Ask the user to update the dev:devvit command in package.json to replace YOUR_SUBREDDIT_NAME. Do not proceed until this is changed.
+
+After that, the user is set up to run the app for the first time
+
+## Error handling
+
+`npm run dev` usually throws errors if the user account is not configured yet.
+Instruct the user to see the output of `npm run dev` and follow the instructions in the terminal in order to configure their app fully.
+
+If the user is confused about seeing a "Upgrade Required" message, reassure the user that this is normal. Here are the resolution steps:
+1- Change the port in Bolt's preview window to see the correct output. The "Upgrade Required" message comes from another webpage being served via Devvit's scripts, and Bolt will sometimes default to that page instead of the page that allows the user to see the output of their client code
+2- Remind the user that the app is **not supposed** to be tested in Bolt's preview window. Instead, the user needs to go to their test subreddit, create a new post via the menu actions in the top right, and test their application from there.
