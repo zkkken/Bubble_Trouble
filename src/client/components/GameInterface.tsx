@@ -12,7 +12,6 @@ import { useGameState } from '../hooks/useGameState';
 import { ProgressBar } from './ProgressBar';
 import { GameOverlay } from './GameOverlay';
 import { InterferenceOverlay } from './InterferenceOverlay';
-import { TestModeIndicator } from './TestModeIndicator';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -53,20 +52,11 @@ export const GameInterface: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
-      {/* 测试模式指示器 */}
-      <TestModeIndicator />
-      
       {/* 完全居中的游戏界面 - 恢复为390px宽度，强制去除padding */}
       <div className="relative">
         <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
           <CardContent className="!p-0 h-[844px] bg-white">
             <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
-              
-              {/* Debug info - Show current interference type */}
-              <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
-                Interference: {gameState.interferenceEvent.type} 
-                {gameState.interferenceEvent.isActive && ` (${Math.ceil(gameState.interferenceEvent.remainingTime)}s)`}
-              </div>
               
               {/* Timer Display - Replacing the vertical bar */}
               <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
@@ -296,16 +286,6 @@ export const GameInterface: React.FC = () => {
                   {gameState.isControlsReversed ? '-' : '+'}
                 </div>
               </button>
-
-              {/* Game status indicators */}
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-sm">
-                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Temp: {Math.round(gameState.currentTemperature * 100)}%
-                </div>
-                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Target: {Math.round(gameState.targetTemperature * 100)}%
-                </div>
-              </div>
 
               {/* Interference system overlays */}
               <InterferenceOverlay
