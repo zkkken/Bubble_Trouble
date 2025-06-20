@@ -12,6 +12,7 @@ import { ProgressBar } from './ProgressBar';
 import { GameButton } from './GameButton';
 import { GameOverlay } from './GameOverlay';
 import { InterferenceOverlay } from './InterferenceOverlay';
+import { TestModeIndicator } from './TestModeIndicator';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -62,6 +63,9 @@ export const GameInterface: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-purple-200 via-pink-200 to-blue-200">
+      {/* 测试模式指示器 */}
+      <TestModeIndicator />
+      
       <div className="w-[390px] h-[844px] relative">
         <div className="w-[390px] h-[844px] relative border-0">
           <div className="p-0 h-[844px] bg-white">

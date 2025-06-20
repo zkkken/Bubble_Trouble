@@ -24,7 +24,7 @@ export const TestModeIndicator: React.FC = () => {
             {inBoltPreview ? '🚀 BOLT PREVIEW' : '🧪 STANDALONE TEST'}
           </span>
           <span className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded">
-            NO SETUP
+            READY!
           </span>
         </div>
         <div className="text-xs mt-1 opacity-90">

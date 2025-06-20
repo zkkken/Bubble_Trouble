@@ -15,7 +15,7 @@
     "dev:devvit": "devvit playtest catShowerTesting",
     "dev:vite": "cd src/client && vite --port 7474",
     "dev:test": "cd src/client && vite --port 7474 --mode test",
-    "test:game": "cd src/client && vite --port 7474 --open",
+    "test:game": "cd src/client && vite --port 7474",
     "login": "devvit login --copy-paste",
     "lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src",
