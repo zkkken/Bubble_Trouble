@@ -56,10 +56,11 @@ export const GameInterface: React.FC = () => {
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      {/* 完全居中的游戏界面 */}
+      {/* 游戏界面容器 - 在白色背景中居中 */}
       <div className="relative">
         <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
-          <CardContent className="p-0 h-[844px] bg-white">
+          <CardContent className="p-0 h-[844px] bg-white flex items-center justify-center">
+            {/* 游戏界面 - 在白色容器中居中 */}
             <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
               
               {/* Debug info - Show current interference type */}
