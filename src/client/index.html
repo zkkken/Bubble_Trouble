@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" class="dark h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Cat Comfort Game - Standalone Test Mode</title>
+    <style>
+      /* 确保在任何环境中都能正确显示 */
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      
+      #root {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        /* 蓝到绿的渐变背景 */
+        background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 25%, #10b981 75%, #22c55e 100%);
+      }
+      
+      /* 响应式优化 */
+      @media (max-width: 500px) {
+        #root {
+          padding: 10px;
+        }
+      }
+      
+      /* 加载动画 */
+      .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: white;
+        font-size: 18px;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* 强制去除所有可能的 padding */
+      .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
+        padding: 0 !important;
+      }
+    </style>
+  </head>
+  <body class="h-full bg-[#121213]">
+    <div id="root" class="h-full">
+      <!-- 初始加载状态 -->
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        <div>🐱 Loading Cat Comfort Game...</div>
+        <div style="font-size: 14px; margin-top: 10px; opacity: 0.8;">
+          Standalone Test Mode - No Setup Required!
+        </div>
+      </div>
+    </div>
+    
+    <!-- 独立测试模式初始化脚本 -->
+    <script>
+      // 🚀 强制启用独立测试模式
+      console.log('🧪 STANDALONE TEST MODE ACTIVATED');
+      console.log('✅ Bypassing all Devvit requirements');
+      console.log('🎮 Game ready to run locally!');
+      
+      // 设置全局标识
+      window.__TEST_MODE__ = true;
+      window.__SKIP_DEVVIT__ = true;
+      window.__STANDALONE_GAME__ = true;
+      window.__BOLT_PREVIEW__ = window.location.hostname.includes('bolt') || 
+                                window.location.port === '7474' ||
+                                window.location.hostname === 'localhost';
+      
+      // 避免任何 Devvit 相关的检查
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('devvit')) {
+          console.log('🛡️ Blocked Devvit error in test mode:', e.message);
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // 模拟成功的环境检查
+      window.__ENVIRONMENT_CHECKS__ = {
+        authentication: true,
+        appInitialization: true,
+        subredditConfiguration: true,
+        testMode: true
+      };
+      
+      console.log('🎯 All environment checks bypassed successfully!');
+    </script>
+    
+    <script type="module" src="main.tsx"></script>
+  </body>
+</html>
