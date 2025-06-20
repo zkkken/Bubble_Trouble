@@ -32,6 +32,12 @@ export const Box = (): JSX.Element => {
         <CardContent className="p-0 h-[844px] bg-white">
           <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
             
+            {/* Debug info - Show current interference type */}
+            <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
+              Interference: {gameState.interferenceEvent.type} 
+              {gameState.interferenceEvent.isActive && ` (${Math.ceil(gameState.interferenceEvent.remainingTime)}s)`}
+            </div>
+            
             {/* Timer Display - Replacing the vertical bar */}
             <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
               {/* Round indicator */}
@@ -118,7 +124,7 @@ export const Box = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Temperature Progress Bar - Custom styled */}
+            {/* Temperature Bar Container - Without progress bar */}
             <div 
               className="absolute"
               style={{
@@ -132,13 +138,6 @@ export const Box = (): JSX.Element => {
               }}
             >
               <div className="relative w-full h-full overflow-hidden">
-                <ProgressBar
-                  value={gameState.currentTemperature}
-                  className="w-full h-full"
-                  barColor="#728CFF"
-                  backgroundColor="transparent"
-                />
-                
                 {/* Temperature Tolerance Band */}
                 <div
                   className="absolute top-0 h-full opacity-60"
@@ -217,18 +216,23 @@ export const Box = (): JSX.Element => {
               <button
                 onClick={handlers.handleCenterButtonClick}
                 className={`w-full h-full relative transition-all duration-200 ${
-                  gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed'
+                  gameState.interferenceEvent.isActive && 
+                  gameState.interferenceEvent.type !== 'controls_reversed'
                     ? 'hover:scale-105 active:scale-95 animate-pulse' 
                     : 'opacity-50 cursor-default'
                 }`}
-                disabled={!gameState.interferenceEvent.isActive || gameState.interferenceEvent.type === 'controls_reversed'}
+                disabled={
+                  !gameState.interferenceEvent.isActive || 
+                  gameState.interferenceEvent.type === 'controls_reversed'
+                }
               >
                 <img
                   className="w-full h-full object-cover"
                   alt="Center interaction button"
                   src="/button-center-interaction.png"
                 />
-                {gameState.interferenceEvent.isActive && gameState.interferenceEvent.type !== 'controls_reversed' && (
+                {gameState.interferenceEvent.isActive && 
+                 gameState.interferenceEvent.type !== 'controls_reversed' && (
                   <>
                     <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -272,7 +276,7 @@ export const Box = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Interference system overlay */}
+            {/* Interference system overlays */}
             <InterferenceOverlay
               interferenceEvent={gameState.interferenceEvent}
               onCenterButtonClick={handlers.handleCenterButtonClick}

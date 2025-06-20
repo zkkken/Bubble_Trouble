@@ -87,6 +87,7 @@ export class GameStateManager {
 
       // 如果干扰时间耗尽，自动清除干扰
       if (newState.interferenceEvent.remainingTime <= 0) {
+        console.log(`🎯 Interference ${newState.interferenceEvent.type} ended`); // Debug log
         newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
         newState.isControlsReversed = false;
         newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();
@@ -156,7 +157,7 @@ export class GameStateManager {
       return currentState;
     }
 
-    // Controls reversed cannot be cleared by clicking - it auto-clears after 5 seconds
+    // Controls reversed cannot be cleared by clicking
     if (!this.interferenceSystem.canBeClearedByClick(currentState.interferenceEvent.type)) {
       return currentState;
     }

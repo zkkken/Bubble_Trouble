@@ -26,8 +26,14 @@ export class InterferenceSystem {
    * Get random interference type
    */
   getRandomInterferenceType(): InterferenceType {
-    const types: InterferenceType[] = ['controls_reversed', 'temperature_shock', 'bubble_obstruction'];
-    return types[Math.floor(Math.random() * types.length)];
+    const types: InterferenceType[] = [
+      'controls_reversed', 
+      'temperature_shock', 
+      'bubble_obstruction'
+    ];
+    const selectedType = types[Math.floor(Math.random() * types.length)];
+    console.log(`🎯 Selected interference type: ${selectedType}`); // Debug log
+    return selectedType;
   }
 
   /**
@@ -36,7 +42,14 @@ export class InterferenceSystem {
    */
   createInterferenceEvent(type: InterferenceType): InterferenceEvent {
     // Controls reversed has a fixed 5-second duration, others use config duration
-    const duration = type === 'controls_reversed' ? 5 : this.config.INTERFERENCE_DURATION;
+    let duration: number;
+    if (type === 'controls_reversed') {
+      duration = 5;
+    } else {
+      duration = this.config.INTERFERENCE_DURATION;
+    }
+    
+    console.log(`🎯 Creating interference event: ${type} for ${duration}s`); // Debug log
     
     return {
       type,
