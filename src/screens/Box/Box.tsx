@@ -124,7 +124,7 @@ export const Box = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Temperature Progress Bar - Custom styled */}
+            {/* Temperature Bar Container - Without progress bar */}
             <div 
               className="absolute"
               style={{
@@ -138,13 +138,6 @@ export const Box = (): JSX.Element => {
               }}
             >
               <div className="relative w-full h-full overflow-hidden">
-                <ProgressBar
-                  value={gameState.currentTemperature}
-                  className="w-full h-full"
-                  barColor="#728CFF"
-                  backgroundColor="transparent"
-                />
-                
                 {/* Temperature Tolerance Band */}
                 <div
                   className="absolute top-0 h-full opacity-60"
