@@ -56,11 +56,11 @@ export const GameInterface: React.FC = () => {
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      {/* 完全居中的游戏界面 - 调整为724px宽度 */}
+      {/* 完全居中的游戏界面 - 恢复为390px宽度 */}
       <div className="relative">
-        <Card className="w-[724px] h-[844px] border-0 shadow-2xl">
+        <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
           <CardContent className="p-0 h-[844px] bg-white">
-            <div className="relative w-[724px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
+            <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
               
               {/* Debug info - Show current interference type */}
               <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
@@ -109,7 +109,7 @@ export const GameInterface: React.FC = () => {
                 }}
               />
 
-              {/* Avatar_YellowSmiley - Right side position - 调整位置适应新宽度 */}
+              {/* Avatar_YellowSmiley - Right side position - 恢复原始位置 */}
               <img
                 className="absolute object-cover transition-all duration-300"
                 alt="Happy cat avatar"
@@ -118,17 +118,17 @@ export const GameInterface: React.FC = () => {
                   width: '35.5px',
                   height: '36px',
                   top: '126px',
-                  left: '663px' // 724 - 35.5 - 25 = 663.5
+                  left: '329px' // 恢复为原始位置
                 }}
               />
 
-              {/* Comfort Progress Bar - Custom styled - 调整宽度 */}
+              {/* Comfort Progress Bar - Custom styled - 恢复原始宽度 */}
               <div 
                 className="absolute"
                 style={{
                   top: '172px',
                   left: '25px',
-                  width: '674px', // 724 - 50 = 674
+                  width: '340px', // 恢复为原始宽度
                   height: '28px',
                   border: '6px solid #36417E',
                   background: '#D9D9D9',
@@ -154,13 +154,13 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
-              {/* Temperature Bar Container - Without progress bar - 调整宽度 */}
+              {/* Temperature Bar Container - Without progress bar - 恢复原始宽度 */}
               <div 
                 className="absolute"
                 style={{
                   top: '218px',
                   left: '25px',
-                  width: '674px', // 724 - 50 = 674
+                  width: '340px', // 恢复为原始宽度
                   height: '39px',
                   border: '6px solid #36417E',
                   background: '#D9D9D9',
@@ -188,13 +188,13 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
-              {/* Target Temperature Display - Only number - 调整宽度 */}
+              {/* Target Temperature Display - Only number - 恢复原始宽度 */}
               <div 
                 className="absolute text-center"
                 style={{
                   top: '275px', // Below the temperature bar
                   left: '25px',
-                  width: '674px', // 724 - 50 = 674
+                  width: '340px', // 恢复为原始宽度
                   fontFamily: 'Elza Condensed Black, sans-serif',
                   fontSize: '23px',
                   letterSpacing: '-0.423px',
@@ -205,12 +205,12 @@ export const GameInterface: React.FC = () => {
                 {Math.round(gameState.targetTemperature * 100)}
               </div>
 
-              {/* Temperature Pointer - 调整范围 */}
+              {/* Temperature Pointer - 恢复原始范围 */}
               <div
                 className="absolute transition-all duration-100 flex items-center justify-center z-20"
                 style={{
                   top: '209px',
-                  left: `${25 + (gameState.currentTemperature * 649)}px`, // 674px - 25px = 649px range
+                  left: `${25 + (gameState.currentTemperature * 315)}px`, // 恢复为原始范围 340px - 25px = 315px
                   width: '25px',
                   height: '57px',
                   border: '6px solid #36417E',
@@ -241,8 +241,8 @@ export const GameInterface: React.FC = () => {
                 </div>
               </button>
 
-              {/* Center interaction button - visibility based on interference type - 调整位置 */}
-              <div className="absolute w-[111px] h-28 top-[667px] left-1/2 transform -translate-x-1/2">
+              {/* Center interaction button - visibility based on interference type - 恢复原始位置 */}
+              <div className="absolute w-[111px] h-28 top-[667px] left-36">
                 <button
                   onClick={handleCenterButtonClick}
                   className={`w-full h-full relative transition-all duration-200 ${
@@ -275,9 +275,9 @@ export const GameInterface: React.FC = () => {
                 </button>
               </div>
 
-              {/* Plus button - 调整位置 */}
+              {/* Plus button - 恢复原始位置 */}
               <button
-                className={`absolute w-[71px] h-16 top-[691px] right-8 transition-all duration-100 hover:scale-105 active:scale-95 ${
+                className={`absolute w-[71px] h-16 top-[691px] left-[296px] transition-all duration-100 hover:scale-105 active:scale-95 ${
                   gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
                 }`}
                 onMouseDown={handlePlusPress}
