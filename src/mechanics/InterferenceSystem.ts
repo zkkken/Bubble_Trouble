@@ -26,15 +26,20 @@ export class InterferenceSystem {
    * Get random interference type
    */
   getRandomInterferenceType(): InterferenceType {
-    const types: InterferenceType[] = [
-      'controls_reversed', 
-      'temperature_shock', 
-      'bubble_obstruction',
-      'falling_items'
-    ];
-    const selectedType = types[Math.floor(Math.random() * types.length)];
-    console.log(`🎯 Selected interference type: ${selectedType}`); // Debug log
-    return selectedType;
+    // TEMPORARY: Force falling_items for testing - remove this after testing
+    console.log('🎯 FORCING falling_items for testing'); // Debug log
+    return 'falling_items';
+    
+    // Original random selection (uncomment after testing):
+    // const types: InterferenceType[] = [
+    //   'controls_reversed', 
+    //   'temperature_shock', 
+    //   'bubble_obstruction',
+    //   'falling_items'
+    // ];
+    // const selectedType = types[Math.floor(Math.random() * types.length)];
+    // console.log(`🎯 Selected interference type: ${selectedType}`); // Debug log
+    // return selectedType;
   }
 
   /**

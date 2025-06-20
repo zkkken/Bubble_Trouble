@@ -26,33 +26,60 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
       console.log('🎯 Falling items interference started!'); // Debug log
       
       const itemTypes: FallingItem['type'][] = ['comb', 'fish', 'rubber_duck', 'alarm_clock', 'scale_monster'];
-      const newItems: FallingItem[] = [];
       
-      // Generate 3-5 random items
-      const itemCount = Math.floor(Math.random() * 3) + 3;
-      console.log(`🎯 Generating ${itemCount} falling items`); // Debug log
+      // Only generate ONE item at a time
+      const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+      const randomX = Math.random() * 300 + 45; // Keep within game area
+      const slowSpeed = 0.8; // Much slower speed
       
-      for (let i = 0; i < itemCount; i++) {
-        const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-        const randomX = Math.random() * 300 + 45; // Keep within game area
-        const randomSpeed = Math.random() * 2 + 1; // 1-3 speed
-        
-        newItems.push({
-          id: `item-${Date.now()}-${i}`,
-          type: randomType,
-          x: randomX,
-          y: -50, // Start above screen
-          speed: randomSpeed,
-        });
-      }
+      console.log(`🎯 Generating 1 falling item: ${randomType}`); // Debug log
       
-      setFallingItems(newItems);
+      const newItem: FallingItem = {
+        id: `item-${Date.now()}`,
+        type: randomType,
+        x: randomX,
+        y: -50, // Start above screen
+        speed: slowSpeed,
+      };
+      
+      setFallingItems([newItem]);
     } else {
       setFallingItems([]);
     }
   }, [interferenceEvent.type, interferenceEvent.isActive]);
 
-  // Animate falling items
+  // Generate new items periodically during the interference
+  React.useEffect(() => {
+    if (interferenceEvent.type !== 'falling_items' || !interferenceEvent.isActive) return;
+
+    const itemGenerationInterval = setInterval(() => {
+      // Only add new item if there are fewer than 2 items on screen
+      setFallingItems(prevItems => {
+        if (prevItems.length < 2) {
+          const itemTypes: FallingItem['type'][] = ['comb', 'fish', 'rubber_duck', 'alarm_clock', 'scale_monster'];
+          const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+          const randomX = Math.random() * 300 + 45;
+          const slowSpeed = 0.8;
+          
+          const newItem: FallingItem = {
+            id: `item-${Date.now()}`,
+            type: randomType,
+            x: randomX,
+            y: -50,
+            speed: slowSpeed,
+          };
+          
+          console.log(`🎯 Adding new falling item: ${randomType}`); // Debug log
+          return [...prevItems, newItem];
+        }
+        return prevItems;
+      });
+    }, 3000); // Generate new item every 3 seconds
+
+    return () => clearInterval(itemGenerationInterval);
+  }, [interferenceEvent.type, interferenceEvent.isActive]);
+
+  // Animate falling items with slower speed
   React.useEffect(() => {
     if (fallingItems.length === 0) return;
 
@@ -61,7 +88,7 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
         prevItems
           .map(item => ({
             ...item,
-            y: item.y + item.speed * 2, // Move down
+            y: item.y + item.speed, // Much slower movement (was item.speed * 2)
           }))
           .filter(item => item.y < 800) // Remove items that fell off screen
       );
@@ -127,7 +154,7 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
         {fallingItems.map(item => (
           <button
             key={item.id}
-            className="absolute w-12 h-12 pointer-events-auto transition-transform duration-100 hover:scale-110 active:scale-95"
+            className="absolute w-12 h-12 pointer-events-auto transition-transform duration-100 hover:scale-110 active:scale-95 bg-white bg-opacity-20 rounded-lg border-2 border-white border-opacity-50"
             style={{
               left: `${item.x}px`,
               top: `${item.y}px`,
@@ -145,7 +172,7 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
                 target.style.display = 'none';
                 const parent = target.parentElement;
                 if (parent) {
-                  parent.innerHTML = `<span class="text-3xl">${getItemEmoji(item.type)}</span>`;
+                  parent.innerHTML = `<span class="text-3xl flex items-center justify-center w-full h-full">${getItemEmoji(item.type)}</span>`;
                 }
               }}
             />
