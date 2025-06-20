@@ -97,17 +97,6 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
     return () => clearInterval(animationInterval);
   }, [fallingItems.length]);
 
-  const getItemImage = (type: FallingItem['type']) => {
-    const imageMap = {
-      comb: '/comb.png',
-      fish: '/fish.png',
-      rubber_duck: '/rubber_duck.png',
-      alarm_clock: '/alarm_clock.png',
-      scale_monster: '/scale_monster.png',
-    };
-    return imageMap[type];
-  };
-
   const getItemEmoji = (type: FallingItem['type']) => {
     const emojiMap = {
       comb: '🪮',
@@ -149,33 +138,21 @@ export const FallingItemsOverlay: React.FC<FallingItemsOverlayProps> = ({
         </div>
       </div>
 
-      {/* Falling items */}
+      {/* Falling items - Using emoji directly for now */}
       <div className="absolute inset-0 z-30 pointer-events-none">
         {fallingItems.map(item => (
           <button
             key={item.id}
-            className="absolute w-12 h-12 pointer-events-auto transition-transform duration-100 hover:scale-110 active:scale-95 bg-white bg-opacity-20 rounded-lg border-2 border-white border-opacity-50"
+            className="absolute w-12 h-12 pointer-events-auto transition-transform duration-100 hover:scale-110 active:scale-95 bg-white bg-opacity-80 rounded-lg border-2 border-white shadow-lg flex items-center justify-center"
             style={{
               left: `${item.x}px`,
               top: `${item.y}px`,
             }}
             onClick={() => handleItemClick(item)}
           >
-            {/* Try to use image first, fallback to emoji */}
-            <img
-              src={getItemImage(item.type)}
-              alt={item.type}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                // If image fails to load, show emoji instead
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.innerHTML = `<span class="text-3xl flex items-center justify-center w-full h-full">${getItemEmoji(item.type)}</span>`;
-                }
-              }}
-            />
+            <span className="text-3xl">
+              {getItemEmoji(item.type)}
+            </span>
           </button>
         ))}
       </div>
