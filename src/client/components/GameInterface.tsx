@@ -56,8 +56,9 @@ export const GameInterface: React.FC = () => {
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      <div className="w-[390px] h-[844px] relative">
-        <Card className="fixed w-[390px] h-[844px] top-0 left-0 border-0">
+      {/* 居中的游戏容器 */}
+      <div className="relative">
+        <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
           <CardContent className="p-0 h-[844px] bg-white">
             <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
               
