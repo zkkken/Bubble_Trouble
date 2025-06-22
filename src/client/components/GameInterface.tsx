@@ -16,7 +16,6 @@ import { InterferenceOverlay } from './InterferenceOverlay';
 import { TestModeIndicator } from './TestModeIndicator';
 import { LeaderboardModal } from './LeaderboardModal';
 import { ScoreSubmissionModal } from './ScoreSubmissionModal';
-import { GameLoadingScreen } from './GameLoadingScreen';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -58,44 +57,17 @@ export const GameInterface: React.FC = () => {
   } = useLeaderboard();
 
   // UI 状态
-  const [gameStarted, setGameStarted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showScoreSubmission, setShowScoreSubmission] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalGameTime, setTotalGameTime] = useState<number>(0);
 
-  // 处理游戏开始
-  const handleStartGame = () => {
-    setIsLoading(true);
-    
-    // 模拟加载过程
-    setTimeout(() => {
-      setIsLoading(false);
-      setGameStarted(true);
-      setGameStartTime(Date.now());
-      resetGame(); // 重置游戏状态
-    }, 2000); // 2秒加载时间
-  };
-
-  // 处理显示排行榜
-  const handleShowLeaderboard = () => {
-    setShowLeaderboard(true);
-  };
-
-  // 返回主菜单
-  const handleBackToMenu = () => {
-    setGameStarted(false);
-    setIsLoading(false);
-    resetGame();
-  };
-
   // 当游戏开始时记录开始时间
   useEffect(() => {
-    if (gameState.gameStatus === 'playing' && currentRound === 1 && gameStarted) {
+    if (gameState.gameStatus === 'playing' && currentRound === 1) {
       setGameStartTime(Date.now());
     }
-  }, [gameState.gameStatus, currentRound, gameStarted]);
+  }, [gameState.gameStatus, currentRound]);
 
   // 当游戏结束时计算总时间并显示分数提交
   useEffect(() => {
@@ -140,43 +112,10 @@ export const GameInterface: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 如果游戏未开始，显示加载界面
-  if (!gameStarted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
-        <TestModeIndicator />
-        <GameLoadingScreen
-          onStartGame={handleStartGame}
-          onShowLeaderboard={handleShowLeaderboard}
-          isLoading={isLoading}
-        />
-        
-        {/* 排行榜模态框 */}
-        <LeaderboardModal
-          isOpen={showLeaderboard}
-          onClose={() => setShowLeaderboard(false)}
-          currentPlayerScore={playerBest ? {
-            score: playerBest.score,
-            rank: 1, // 这里需要从API获取实际排名
-            roundsCompleted: playerBest.roundsCompleted
-          } : undefined}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
       {/* 测试模式指示器 */}
       <TestModeIndicator />
-      
-      {/* 返回主菜单按钮 */}
-      <button
-        onClick={handleBackToMenu}
-        className="fixed top-4 left-4 z-40 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-      >
-        ← Menu
-      </button>
       
       {/* 排行榜按钮 */}
       <button
