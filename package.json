@@ -12,7 +12,7 @@
     "dev": "node setup-devvit.cjs",
     "dev:all": "concurrently -p \"[{name}]\" -n \"VITE,DEVVIT,GAME\" -c \"blue,green,magenta\" \"npm run dev:vite\" \"npm run dev:devvit\" \"npm run dev:client\" --restart-tries 2",
     "dev:client": "cd src/client && vite build --watch",
-    "dev:devvit": "devvit playtest showerCattest",
+    "dev:devvit": "devvit playtest catShowerTesting",
     "dev:vite": "cd src/client && vite --port 7474",
     "dev:test": "cd src/client && vite --port 7474 --mode test",
     "test:game": "cd src/client && vite --port 7474",
