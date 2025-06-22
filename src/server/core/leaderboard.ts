@@ -1,6 +1,6 @@
 /**
- * 排行榜系统 - 服务端逻辑
- * Leaderboard System - Server Logic
+ * 排行榜系统 - 服务端逻辑 (复合分数版本)
+ * Leaderboard System - Server Logic (Composite Score Version)
  */
 
 import { Context } from '@devvit/public-api';
@@ -8,15 +8,26 @@ import { RedisClient } from '@devvit/redis';
 import { PlayerScore, LeaderboardEntry, LeaderboardData } from '../../shared/types/leaderboard';
 
 // Redis 键名常量
-const LEADERBOARD_KEY = 'cat_comfort_leaderboard';
-const PLAYER_SCORES_KEY = 'cat_comfort_player_scores';
+const LEADERBOARD_KEY = 'cat_comfort_leaderboard'; // Global leaderboard
+const PLAYER_SCORES_KEY = 'cat_comfort_player_scores'; // Player data hash
 const LEADERBOARD_STATS_KEY = 'cat_comfort_stats';
 
+// 复合分数计算常量
+const COMPOSITE_SCORE_MULTIPLIER = 10000000; // 10 million - ensures round priority
+
 /**
- * 计算玩家得分
- * Calculate player score based on performance
+ * 计算复合分数 - 回合数优先，然后是原始分数
+ * Calculate composite score - rounds first, then raw score
  */
-function calculateScore(roundsCompleted: number, totalTime: number, difficulty: 'easy' | 'medium' | 'hard'): number {
+function calculateCompositeScore(roundsCompleted: number, rawScore: number): number {
+  return (roundsCompleted * COMPOSITE_SCORE_MULTIPLIER) + rawScore;
+}
+
+/**
+ * 计算玩家原始得分 (保持现有逻辑)
+ * Calculate player raw score based on performance
+ */
+function calculateRawScore(roundsCompleted: number, totalTime: number, difficulty: 'easy' | 'medium' | 'hard'): number {
   // 基础分数：每回合 1000 分
   let baseScore = roundsCompleted * 1000;
   
@@ -35,14 +46,46 @@ function calculateScore(roundsCompleted: number, totalTime: number, difficulty: 
   
   const finalScore = Math.round((baseScore + timeBonus + comboBonus) * difficultyMultiplier);
   
-  console.log(`Score calculation: base=${baseScore}, timeBonus=${timeBonus}, comboBonus=${comboBonus}, multiplier=${difficultyMultiplier}, final=${finalScore}`);
+  console.log(`Raw score calculation: base=${baseScore}, timeBonus=${timeBonus}, comboBonus=${comboBonus}, multiplier=${difficultyMultiplier}, final=${finalScore}`);
   
   return finalScore;
 }
 
 /**
- * 提交玩家分数到排行榜
- * Submit player score to leaderboard
+ * 比较两个成绩，判断是否为新的个人最佳
+ * Compare two scores to determine if new score is a personal best
+ */
+function isNewPersonalBest(
+  newRounds: number, 
+  newRawScore: number, 
+  oldRounds: number, 
+  oldRawScore: number
+): boolean {
+  // 回合数更多 = 新最佳
+  if (newRounds > oldRounds) {
+    return true;
+  }
+  
+  // 回合数相同，原始分数更高 = 新最佳
+  if (newRounds === oldRounds && newRawScore > oldRawScore) {
+    return true;
+  }
+  
+  // 其他情况都不是新最佳
+  return false;
+}
+
+/**
+ * 获取国家排行榜键名
+ * Get country leaderboard key
+ */
+function getCountryLeaderboardKey(countryCode: string): string {
+  return `country:${countryCode.toUpperCase()}:leaderboard`;
+}
+
+/**
+ * 提交玩家分数到排行榜 (复合分数版本)
+ * Submit player score to leaderboard (composite score version)
  */
 export async function submitScore({
   redis,
@@ -50,7 +93,8 @@ export async function submitScore({
   playerName,
   roundsCompleted,
   totalTime,
-  difficulty = 'medium'
+  difficulty = 'medium',
+  countryCode
 }: {
   redis: Context['redis'] | RedisClient;
   playerId: string;
@@ -58,38 +102,45 @@ export async function submitScore({
   roundsCompleted: number;
   totalTime: number;
   difficulty?: 'easy' | 'medium' | 'hard';
-}): Promise<{ rank: number; isNewRecord: boolean; score: number }> {
+  countryCode: string;
+}): Promise<{ rank: number; isNewRecord: boolean; score: number; compositeScore: number }> {
   try {
-    console.log(`Submitting score for player ${playerId} (${playerName}): rounds=${roundsCompleted}, time=${totalTime}, difficulty=${difficulty}`);
+    console.log(`Submitting score for player ${playerId} (${playerName}): rounds=${roundsCompleted}, time=${totalTime}, difficulty=${difficulty}, country=${countryCode}`);
     
-    const score = calculateScore(roundsCompleted, totalTime, difficulty);
+    const rawScore = calculateRawScore(roundsCompleted, totalTime, difficulty);
+    const compositeScore = calculateCompositeScore(roundsCompleted, rawScore);
     const completedAt = Date.now();
     
-    const playerScore: PlayerScore = {
-      playerId,
-      playerName,
-      score,
-      roundsCompleted,
-      totalTime,
-      completedAt,
-      difficulty
-    };
+    console.log(`Calculated scores: raw=${rawScore}, composite=${compositeScore}`);
 
     // 检查玩家是否已有记录
     const existingScoreStr = await redis.hGet(PLAYER_SCORES_KEY, playerId);
     let isNewRecord = true;
+    let oldRounds = 0;
+    let oldRawScore = 0;
     
     if (existingScoreStr) {
       try {
         const existingScore: PlayerScore = JSON.parse(existingScoreStr);
-        isNewRecord = score > existingScore.score;
+        oldRounds = existingScore.roundsCompleted;
+        oldRawScore = existingScore.score;
         
-        console.log(`Existing score: ${existingScore.score}, new score: ${score}, isNewRecord: ${isNewRecord}`);
+        // 使用新的复合比较逻辑
+        isNewRecord = isNewPersonalBest(roundsCompleted, rawScore, oldRounds, oldRawScore);
         
-        // 只有新分数更高时才更新
+        console.log(`Existing best: rounds=${oldRounds}, rawScore=${oldRawScore}`);
+        console.log(`New submission: rounds=${roundsCompleted}, rawScore=${rawScore}`);
+        console.log(`Is new record: ${isNewRecord}`);
+        
+        // 如果不是新记录，返回现有排名
         if (!isNewRecord) {
-          const rank = await getPlayerRank(redis, playerId);
-          return { rank, isNewRecord: false, score: existingScore.score };
+          const rank = await getPlayerRank(redis, playerId, countryCode);
+          return { 
+            rank, 
+            isNewRecord: false, 
+            score: oldRawScore,
+            compositeScore: existingScore.compositeScore
+          };
         }
       } catch (parseError) {
         console.error('Error parsing existing score:', parseError);
@@ -97,23 +148,43 @@ export async function submitScore({
       }
     }
 
-    // 保存玩家分数
-    await redis.hSet(PLAYER_SCORES_KEY, playerId, JSON.stringify(playerScore));
-    console.log(`Player score saved to hash: ${playerId}`);
-    
-    // 添加到排行榜（使用 Redis sorted set）
-    await redis.zAdd(LEADERBOARD_KEY, { member: playerId, score });
-    console.log(`Player added to leaderboard sorted set: ${playerId} with score ${score}`);
-    
-    // 更新统计信息
-    await updateLeaderboardStats(redis);
+    // 只有新记录才保存
+    if (isNewRecord) {
+      const playerScore: PlayerScore = {
+        playerId,
+        playerName,
+        score: rawScore, // 存储原始分数
+        roundsCompleted,
+        totalTime,
+        completedAt,
+        difficulty,
+        countryCode: countryCode.toUpperCase(),
+        compositeScore
+      };
+
+      // 保存玩家分数到 Hash
+      await redis.hSet(PLAYER_SCORES_KEY, playerId, JSON.stringify(playerScore));
+      console.log(`Player score saved to hash: ${playerId}`);
+      
+      // 添加到全球排行榜（使用复合分数）
+      await redis.zAdd(LEADERBOARD_KEY, { member: playerId, score: compositeScore });
+      console.log(`Player added to global leaderboard: ${playerId} with composite score ${compositeScore}`);
+      
+      // 添加到国家排行榜（使用复合分数）
+      const countryKey = getCountryLeaderboardKey(countryCode);
+      await redis.zAdd(countryKey, { member: playerId, score: compositeScore });
+      console.log(`Player added to country leaderboard (${countryCode}): ${playerId} with composite score ${compositeScore}`);
+      
+      // 更新统计信息
+      await updateLeaderboardStats(redis);
+    }
     
     // 获取玩家排名
-    const rank = await getPlayerRank(redis, playerId);
+    const rank = await getPlayerRank(redis, playerId, countryCode);
     
-    console.log(`Score submitted successfully: player=${playerName}, score=${score}, rank=${rank}, isNewRecord=${isNewRecord}`);
+    console.log(`Score submitted successfully: player=${playerName}, rawScore=${rawScore}, compositeScore=${compositeScore}, rank=${rank}, isNewRecord=${isNewRecord}`);
     
-    return { rank, isNewRecord, score };
+    return { rank, isNewRecord, score: rawScore, compositeScore };
   } catch (error) {
     console.error('Error submitting score:', error);
     throw error;
@@ -121,13 +192,23 @@ export async function submitScore({
 }
 
 /**
- * 获取玩家排名
- * Get player rank
+ * 获取玩家排名 (支持全球和国家排行榜)
+ * Get player rank (supports global and country leaderboards)
  */
-async function getPlayerRank(redis: Context['redis'] | RedisClient, playerId: string): Promise<number> {
+async function getPlayerRank(
+  redis: Context['redis'] | RedisClient, 
+  playerId: string, 
+  countryCode?: string
+): Promise<number> {
   try {
-    const rank = await redis.zRevRank(LEADERBOARD_KEY, playerId);
-    console.log(`Player ${playerId} rank: ${rank}`);
+    let leaderboardKey = LEADERBOARD_KEY; // 默认全球排行榜
+    
+    if (countryCode) {
+      leaderboardKey = getCountryLeaderboardKey(countryCode);
+    }
+    
+    const rank = await redis.zRevRank(leaderboardKey, playerId);
+    console.log(`Player ${playerId} rank in ${countryCode ? countryCode : 'global'}: ${rank}`);
     return rank !== null ? rank + 1 : -1; // Redis rank is 0-based, convert to 1-based
   } catch (error) {
     console.error('Error getting player rank:', error);
@@ -136,22 +217,27 @@ async function getPlayerRank(redis: Context['redis'] | RedisClient, playerId: st
 }
 
 /**
- * 获取排行榜数据
- * Get leaderboard data
+ * 获取排行榜数据 (支持全球和国家排行榜)
+ * Get leaderboard data (supports global and country leaderboards)
  */
 export async function getLeaderboard({
   redis,
-  limit = 50
+  limit = 50,
+  countryCode
 }: {
   redis: Context['redis'] | RedisClient;
   limit?: number;
+  countryCode?: string;
 }): Promise<LeaderboardData> {
   try {
-    console.log(`Getting leaderboard with limit: ${limit}`);
+    const leaderboardKey = countryCode ? getCountryLeaderboardKey(countryCode) : LEADERBOARD_KEY;
+    const leaderboardType = countryCode ? `country (${countryCode})` : 'global';
     
-    // 获取排行榜前 N 名
-    const topPlayers = await redis.zRevRange(LEADERBOARD_KEY, 0, limit - 1, { by: 'rank' });
-    console.log(`Top players from sorted set:`, topPlayers);
+    console.log(`Getting ${leaderboardType} leaderboard with limit: ${limit}`);
+    
+    // 获取排行榜前 N 名 (按复合分数降序)
+    const topPlayers = await redis.zRevRange(leaderboardKey, 0, limit - 1, { by: 'rank' });
+    console.log(`Top players from ${leaderboardType} sorted set:`, topPlayers);
     
     const entries: LeaderboardEntry[] = [];
     
@@ -164,16 +250,22 @@ export async function getLeaderboard({
       if (playerScoreStr) {
         try {
           const playerScore: PlayerScore = JSON.parse(playerScoreStr);
-          entries.push({
-            rank: i + 1,
-            playerId: playerScore.playerId,
-            playerName: playerScore.playerName,
-            score: playerScore.score,
-            roundsCompleted: playerScore.roundsCompleted,
-            totalTime: playerScore.totalTime,
-            completedAt: playerScore.completedAt,
-            difficulty: playerScore.difficulty
-          });
+          
+          // 如果是国家排行榜，只包含该国家的玩家
+          if (!countryCode || playerScore.countryCode === countryCode.toUpperCase()) {
+            entries.push({
+              rank: i + 1,
+              playerId: playerScore.playerId,
+              playerName: playerScore.playerName,
+              score: playerScore.score, // 显示原始分数
+              roundsCompleted: playerScore.roundsCompleted,
+              totalTime: playerScore.totalTime,
+              completedAt: playerScore.completedAt,
+              difficulty: playerScore.difficulty,
+              countryCode: playerScore.countryCode,
+              compositeScore: playerScore.compositeScore
+            });
+          }
         } catch (parseError) {
           console.error(`Error parsing player score for ${playerId}:`, parseError);
         }
@@ -183,23 +275,25 @@ export async function getLeaderboard({
     }
 
     // 获取总玩家数
-    const totalPlayers = await redis.zCard(LEADERBOARD_KEY);
-    console.log(`Total players in leaderboard: ${totalPlayers}`);
+    const totalPlayers = await redis.zCard(leaderboardKey);
+    console.log(`Total players in ${leaderboardType} leaderboard: ${totalPlayers}`);
     
     const result = {
       entries,
       totalPlayers,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      countryCode: countryCode?.toUpperCase()
     };
     
-    console.log(`Leaderboard data prepared:`, result);
+    console.log(`${leaderboardType} leaderboard data prepared:`, result);
     return result;
   } catch (error) {
     console.error('Error getting leaderboard:', error);
     return {
       entries: [],
       totalPlayers: 0,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      countryCode: countryCode?.toUpperCase()
     };
   }
 }
@@ -278,35 +372,50 @@ export async function cleanupLeaderboard(redis: Context['redis'] | RedisClient):
  */
 export async function debugLeaderboard(redis: Context['redis'] | RedisClient): Promise<void> {
   try {
-    console.log('=== LEADERBOARD DEBUG INFO ===');
+    console.log('=== COMPOSITE SCORE LEADERBOARD DEBUG INFO ===');
     
-    // 检查 sorted set
-    const leaderboardSize = await redis.zCard(LEADERBOARD_KEY);
-    console.log(`Leaderboard sorted set size: ${leaderboardSize}`);
+    // 检查全球 sorted set
+    const globalSize = await redis.zCard(LEADERBOARD_KEY);
+    console.log(`Global leaderboard sorted set size: ${globalSize}`);
     
-    if (leaderboardSize > 0) {
+    if (globalSize > 0) {
       const allPlayers = await redis.zRevRange(LEADERBOARD_KEY, 0, -1, { by: 'rank' });
-      console.log('All players in sorted set:', allPlayers);
+      console.log('All players in global sorted set:', allPlayers);
       
       for (const playerId of allPlayers) {
-        const score = await redis.zScore(LEADERBOARD_KEY, playerId);
-        console.log(`Player ${playerId} score in sorted set: ${score}`);
+        const compositeScore = await redis.zScore(LEADERBOARD_KEY, playerId);
+        console.log(`Player ${playerId} composite score: ${compositeScore}`);
       }
     }
     
-    // 检查 hash
+    // 检查 hash 中的详细数据
     const allPlayerScores = await redis.hGetAll(PLAYER_SCORES_KEY);
     console.log('All player scores in hash:', Object.keys(allPlayerScores));
     
     for (const [playerId, scoreData] of Object.entries(allPlayerScores)) {
-      console.log(`Player ${playerId} data:`, scoreData);
+      try {
+        const parsed = JSON.parse(scoreData);
+        console.log(`Player ${playerId}:`, {
+          rounds: parsed.roundsCompleted,
+          rawScore: parsed.score,
+          compositeScore: parsed.compositeScore,
+          country: parsed.countryCode
+        });
+      } catch (e) {
+        console.log(`Player ${playerId} data (unparsed):`, scoreData);
+      }
     }
     
-    // 检查统计信息
-    const stats = await redis.get(LEADERBOARD_STATS_KEY);
-    console.log('Leaderboard stats:', stats);
+    // 检查国家排行榜
+    const countryKeys = await redis.keys('country:*:leaderboard');
+    console.log('Country leaderboards found:', countryKeys);
     
-    console.log('=== END DEBUG INFO ===');
+    for (const countryKey of countryKeys) {
+      const countrySize = await redis.zCard(countryKey);
+      console.log(`${countryKey} size: ${countrySize}`);
+    }
+    
+    console.log('=== END COMPOSITE SCORE DEBUG INFO ===');
   } catch (error) {
     console.error('Error in debug function:', error);
   }

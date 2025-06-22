@@ -1,6 +1,6 @@
 /**
- * 分数提交模态框组件
- * Score Submission Modal Component
+ * 分数提交模态框组件 (复合分数版本)
+ * Score Submission Modal Component (Composite Score Version)
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -10,22 +10,53 @@ import React, { useState } from 'react';
 interface ScoreSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (playerName: string, difficulty: 'easy' | 'medium' | 'hard') => void;
+  onSubmit: (
+    playerName: string, 
+    difficulty: 'easy' | 'medium' | 'hard',
+    countryCode: string
+  ) => void;
   gameStats: {
     roundsCompleted: number;
     totalTime: number;
     finalComfort: number;
   };
+  userCountryCode?: string; // 用户的国家代码
 }
+
+// 常见国家列表
+const COUNTRIES = [
+  { code: 'US', name: 'United States', flag: '🇺🇸' },
+  { code: 'CN', name: 'China', flag: '🇨🇳' },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'FR', name: 'France', flag: '🇫🇷' },
+  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺' },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+  { code: 'IN', name: 'India', flag: '🇮🇳' },
+  { code: 'RU', name: 'Russia', flag: '🇷🇺' },
+  { code: 'IT', name: 'Italy', flag: '🇮🇹' },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+  { code: 'SE', name: 'Sweden', flag: '🇸🇪' },
+  { code: 'NO', name: 'Norway', flag: '🇳🇴' },
+  { code: 'DK', name: 'Denmark', flag: '🇩🇰' },
+  { code: 'FI', name: 'Finland', flag: '🇫🇮' },
+];
 
 export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  gameStats
+  gameStats,
+  userCountryCode = 'US'
 }) => {
   const [playerName, setPlayerName] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [countryCode, setCountryCode] = useState(userCountryCode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -34,9 +65,14 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
       return;
     }
 
+    if (!countryCode) {
+      alert('Please select your country!');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await onSubmit(playerName.trim(), difficulty);
+      await onSubmit(playerName.trim(), difficulty, countryCode);
       onClose();
     } catch (error) {
       console.error('Error submitting score:', error);
@@ -52,7 +88,7 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const calculateEstimatedScore = (): number => {
+  const calculateEstimatedRawScore = (): number => {
     const baseScore = gameStats.roundsCompleted * 1000;
     const timeBonus = Math.max(0, (180 - gameStats.totalTime) * 10);
     const comboBonus = gameStats.roundsCompleted > 1 ? (gameStats.roundsCompleted - 1) * 500 : 0;
@@ -61,17 +97,25 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
     return Math.round((baseScore + timeBonus + comboBonus) * difficultyMultiplier);
   };
 
+  const calculateEstimatedCompositeScore = (): number => {
+    const rawScore = calculateEstimatedRawScore();
+    const COMPOSITE_SCORE_MULTIPLIER = 10000000;
+    return (gameStats.roundsCompleted * COMPOSITE_SCORE_MULTIPLIER) + rawScore;
+  };
+
   if (!isOpen) return null;
+
+  const selectedCountry = COUNTRIES.find(c => c.code === countryCode);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-6 rounded-t-lg">
           <div className="text-center">
             <div className="text-4xl mb-2">🎉</div>
             <h2 className="text-2xl font-bold">Great Job!</h2>
-            <p className="text-green-100 mt-1">Submit your score to the leaderboard</p>
+            <p className="text-green-100 mt-1">Submit your composite score to the leaderboard</p>
           </div>
         </div>
 
@@ -111,6 +155,29 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
             />
           </div>
 
+          {/* Country selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Country
+            </label>
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {COUNTRIES.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.flag} {country.name}
+                </option>
+              ))}
+            </select>
+            {selectedCountry && (
+              <p className="text-xs text-gray-500 mt-1">
+                You'll compete in the {selectedCountry.name} leaderboard
+              </p>
+            )}
+          </div>
+
           {/* Difficulty selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -143,12 +210,26 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
             </div>
           </div>
 
-          {/* Estimated score */}
+          {/* Estimated scores */}
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
             <div className="text-center">
-              <div className="text-sm text-blue-600 mb-1">Estimated Score</div>
-              <div className="text-2xl font-bold text-blue-700">
-                {calculateEstimatedScore().toLocaleString()}
+              <div className="text-sm text-blue-600 mb-1">Estimated Scores</div>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm text-blue-600">Raw Score: </span>
+                  <span className="text-lg font-bold text-blue-700">
+                    {calculateEstimatedRawScore().toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm text-blue-600">Composite Score: </span>
+                  <span className="text-lg font-bold text-blue-700">
+                    {calculateEstimatedCompositeScore().toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-blue-500 mt-2">
+                Ranking priority: Rounds first, then raw score
               </div>
             </div>
           </div>
