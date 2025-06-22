@@ -5,14 +5,17 @@
  * @author 开发者B - UI/UX 界面负责人
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from './ui/card';
 import { GameConfig } from '../types/GameTypes';
 import { useGameState } from '../hooks/useGameState';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 import { ProgressBar } from './ProgressBar';
 import { GameOverlay } from './GameOverlay';
 import { InterferenceOverlay } from './InterferenceOverlay';
 import { TestModeIndicator } from './TestModeIndicator';
+import { LeaderboardModal } from './LeaderboardModal';
+import { ScoreSubmissionModal } from './ScoreSubmissionModal';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -31,7 +34,7 @@ const GAME_CONFIG: GameConfig = {
 };
 
 export const GameInterface: React.FC = () => {
-  // 使用游戏状态Hook
+  // 游戏状态
   const {
     gameState,
     currentRound,
@@ -43,6 +46,64 @@ export const GameInterface: React.FC = () => {
     resetGame,
     startNextRound,
   } = useGameState(GAME_CONFIG);
+
+  // 排行榜状态
+  const {
+    leaderboardData,
+    playerBest,
+    submitScore,
+    fetchLeaderboard,
+    fetchPlayerBest,
+  } = useLeaderboard();
+
+  // UI 状态
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showScoreSubmission, setShowScoreSubmission] = useState(false);
+  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [totalGameTime, setTotalGameTime] = useState<number>(0);
+
+  // 当游戏开始时记录开始时间
+  useEffect(() => {
+    if (gameState.gameStatus === 'playing' && currentRound === 1) {
+      setGameStartTime(Date.now());
+    }
+  }, [gameState.gameStatus, currentRound]);
+
+  // 当游戏结束时计算总时间并显示分数提交
+  useEffect(() => {
+    if (gameState.gameStatus === 'success' || gameState.gameStatus === 'failure') {
+      const endTime = Date.now();
+      const totalTime = Math.round((endTime - gameStartTime) / 1000);
+      setTotalGameTime(totalTime);
+
+      // 只有成功完成至少一轮才显示分数提交
+      if (currentRound > 1 || gameState.gameStatus === 'success') {
+        setShowScoreSubmission(true);
+      }
+    }
+  }, [gameState.gameStatus, gameStartTime, currentRound]);
+
+  // 初始化时获取玩家最佳成绩
+  useEffect(() => {
+    fetchPlayerBest();
+  }, [fetchPlayerBest]);
+
+  // 处理分数提交
+  const handleScoreSubmit = async (playerName: string, difficulty: 'easy' | 'medium' | 'hard') => {
+    try {
+      const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
+      const result = await submitScore(playerName, roundsCompleted, totalGameTime, difficulty);
+      
+      // 提交成功后刷新玩家最佳成绩
+      await fetchPlayerBest();
+      
+      // 显示结果
+      alert(`Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}`);
+    } catch (error) {
+      console.error('Error submitting score:', error);
+      throw error;
+    }
+  };
 
   // 格式化时间函数
   const formatTimeDisplay = (seconds: number): string => {
@@ -56,7 +117,15 @@ export const GameInterface: React.FC = () => {
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      {/* 完全居中的游戏界面 - 恢复为390px宽度，强制去除padding */}
+      {/* 排行榜按钮 */}
+      <button
+        onClick={() => setShowLeaderboard(true)}
+        className="fixed top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
+      >
+        🏆 Leaderboard
+      </button>
+      
+      {/* 完全居中的游戏界面 */}
       <div className="relative">
         <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
           <CardContent className="!p-0 h-[844px] bg-white">
@@ -109,7 +178,7 @@ export const GameInterface: React.FC = () => {
                 }}
               />
 
-              {/* Avatar_YellowSmiley - Right side position - 恢复原始位置 */}
+              {/* Avatar_YellowSmiley - Right side position */}
               <img
                 className="absolute object-cover transition-all duration-300"
                 alt="Happy cat avatar"
@@ -118,17 +187,17 @@ export const GameInterface: React.FC = () => {
                   width: '35.5px',
                   height: '36px',
                   top: '126px',
-                  left: '329px' // 恢复为原始位置
+                  left: '329px'
                 }}
               />
 
-              {/* Comfort Progress Bar - Custom styled - 恢复原始宽度 */}
+              {/* Comfort Progress Bar - Custom styled */}
               <div 
                 className="absolute"
                 style={{
                   top: '172px',
                   left: '25px',
-                  width: '340px', // 恢复为原始宽度
+                  width: '340px',
                   height: '28px',
                   border: '6px solid #36417E',
                   background: '#D9D9D9',
@@ -154,13 +223,13 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
-              {/* Temperature Bar Container - Without progress bar - 恢复原始宽度 */}
+              {/* Temperature Bar Container - Without progress bar */}
               <div 
                 className="absolute"
                 style={{
                   top: '218px',
                   left: '25px',
-                  width: '340px', // 恢复为原始宽度
+                  width: '340px',
                   height: '39px',
                   border: '6px solid #36417E',
                   background: '#D9D9D9',
@@ -188,13 +257,13 @@ export const GameInterface: React.FC = () => {
                 </div>
               </div>
 
-              {/* Target Temperature Display - Only number - 恢复原始宽度 */}
+              {/* Target Temperature Display - Only number */}
               <div 
                 className="absolute text-center"
                 style={{
-                  top: '275px', // Below the temperature bar
+                  top: '275px',
                   left: '25px',
-                  width: '340px', // 恢复为原始宽度
+                  width: '340px',
                   fontFamily: 'Elza Condensed Black, sans-serif',
                   fontSize: '23px',
                   letterSpacing: '-0.423px',
@@ -205,12 +274,12 @@ export const GameInterface: React.FC = () => {
                 {Math.round(gameState.targetTemperature * 100)}
               </div>
 
-              {/* Temperature Pointer - 恢复原始范围 */}
+              {/* Temperature Pointer */}
               <div
                 className="absolute transition-all duration-100 flex items-center justify-center z-20"
                 style={{
                   top: '209px',
-                  left: `${25 + (gameState.currentTemperature * 315)}px`, // 恢复为原始范围 340px - 25px = 315px
+                  left: `${25 + (gameState.currentTemperature * 315)}px`,
                   width: '25px',
                   height: '57px',
                   border: '6px solid #36417E',
@@ -241,7 +310,7 @@ export const GameInterface: React.FC = () => {
                 </div>
               </button>
 
-              {/* Center interaction button - visibility based on interference type - 恢复原始位置 */}
+              {/* Center interaction button - visibility based on interference type */}
               <div className="absolute w-[111px] h-28 top-[667px] left-36">
                 <button
                   onClick={handleCenterButtonClick}
@@ -275,7 +344,7 @@ export const GameInterface: React.FC = () => {
                 </button>
               </div>
 
-              {/* Plus button - 恢复原始位置 */}
+              {/* Plus button */}
               <button
                 className={`absolute w-[71px] h-16 top-[691px] left-[296px] transition-all duration-100 hover:scale-105 active:scale-95 ${
                   gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
@@ -325,6 +394,29 @@ export const GameInterface: React.FC = () => {
           onNextRound={startNextRound}
         />
       </div>
+
+      {/* 排行榜模态框 */}
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        currentPlayerScore={playerBest ? {
+          score: playerBest.score,
+          rank: 1, // 这里需要从API获取实际排名
+          roundsCompleted: playerBest.roundsCompleted
+        } : undefined}
+      />
+
+      {/* 分数提交模态框 */}
+      <ScoreSubmissionModal
+        isOpen={showScoreSubmission}
+        onClose={() => setShowScoreSubmission(false)}
+        onSubmit={handleScoreSubmit}
+        gameStats={{
+          roundsCompleted: gameState.gameStatus === 'success' ? currentRound : currentRound - 1,
+          totalTime: totalGameTime,
+          finalComfort: gameState.currentComfort
+        }}
+      />
     </div>
   );
 };

@@ -60,6 +60,14 @@
       .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
         padding: 0 !important;
       }
+      
+      /* 确保游戏在任何环境下都能正确显示 */
+      .game-container {
+        position: relative;
+        width: 390px;
+        height: 844px;
+        margin: 0 auto;
+      }
     </style>
   </head>
   <body class="h-full bg-[#121213]">
@@ -81,13 +89,33 @@
       console.log('✅ Bypassing all Devvit requirements');
       console.log('🎮 Game ready to run locally!');
       
+      // 检测运行环境
+      const hostname = window.location.hostname;
+      const port = window.location.port;
+      const isBolt = hostname.includes('bolt') || hostname.includes('stackblitz') || hostname.includes('webcontainer');
+      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+      
+      console.log('🔍 Environment Detection:', {
+        hostname,
+        port,
+        isBolt,
+        isLocal,
+        userAgent: navigator.userAgent
+      });
+      
       // 设置全局标识
       window.__TEST_MODE__ = true;
       window.__SKIP_DEVVIT__ = true;
       window.__STANDALONE_GAME__ = true;
-      window.__BOLT_PREVIEW__ = window.location.hostname.includes('bolt') || 
-                                window.location.port === '7474' ||
-                                window.location.hostname === 'localhost';
+      window.__BOLT_PREVIEW__ = isBolt;
+      window.__LOCAL_DEV__ = isLocal;
+      
+      // 设置环境变量
+      if (!window.process) {
+        window.process = { env: {} };
+      }
+      window.process.env.NODE_ENV = 'development';
+      window.process.env.VITE_TEST_MODE = 'true';
       
       // 避免任何 Devvit 相关的检查
       window.addEventListener('error', function(e) {
@@ -106,7 +134,21 @@
         testMode: true
       };
       
+      // 强制启用 import.meta.env.DEV
+      if (!window.import) {
+        window.import = {};
+      }
+      if (!window.import.meta) {
+        window.import.meta = {};
+      }
+      if (!window.import.meta.env) {
+        window.import.meta.env = {};
+      }
+      window.import.meta.env.DEV = true;
+      window.import.meta.env.MODE = 'development';
+      
       console.log('🎯 All environment checks bypassed successfully!');
+      console.log('🚀 Game should load in test mode now!');
     </script>
     
     <script type="module" src="main.tsx"></script>

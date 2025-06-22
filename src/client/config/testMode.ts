@@ -18,14 +18,38 @@ export const TEST_MODE = {
       (window.location.hostname === 'localhost' || 
        window.location.hostname === '127.0.0.1' ||
        window.location.hostname.includes('bolt') ||
-       window.location.port === '7474');
+       window.location.hostname.includes('stackblitz') ||
+       window.location.hostname.includes('webcontainer') ||
+       window.location.port === '7474' ||
+       window.location.port === '5173' ||
+       window.location.port === '3000');
     
     // 检查是否通过测试命令启动
     const isTestCommand = typeof window !== 'undefined' &&
       (window.location.pathname.includes('test') || 
        document.title.includes('Test Mode'));
     
-    return isDev || hasTestParam || isLocalDev || isTestCommand;
+    // 检查是否在 Bolt/StackBlitz 环境
+    const isBoltEnvironment = typeof window !== 'undefined' &&
+      (window.location.hostname.includes('bolt') ||
+       window.location.hostname.includes('stackblitz') ||
+       window.location.hostname.includes('webcontainer') ||
+       // 检查全局变量
+       (window as any).__BOLT__ ||
+       (window as any).__STACKBLITZ__ ||
+       (window as any).__WEBCONTAINER__);
+    
+    console.log('🔍 Test Mode Detection:', {
+      isDev,
+      hasTestParam,
+      isLocalDev,
+      isTestCommand,
+      isBoltEnvironment,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'N/A',
+      port: typeof window !== 'undefined' ? window.location.port : 'N/A'
+    });
+    
+    return isDev || hasTestParam || isLocalDev || isTestCommand || isBoltEnvironment;
   })(),
   
   // 测试模式下的配置
@@ -51,7 +75,10 @@ export const TEST_MODE = {
     // Bolt Preview 专用配置
     boltPreviewMode: typeof window !== 'undefined' && 
       (window.location.hostname.includes('bolt') || 
+       window.location.hostname.includes('stackblitz') ||
+       window.location.hostname.includes('webcontainer') ||
        window.location.port === '7474' ||
+       window.location.port === '5173' ||
        window.location.hostname === 'localhost'),
   }
 };
@@ -113,6 +140,7 @@ export const initTestMode = () => {
     console.log('  • Debug logging enabled');
     console.log('  • All game mechanics work locally');
     console.log('  • Perfect for UI/UX testing');
+    console.log('  • Leaderboard with local scores');
     console.log('');
     console.log('🎮 Ready to test all game features immediately!');
     
@@ -126,6 +154,13 @@ export const initTestMode = () => {
       (window as any).__TEST_MODE__ = true;
       (window as any).__SKIP_DEVVIT__ = true;
       (window as any).__STANDALONE_GAME__ = true;
+      (window as any).__BOLT_PREVIEW__ = isBoltPreview();
+      
+      // 强制设置环境变量
+      if (!(window as any).process) {
+        (window as any).process = { env: {} };
+      }
+      (window as any).process.env.NODE_ENV = 'development';
     }
   }
 };
@@ -135,4 +170,12 @@ export const initTestMode = () => {
  */
 export const shouldSkipDevvit = (): boolean => {
   return isTestMode() && TEST_MODE.config.skipDevvitAuth;
+};
+
+/**
+ * 强制启用测试模式（用于调试）
+ */
+export const forceEnableTestMode = () => {
+  TEST_MODE.enabled = true;
+  initTestMode();
 };
