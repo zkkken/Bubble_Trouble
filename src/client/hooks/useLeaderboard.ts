@@ -54,53 +54,96 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         // 测试模式：使用模拟数据
         debugLog('Fetching mock leaderboard data');
         
-        const mockData: LeaderboardData = {
-          entries: [
+        // 检查是否有本地存储的分数数据
+        const localScores = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('catComfortGame_score_')) {
+            try {
+              const scoreData = JSON.parse(localStorage.getItem(key) || '');
+              localScores.push(scoreData);
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+
+        // 如果有本地分数，使用本地分数；否则使用模拟数据
+        let entries = [];
+        if (localScores.length > 0) {
+          entries = localScores
+            .sort((a, b) => b.score - a.score)
+            .map((score, index) => ({
+              rank: index + 1,
+              playerId: score.playerId,
+              playerName: score.playerName,
+              score: score.score,
+              roundsCompleted: score.roundsCompleted,
+              totalTime: score.totalTime,
+              completedAt: score.completedAt,
+              difficulty: score.difficulty
+            }));
+        } else {
+          // 创建一些示例数据
+          entries = [
             {
               rank: 1,
-              playerId: 'player1',
+              playerId: 'demo_player_1',
               playerName: 'CatMaster',
               score: 15750,
               roundsCompleted: 5,
               totalTime: 120,
               completedAt: Date.now() - 86400000,
-              difficulty: 'hard'
+              difficulty: 'hard' as const
             },
             {
               rank: 2,
-              playerId: 'player2',
+              playerId: 'demo_player_2',
               playerName: 'TemperatureKing',
               score: 12300,
               roundsCompleted: 4,
               totalTime: 95,
               completedAt: Date.now() - 172800000,
-              difficulty: 'medium'
+              difficulty: 'medium' as const
             },
             {
               rank: 3,
-              playerId: 'player3',
+              playerId: 'demo_player_3',
               playerName: 'ComfortZone',
               score: 9800,
               roundsCompleted: 3,
               totalTime: 85,
               completedAt: Date.now() - 259200000,
-              difficulty: 'medium'
+              difficulty: 'medium' as const
             }
-          ],
-          totalPlayers: 156,
+          ];
+        }
+
+        const mockData: LeaderboardData = {
+          entries,
+          totalPlayers: Math.max(entries.length, 156),
           lastUpdated: Date.now()
         };
 
         // 模拟网络延迟
         await new Promise(resolve => setTimeout(resolve, 500));
         setLeaderboardData(mockData);
+        debugLog('Mock leaderboard data loaded', mockData);
       } else {
         // 生产环境：调用真实API
+        debugLog('Fetching real leaderboard data from API');
         const response = await fetch('/api/leaderboard');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        debugLog('API response received', result);
 
         if (result.status === 'success') {
           setLeaderboardData(result.data);
+          debugLog('Leaderboard data set successfully', result.data);
         } else {
           throw new Error(result.message || 'Failed to fetch leaderboard');
         }
@@ -109,6 +152,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
       debugLog('Error fetching leaderboard', errorMessage);
+      console.error('Leaderboard fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -121,9 +165,13 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
 
       if (isTestMode()) {
         // 测试模式：从本地存储获取
-        const stored = localStorage.getItem('catComfortGame_playerBest');
+        const stored = localStorage.getItem(`catComfortGame_score_${playerId}`);
         if (stored) {
-          setPlayerBest(JSON.parse(stored));
+          const playerScore = JSON.parse(stored);
+          setPlayerBest(playerScore);
+          debugLog('Player best score loaded from localStorage', playerScore);
+        } else {
+          debugLog('No player best score found in localStorage');
         }
       } else {
         // 生产环境：调用真实API
@@ -132,10 +180,14 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
 
         if (result.status === 'success' && result.data) {
           setPlayerBest(result.data);
+          debugLog('Player best score loaded from API', result.data);
+        } else {
+          debugLog('No player best score found in API');
         }
       }
     } catch (err) {
       debugLog('Error fetching player best score', err);
+      console.error('Player best fetch error:', err);
     }
   }, [getPlayerId]);
 
@@ -159,28 +211,57 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       const difficultyMultiplier = { easy: 1.0, medium: 1.5, hard: 2.0 }[difficulty];
       const score = Math.round((baseScore + timeBonus + comboBonus) * difficultyMultiplier);
 
-      // 保存到本地存储
-      const playerScore: PlayerScore = {
-        playerId,
-        playerName,
-        score,
-        roundsCompleted,
-        totalTime,
-        completedAt: Date.now(),
-        difficulty
-      };
+      // 检查是否为新记录
+      const existingScoreStr = localStorage.getItem(`catComfortGame_score_${playerId}`);
+      let isNewRecord = true;
+      if (existingScoreStr) {
+        const existingScore = JSON.parse(existingScoreStr);
+        isNewRecord = score > existingScore.score;
+      }
 
-      localStorage.setItem('catComfortGame_playerBest', JSON.stringify(playerScore));
+      // 只有新记录才保存
+      if (isNewRecord) {
+        const playerScore: PlayerScore = {
+          playerId,
+          playerName,
+          score,
+          roundsCompleted,
+          totalTime,
+          completedAt: Date.now(),
+          difficulty
+        };
 
-      // 模拟排名（简单计算）
-      const rank = Math.max(1, Math.floor(Math.random() * 50) + 1);
-      const isNewRecord = true;
+        // 保存到本地存储
+        localStorage.setItem(`catComfortGame_score_${playerId}`, JSON.stringify(playerScore));
+        localStorage.setItem('catComfortGame_playerBest', JSON.stringify(playerScore));
+        
+        debugLog('New score saved to localStorage', playerScore);
+      }
+
+      // 计算排名（基于所有本地分数）
+      const allScores = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('catComfortGame_score_')) {
+          try {
+            const scoreData = JSON.parse(localStorage.getItem(key) || '');
+            allScores.push(scoreData);
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+
+      allScores.sort((a, b) => b.score - a.score);
+      const rank = allScores.findIndex(s => s.playerId === playerId) + 1;
 
       debugLog('Mock score submitted', { score, rank, isNewRecord });
 
-      return { rank, isNewRecord, score };
+      return { rank: rank || 1, isNewRecord, score };
     } else {
       // 生产环境：调用真实API
+      debugLog('Submitting real score to API', { playerName, roundsCompleted, totalTime, difficulty });
+      
       const response = await fetch('/api/submit-score', {
         method: 'POST',
         headers: {
@@ -195,7 +276,12 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
+      debugLog('Score submission API response', result);
 
       if (result.status === 'success') {
         return result.data;

@@ -60,6 +60,8 @@ export async function submitScore({
   difficulty?: 'easy' | 'medium' | 'hard';
 }): Promise<{ rank: number; isNewRecord: boolean; score: number }> {
   try {
+    console.log(`Submitting score for player ${playerId} (${playerName}): rounds=${roundsCompleted}, time=${totalTime}, difficulty=${difficulty}`);
+    
     const score = calculateScore(roundsCompleted, totalTime, difficulty);
     const completedAt = Date.now();
     
@@ -78,21 +80,30 @@ export async function submitScore({
     let isNewRecord = true;
     
     if (existingScoreStr) {
-      const existingScore: PlayerScore = JSON.parse(existingScoreStr);
-      isNewRecord = score > existingScore.score;
-      
-      // 只有新分数更高时才更新
-      if (!isNewRecord) {
-        const rank = await getPlayerRank(redis, playerId);
-        return { rank, isNewRecord: false, score: existingScore.score };
+      try {
+        const existingScore: PlayerScore = JSON.parse(existingScoreStr);
+        isNewRecord = score > existingScore.score;
+        
+        console.log(`Existing score: ${existingScore.score}, new score: ${score}, isNewRecord: ${isNewRecord}`);
+        
+        // 只有新分数更高时才更新
+        if (!isNewRecord) {
+          const rank = await getPlayerRank(redis, playerId);
+          return { rank, isNewRecord: false, score: existingScore.score };
+        }
+      } catch (parseError) {
+        console.error('Error parsing existing score:', parseError);
+        // 如果解析失败，继续保存新分数
       }
     }
 
     // 保存玩家分数
     await redis.hSet(PLAYER_SCORES_KEY, playerId, JSON.stringify(playerScore));
+    console.log(`Player score saved to hash: ${playerId}`);
     
     // 添加到排行榜（使用 Redis sorted set）
     await redis.zAdd(LEADERBOARD_KEY, { member: playerId, score });
+    console.log(`Player added to leaderboard sorted set: ${playerId} with score ${score}`);
     
     // 更新统计信息
     await updateLeaderboardStats(redis);
@@ -100,7 +111,7 @@ export async function submitScore({
     // 获取玩家排名
     const rank = await getPlayerRank(redis, playerId);
     
-    console.log(`Score submitted: player=${playerName}, score=${score}, rank=${rank}, isNewRecord=${isNewRecord}`);
+    console.log(`Score submitted successfully: player=${playerName}, score=${score}, rank=${rank}, isNewRecord=${isNewRecord}`);
     
     return { rank, isNewRecord, score };
   } catch (error) {
@@ -116,6 +127,7 @@ export async function submitScore({
 async function getPlayerRank(redis: Context['redis'] | RedisClient, playerId: string): Promise<number> {
   try {
     const rank = await redis.zRevRank(LEADERBOARD_KEY, playerId);
+    console.log(`Player ${playerId} rank: ${rank}`);
     return rank !== null ? rank + 1 : -1; // Redis rank is 0-based, convert to 1-based
   } catch (error) {
     console.error('Error getting player rank:', error);
@@ -135,8 +147,11 @@ export async function getLeaderboard({
   limit?: number;
 }): Promise<LeaderboardData> {
   try {
+    console.log(`Getting leaderboard with limit: ${limit}`);
+    
     // 获取排行榜前 N 名
     const topPlayers = await redis.zRevRange(LEADERBOARD_KEY, 0, limit - 1, { by: 'rank' });
+    console.log(`Top players from sorted set:`, topPlayers);
     
     const entries: LeaderboardEntry[] = [];
     
@@ -144,29 +159,41 @@ export async function getLeaderboard({
       const playerId = topPlayers[i];
       const playerScoreStr = await redis.hGet(PLAYER_SCORES_KEY, playerId);
       
+      console.log(`Getting score for player ${playerId}: ${playerScoreStr}`);
+      
       if (playerScoreStr) {
-        const playerScore: PlayerScore = JSON.parse(playerScoreStr);
-        entries.push({
-          rank: i + 1,
-          playerId: playerScore.playerId,
-          playerName: playerScore.playerName,
-          score: playerScore.score,
-          roundsCompleted: playerScore.roundsCompleted,
-          totalTime: playerScore.totalTime,
-          completedAt: playerScore.completedAt,
-          difficulty: playerScore.difficulty
-        });
+        try {
+          const playerScore: PlayerScore = JSON.parse(playerScoreStr);
+          entries.push({
+            rank: i + 1,
+            playerId: playerScore.playerId,
+            playerName: playerScore.playerName,
+            score: playerScore.score,
+            roundsCompleted: playerScore.roundsCompleted,
+            totalTime: playerScore.totalTime,
+            completedAt: playerScore.completedAt,
+            difficulty: playerScore.difficulty
+          });
+        } catch (parseError) {
+          console.error(`Error parsing player score for ${playerId}:`, parseError);
+        }
+      } else {
+        console.warn(`No score data found for player ${playerId}`);
       }
     }
 
     // 获取总玩家数
     const totalPlayers = await redis.zCard(LEADERBOARD_KEY);
+    console.log(`Total players in leaderboard: ${totalPlayers}`);
     
-    return {
+    const result = {
       entries,
       totalPlayers,
       lastUpdated: Date.now()
     };
+    
+    console.log(`Leaderboard data prepared:`, result);
+    return result;
   } catch (error) {
     console.error('Error getting leaderboard:', error);
     return {
@@ -189,8 +216,19 @@ export async function getPlayerBest({
   playerId: string;
 }): Promise<PlayerScore | null> {
   try {
+    console.log(`Getting best score for player: ${playerId}`);
     const playerScoreStr = await redis.hGet(PLAYER_SCORES_KEY, playerId);
-    return playerScoreStr ? JSON.parse(playerScoreStr) : null;
+    console.log(`Player best score data: ${playerScoreStr}`);
+    
+    if (playerScoreStr) {
+      try {
+        return JSON.parse(playerScoreStr);
+      } catch (parseError) {
+        console.error(`Error parsing player best score for ${playerId}:`, parseError);
+        return null;
+      }
+    }
+    return null;
   } catch (error) {
     console.error('Error getting player best score:', error);
     return null;
@@ -203,12 +241,14 @@ export async function getPlayerBest({
  */
 async function updateLeaderboardStats(redis: Context['redis'] | RedisClient): Promise<void> {
   try {
+    const totalPlayers = await redis.zCard(LEADERBOARD_KEY);
     const stats = {
-      totalPlayers: await redis.zCard(LEADERBOARD_KEY),
+      totalPlayers,
       lastUpdated: Date.now()
     };
     
     await redis.set(LEADERBOARD_STATS_KEY, JSON.stringify(stats));
+    console.log(`Leaderboard stats updated: ${totalPlayers} total players`);
   } catch (error) {
     console.error('Error updating leaderboard stats:', error);
   }
@@ -229,5 +269,45 @@ export async function cleanupLeaderboard(redis: Context['redis'] | RedisClient):
     }
   } catch (error) {
     console.error('Error cleaning up leaderboard:', error);
+  }
+}
+
+/**
+ * 调试函数：获取 Redis 中的所有数据
+ * Debug function: Get all data from Redis
+ */
+export async function debugLeaderboard(redis: Context['redis'] | RedisClient): Promise<void> {
+  try {
+    console.log('=== LEADERBOARD DEBUG INFO ===');
+    
+    // 检查 sorted set
+    const leaderboardSize = await redis.zCard(LEADERBOARD_KEY);
+    console.log(`Leaderboard sorted set size: ${leaderboardSize}`);
+    
+    if (leaderboardSize > 0) {
+      const allPlayers = await redis.zRevRange(LEADERBOARD_KEY, 0, -1, { by: 'rank' });
+      console.log('All players in sorted set:', allPlayers);
+      
+      for (const playerId of allPlayers) {
+        const score = await redis.zScore(LEADERBOARD_KEY, playerId);
+        console.log(`Player ${playerId} score in sorted set: ${score}`);
+      }
+    }
+    
+    // 检查 hash
+    const allPlayerScores = await redis.hGetAll(PLAYER_SCORES_KEY);
+    console.log('All player scores in hash:', Object.keys(allPlayerScores));
+    
+    for (const [playerId, scoreData] of Object.entries(allPlayerScores)) {
+      console.log(`Player ${playerId} data:`, scoreData);
+    }
+    
+    // 检查统计信息
+    const stats = await redis.get(LEADERBOARD_STATS_KEY);
+    console.log('Leaderboard stats:', stats);
+    
+    console.log('=== END DEBUG INFO ===');
+  } catch (error) {
+    console.error('Error in debug function:', error);
   }
 }

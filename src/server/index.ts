@@ -3,7 +3,7 @@ import { createServer, getContext, getServerPort } from '@devvit/server';
 import { InitResponse, GameDataResponse, UpdateGameResponse, ResetGameResponse } from '../shared/types/game';
 import { LeaderboardResponse, SubmitScoreResponse } from '../shared/types/leaderboard';
 import { postConfigGet, postConfigNew, postConfigMaybeGet, handleButtonPress, resetGame, processGameUpdate } from './core/post';
-import { submitScore, getLeaderboard, getPlayerBest } from './core/leaderboard';
+import { submitScore, getLeaderboard, getPlayerBest, debugLeaderboard } from './core/leaderboard';
 import { getRedis } from '@devvit/redis';
 
 const app = express();
@@ -154,16 +154,22 @@ router.post('/api/reset-game', async (req, res): Promise<void> => {
 // 新增的排行榜API路由
 router.post('/api/submit-score', async (req, res): Promise<void> => {
   try {
+    console.log('Submit score API called with body:', req.body);
+    
     const { playerId, playerName, roundsCompleted, totalTime, difficulty } = req.body;
     const redis = getRedis();
 
     if (!playerId || !playerName || typeof roundsCompleted !== 'number' || typeof totalTime !== 'number') {
+      const errorMsg = 'playerId, playerName, roundsCompleted, and totalTime are required';
+      console.error('Submit score validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
-        message: 'playerId, playerName, roundsCompleted, and totalTime are required' 
+        message: errorMsg
       });
       return;
     }
+
+    console.log(`Processing score submission: ${playerName} (${playerId}), rounds: ${roundsCompleted}, time: ${totalTime}, difficulty: ${difficulty}`);
 
     const result = await submitScore({
       redis,
@@ -173,6 +179,8 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       totalTime,
       difficulty: difficulty || 'medium'
     });
+
+    console.log('Score submission result:', result);
 
     const response: SubmitScoreResponse = {
       status: 'success',
@@ -193,10 +201,19 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
 
 router.get('/api/leaderboard', async (req, res): Promise<void> => {
   try {
+    console.log('Leaderboard API called with query:', req.query);
+    
     const limit = parseInt(req.query.limit as string) || 50;
     const redis = getRedis();
 
+    console.log(`Getting leaderboard with limit: ${limit}`);
+
+    // 调试：打印 Redis 中的数据
+    await debugLeaderboard(redis);
+
     const leaderboardData = await getLeaderboard({ redis, limit });
+
+    console.log('Leaderboard data retrieved:', leaderboardData);
 
     const response: LeaderboardResponse = {
       status: 'success',
@@ -217,6 +234,8 @@ router.get('/api/leaderboard', async (req, res): Promise<void> => {
 
 router.get('/api/player-best', async (req, res): Promise<void> => {
   try {
+    console.log('Player best API called with query:', req.query);
+    
     const playerId = req.query.playerId as string;
     const redis = getRedis();
 
@@ -228,7 +247,11 @@ router.get('/api/player-best', async (req, res): Promise<void> => {
       return;
     }
 
+    console.log(`Getting best score for player: ${playerId}`);
+
     const playerBest = await getPlayerBest({ redis, playerId });
+
+    console.log('Player best score retrieved:', playerBest);
 
     res.json({
       status: 'success',
@@ -238,6 +261,18 @@ router.get('/api/player-best', async (req, res): Promise<void> => {
     console.error('API Player Best Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ status: 'error', message });
+  }
+});
+
+// 调试路由
+router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
+  try {
+    const redis = getRedis();
+    await debugLeaderboard(redis);
+    res.json({ status: 'success', message: 'Debug info printed to console' });
+  } catch (error) {
+    console.error('Debug API Error:', error);
+    res.status(500).json({ status: 'error', message: 'Debug failed' });
   }
 });
 

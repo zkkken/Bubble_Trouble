@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LeaderboardData, LeaderboardEntry } from '../../shared/types/leaderboard';
+import { isTestMode, debugLog } from '../config/testMode';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -33,16 +34,112 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     setError(null);
     
     try {
-      const response = await fetch('/api/leaderboard');
-      const result = await response.json();
+      debugLog('LeaderboardModal: Starting to fetch leaderboard data');
       
-      if (result.status === 'success') {
-        setLeaderboardData(result.data);
+      if (isTestMode()) {
+        debugLog('LeaderboardModal: Using test mode');
+        
+        // 测试模式：从本地存储获取数据
+        const localScores = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('catComfortGame_score_')) {
+            try {
+              const scoreData = JSON.parse(localStorage.getItem(key) || '');
+              localScores.push(scoreData);
+            } catch (e) {
+              debugLog('LeaderboardModal: Error parsing local score', e);
+            }
+          }
+        }
+
+        debugLog('LeaderboardModal: Found local scores', localScores);
+
+        let entries = [];
+        if (localScores.length > 0) {
+          entries = localScores
+            .sort((a, b) => b.score - a.score)
+            .map((score, index) => ({
+              rank: index + 1,
+              playerId: score.playerId,
+              playerName: score.playerName,
+              score: score.score,
+              roundsCompleted: score.roundsCompleted,
+              totalTime: score.totalTime,
+              completedAt: score.completedAt,
+              difficulty: score.difficulty
+            }));
+        } else {
+          // 如果没有本地分数，创建一些示例数据
+          debugLog('LeaderboardModal: No local scores found, creating demo data');
+          entries = [
+            {
+              rank: 1,
+              playerId: 'demo_player_1',
+              playerName: 'CatMaster',
+              score: 15750,
+              roundsCompleted: 5,
+              totalTime: 120,
+              completedAt: Date.now() - 86400000,
+              difficulty: 'hard' as const
+            },
+            {
+              rank: 2,
+              playerId: 'demo_player_2',
+              playerName: 'TemperatureKing',
+              score: 12300,
+              roundsCompleted: 4,
+              totalTime: 95,
+              completedAt: Date.now() - 172800000,
+              difficulty: 'medium' as const
+            },
+            {
+              rank: 3,
+              playerId: 'demo_player_3',
+              playerName: 'ComfortZone',
+              score: 9800,
+              roundsCompleted: 3,
+              totalTime: 85,
+              completedAt: Date.now() - 259200000,
+              difficulty: 'medium' as const
+            }
+          ];
+        }
+
+        const mockData: LeaderboardData = {
+          entries,
+          totalPlayers: Math.max(entries.length, 156),
+          lastUpdated: Date.now()
+        };
+
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setLeaderboardData(mockData);
+        debugLog('LeaderboardModal: Mock data set successfully', mockData);
       } else {
-        setError(result.message || 'Failed to load leaderboard');
+        debugLog('LeaderboardModal: Using production mode, calling API');
+        
+        const response = await fetch('/api/leaderboard');
+        debugLog('LeaderboardModal: API response status', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        debugLog('LeaderboardModal: API response data', result);
+        
+        if (result.status === 'success') {
+          setLeaderboardData(result.data);
+          debugLog('LeaderboardModal: Production data set successfully', result.data);
+        } else {
+          throw new Error(result.message || 'Failed to load leaderboard');
+        }
       }
     } catch (err) {
-      setError('Network error while loading leaderboard');
+      const errorMessage = err instanceof Error ? err.message : 'Network error while loading leaderboard';
+      setError(errorMessage);
+      debugLog('LeaderboardModal: Error occurred', errorMessage);
       console.error('Error fetching leaderboard:', err);
     } finally {
       setLoading(false);
@@ -51,6 +148,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      debugLog('LeaderboardModal: Modal opened, fetching data');
       fetchLeaderboard();
     }
   }, [isOpen]);
@@ -124,6 +222,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               <p className="mt-2 text-gray-600">Loading leaderboard...</p>
+              {isTestMode() && (
+                <p className="mt-1 text-sm text-blue-600">Test Mode: Loading local scores</p>
+              )}
             </div>
           )}
 
@@ -136,6 +237,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               >
                 Try Again
               </button>
+              {isTestMode() && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Test Mode Debug:</strong> Try playing a game first to generate some scores!
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -149,6 +257,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <div className="text-sm text-gray-500 mt-1">
                   Last updated: {formatDate(leaderboardData.lastUpdated)}
                 </div>
+                {isTestMode() && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    Test Mode: Showing {leaderboardData.entries.length} local scores
+                  </div>
+                )}
               </div>
 
               {/* Leaderboard entries */}
@@ -156,6 +269,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <div className="text-center py-8 text-gray-500">
                   <div className="text-4xl mb-4">🐱</div>
                   <div>No scores yet. Be the first to play!</div>
+                  {isTestMode() && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Test Mode:</strong> Complete a game and submit your score to see it here!
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
