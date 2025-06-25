@@ -151,16 +151,17 @@ router.post('/api/reset-game', async (req, res): Promise<void> => {
   }
 });
 
-// 新增的排行榜API路由
+// 复合分数排行榜API路由
 router.post('/api/submit-score', async (req, res): Promise<void> => {
   try {
     console.log('Submit score API called with body:', req.body);
     
-    const { playerId, playerName, roundsCompleted, totalTime, difficulty } = req.body;
+    const { playerId, playerName, roundsCompleted, totalTime, difficulty, countryCode } = req.body;
     const redis = getRedis();
 
-    if (!playerId || !playerName || typeof roundsCompleted !== 'number' || typeof totalTime !== 'number') {
-      const errorMsg = 'playerId, playerName, roundsCompleted, and totalTime are required';
+    // 验证必需参数
+    if (!playerId || !playerName || typeof roundsCompleted !== 'number' || typeof totalTime !== 'number' || !countryCode) {
+      const errorMsg = 'playerId, playerName, roundsCompleted, totalTime, and countryCode are required';
       console.error('Submit score validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
@@ -169,7 +170,18 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       return;
     }
 
-    console.log(`Processing score submission: ${playerName} (${playerId}), rounds: ${roundsCompleted}, time: ${totalTime}, difficulty: ${difficulty}`);
+    // 验证国家代码格式 (应该是2位字母)
+    if (!/^[A-Z]{2}$/i.test(countryCode)) {
+      const errorMsg = 'countryCode must be a valid 2-letter ISO country code';
+      console.error('Invalid country code:', countryCode);
+      res.status(400).json({ 
+        status: 'error', 
+        message: errorMsg
+      });
+      return;
+    }
+
+    console.log(`Processing composite score submission: ${playerName} (${playerId}), rounds: ${roundsCompleted}, time: ${totalTime}, difficulty: ${difficulty}, country: ${countryCode}`);
 
     const result = await submitScore({
       redis,
@@ -177,10 +189,11 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       playerName,
       roundsCompleted,
       totalTime,
-      difficulty: difficulty || 'medium'
+      difficulty: difficulty || 'medium',
+      countryCode: countryCode.toUpperCase()
     });
 
-    console.log('Score submission result:', result);
+    console.log('Composite score submission result:', result);
 
     const response: SubmitScoreResponse = {
       status: 'success',
@@ -204,16 +217,30 @@ router.get('/api/leaderboard', async (req, res): Promise<void> => {
     console.log('Leaderboard API called with query:', req.query);
     
     const limit = parseInt(req.query.limit as string) || 50;
+    const countryCode = req.query.countryCode as string;
     const redis = getRedis();
 
-    console.log(`Getting leaderboard with limit: ${limit}`);
+    console.log(`Getting leaderboard with limit: ${limit}, countryCode: ${countryCode || 'global'}`);
+
+    // 验证国家代码格式（如果提供）
+    if (countryCode && !/^[A-Z]{2}$/i.test(countryCode)) {
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'countryCode must be a valid 2-letter ISO country code' 
+      });
+      return;
+    }
 
     // 调试：打印 Redis 中的数据
     await debugLeaderboard(redis);
 
-    const leaderboardData = await getLeaderboard({ redis, limit });
+    const leaderboardData = await getLeaderboard({ 
+      redis, 
+      limit, 
+      countryCode: countryCode?.toUpperCase() 
+    });
 
-    console.log('Leaderboard data retrieved:', leaderboardData);
+    console.log('Composite score leaderboard data retrieved:', leaderboardData);
 
     const response: LeaderboardResponse = {
       status: 'success',
@@ -269,14 +296,12 @@ router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
   try {
     const redis = getRedis();
     await debugLeaderboard(redis);
-    res.json({ status: 'success', message: 'Debug info printed to console' });
+    res.json({ status: 'success', message: 'Composite score debug info printed to console' });
   } catch (error) {
     console.error('Debug API Error:', error);
     res.status(500).json({ status: 'error', message: 'Debug failed' });
   }
 });
-
-app.use(router);
 
 const port = getServerPort();
 const server = createServer(app);

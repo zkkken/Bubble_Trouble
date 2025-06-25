@@ -1,5 +1,5 @@
 /**
- * 主游戏界面组件
+ * 主游戏界面组件 (复合分数版本)
  * 负责整体游戏界面的布局和交互
  * 
  * @author 开发者B - UI/UX 界面负责人
@@ -61,6 +61,9 @@ export const GameInterface: React.FC = () => {
   const [showScoreSubmission, setShowScoreSubmission] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalGameTime, setTotalGameTime] = useState<number>(0);
+  
+  // 用户国家代码 (在实际应用中，这应该从用户数据或地理位置API获取)
+  const [userCountryCode] = useState<string>('US'); // 默认美国，可以根据需要修改
 
   // 当游戏开始时记录开始时间
   useEffect(() => {
@@ -88,17 +91,20 @@ export const GameInterface: React.FC = () => {
     fetchPlayerBest();
   }, [fetchPlayerBest]);
 
-  // 处理分数提交
-  const handleScoreSubmit = async (playerName: string, difficulty: 'easy' | 'medium' | 'hard') => {
+  // 处理分数提交 (复合分数版本)
+  const handleScoreSubmit = async (playerName: string, difficulty: 'easy' | 'medium' | 'hard', countryCode: string) => {
     try {
       const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
-      const result = await submitScore(playerName, roundsCompleted, totalGameTime, difficulty);
+      const result = await submitScore(playerName, roundsCompleted, totalGameTime, difficulty, countryCode);
       
       // 提交成功后刷新玩家最佳成绩
       await fetchPlayerBest();
       
       // 显示结果
-      alert(`Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}`);
+      const message = `Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}\n` +
+                     `Raw Score: ${result.score.toLocaleString()}\n` +
+                     `Composite Score: ${result.compositeScore.toLocaleString()}`;
+      alert(message);
     } catch (error) {
       console.error('Error submitting score:', error);
       throw error;
@@ -395,18 +401,20 @@ export const GameInterface: React.FC = () => {
         />
       </div>
 
-      {/* 排行榜模态框 */}
+      {/* 排行榜模态框 (复合分数版本) */}
       <LeaderboardModal
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
         currentPlayerScore={playerBest ? {
           score: playerBest.score,
           rank: 1, // 这里需要从API获取实际排名
-          roundsCompleted: playerBest.roundsCompleted
+          roundsCompleted: playerBest.roundsCompleted,
+          compositeScore: playerBest.compositeScore
         } : undefined}
+        userCountryCode={userCountryCode}
       />
 
-      {/* 分数提交模态框 */}
+      {/* 分数提交模态框 (复合分数版本) */}
       <ScoreSubmissionModal
         isOpen={showScoreSubmission}
         onClose={() => setShowScoreSubmission(false)}
@@ -416,6 +424,7 @@ export const GameInterface: React.FC = () => {
           totalTime: totalGameTime,
           finalComfort: gameState.currentComfort
         }}
+        userCountryCode={userCountryCode}
       />
     </div>
   );
