@@ -1,6 +1,6 @@
 /**
- * 主游戏界面组件 (重构版本 - 支持开始游戏界面)
- * 负责整体游戏界面的布局和交互，现在包含开始游戏流程
+ * 主游戏界面组件 (游戏结算界面版本)
+ * 负责整体游戏界面的布局和交互，现在包含新的游戏结算界面
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -11,12 +11,10 @@ import { GameConfig } from '../types/GameTypes';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { ProgressBar } from './ProgressBar';
-import { GameOverlay } from './GameOverlay';
-import { InterferenceOverlay } from './InterferenceOverlay';
 import { TestModeIndicator } from './TestModeIndicator';
 import { LeaderboardModal } from './LeaderboardModal';
 import { StartGameScreen } from './StartGameScreen';
-import { GameResultModal } from './GameResultModal';
+import { GameCompletionScreen } from './GameCompletionScreen';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -70,7 +68,7 @@ export const GameInterface: React.FC = () => {
 
   // UI 状态
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showGameResult, setShowGameResult] = useState(false);
+  const [showGameCompletion, setShowGameCompletion] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalGameTime, setTotalGameTime] = useState<number>(0);
   
@@ -88,7 +86,7 @@ export const GameInterface: React.FC = () => {
   const handleBackToStart = () => {
     setIsGameStarted(false);
     setPlayerInfo(null);
-    setShowGameResult(false);
+    setShowGameCompletion(false);
     resetGame();
   };
 
@@ -99,19 +97,22 @@ export const GameInterface: React.FC = () => {
     }
   }, [gameState.gameStatus, currentRound, isGameStarted]);
 
-  // 当游戏结束时计算总时间并显示结果
+  // 当游戏结束时计算总时间并显示游戏结算界面
   useEffect(() => {
     if (gameState.gameStatus === 'success' || gameState.gameStatus === 'failure') {
       const endTime = Date.now();
       const totalTime = Math.round((endTime - gameStartTime) / 1000);
       setTotalGameTime(totalTime);
 
-      // 只有成功完成至少一轮才显示结果
-      if (currentRound > 1 || gameState.gameStatus === 'success') {
-        setShowGameResult(true);
+      // 自动提交分数到排行榜
+      if (playerInfo && (currentRound > 1 || gameState.gameStatus === 'success')) {
+        handleAutoScoreSubmit(totalTime);
       }
+
+      // 显示游戏结算界面
+      setShowGameCompletion(true);
     }
-  }, [gameState.gameStatus, gameStartTime, currentRound]);
+  }, [gameState.gameStatus, gameStartTime, currentRound, playerInfo]);
 
   // 初始化时获取玩家最佳成绩
   useEffect(() => {
@@ -120,21 +121,21 @@ export const GameInterface: React.FC = () => {
     }
   }, [fetchPlayerBest, isGameStarted]);
 
-  // 处理分数提交 (自动提交，使用预设的玩家信息)
-  const handleAutoScoreSubmit = async (difficulty: 'easy' | 'medium' | 'hard' = 'medium') => {
+  // 处理自动分数提交
+  const handleAutoScoreSubmit = async (totalTime: number) => {
     if (!playerInfo) return;
 
     try {
       const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
       
       // 计算通关标志：如果总时间超过60秒则为'N'，否则为'Y'
-      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'N' : 'Y';
+      const completionFlag: 'Y' | 'N' = totalTime > 60 ? 'N' : 'Y';
       
       const result = await submitScore(
         playerInfo.playerName, 
         roundsCompleted, 
-        totalGameTime, 
-        difficulty, 
+        totalTime, 
+        'medium', // 默认难度
         userCountryCode,
         playerInfo.catAvatarId,
         playerInfo.continentId,
@@ -144,16 +145,9 @@ export const GameInterface: React.FC = () => {
       // 提交成功后刷新玩家最佳成绩
       await fetchPlayerBest();
       
-      // 显示结果
-      const message = `Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}\n` +
-                     `Raw Score: ${result.score.toLocaleString()}\n` +
-                     `Composite Score: ${result.compositeScore.toLocaleString()}\n` +
-                     `Avatar: ${playerInfo.catAvatarId} | Continent: ${playerInfo.continentId}`;
-      console.log(message);
-      return result;
+      console.log('Score auto-submitted:', result);
     } catch (error) {
-      console.error('Error submitting score:', error);
-      throw error;
+      console.error('Error auto-submitting score:', error);
     }
   };
 
@@ -167,6 +161,25 @@ export const GameInterface: React.FC = () => {
   // 如果游戏未开始，显示开始游戏界面
   if (!isGameStarted) {
     return <StartGameScreen onStartGame={handleStartGame} />;
+  }
+
+  // 如果游戏结束，显示游戏结算界面
+  if (showGameCompletion && playerInfo) {
+    return (
+      <GameCompletionScreen
+        onPlayAgain={() => {
+          setShowGameCompletion(false);
+          resetGame();
+        }}
+        onBackToStart={handleBackToStart}
+        gameStats={{
+          roundsCompleted: gameState.gameStatus === 'success' ? currentRound : currentRound - 1,
+          totalTime: totalGameTime,
+          finalComfort: gameState.currentComfort
+        }}
+        playerInfo={playerInfo}
+      />
+    );
   }
 
   return (
@@ -454,22 +467,59 @@ export const GameInterface: React.FC = () => {
               </div>
 
               {/* Interference system overlays */}
-              <InterferenceOverlay
-                interferenceEvent={gameState.interferenceEvent}
-                onCenterButtonClick={handleCenterButtonClick}
-                isControlsReversed={gameState.isControlsReversed}
-              />
+              {gameState.interferenceEvent.isActive && (
+                <>
+                  {/* Interference notification */}
+                  <div className="absolute top-16 left-4 right-4 z-40">
+                    <div className="bg-purple-500 text-white p-3 rounded-lg shadow-lg animate-pulse">
+                      <div className="flex items-center justify-center mb-2">
+                        <span className="text-2xl mr-2">
+                          {gameState.interferenceEvent.type === 'controls_reversed' && '🔄'}
+                          {gameState.interferenceEvent.type === 'temperature_shock' && '⚡'}
+                          {gameState.interferenceEvent.type === 'bubble_obstruction' && '🫧'}
+                        </span>
+                        <h3 className="font-bold text-lg">
+                          {gameState.interferenceEvent.type === 'controls_reversed' && 'Controls Reversed!'}
+                          {gameState.interferenceEvent.type === 'temperature_shock' && 'Temperature Shock!'}
+                          {gameState.interferenceEvent.type === 'bubble_obstruction' && 'Bubble Trouble!'}
+                        </h3>
+                      </div>
+                      <p className="text-center text-sm">
+                        {gameState.interferenceEvent.type === 'controls_reversed' && 'The + and - buttons are swapped!'}
+                        {gameState.interferenceEvent.type === 'temperature_shock' && 'The target temperature has shifted!'}
+                        {gameState.interferenceEvent.type === 'bubble_obstruction' && 'Bubbles are blocking your view!'}
+                      </p>
+                      {gameState.interferenceEvent.type !== 'controls_reversed' && (
+                        <p className="text-center text-xs mt-1 opacity-80">
+                          Click the center button to fix!
+                        </p>
+                      )}
+                      {gameState.interferenceEvent.type === 'controls_reversed' && (
+                        <p className="text-center text-xs mt-1 opacity-80">
+                          Auto-clears in {Math.ceil(gameState.interferenceEvent.remainingTime)}s
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Enhanced Bubble obstruction effect */}
+                  {gameState.interferenceEvent.type === 'bubble_obstruction' && (
+                    <div className="absolute inset-0 z-30 pointer-events-none">
+                      <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-white bg-opacity-85 rounded-full animate-bounce shadow-lg" />
+                      <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-white bg-opacity-80 rounded-full animate-pulse shadow-lg" />
+                      <div className="absolute bottom-1/3 left-1/3 w-16 h-16 bg-white bg-opacity-90 rounded-full animate-bounce shadow-lg" />
+                      <div className="absolute top-1/2 right-1/3 w-18 h-18 bg-white bg-opacity-75 rounded-full animate-pulse shadow-lg" />
+                      <div className="absolute top-2/3 left-1/5 w-12 h-12 bg-white bg-opacity-70 rounded-full animate-bounce shadow-md" />
+                      <div className="absolute bottom-1/4 right-1/5 w-14 h-14 bg-white bg-opacity-85 rounded-full animate-pulse shadow-md" />
+                      <div className="absolute top-1/5 right-2/5 w-10 h-10 bg-white bg-opacity-80 rounded-full animate-bounce shadow-md" />
+                      <div className="absolute top-[218px] left-[25px] w-[340px] h-[39px] bg-white bg-opacity-40 rounded animate-pulse" />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
-
-        {/* Game Over Overlay */}
-        <GameOverlay 
-          gameState={gameState} 
-          currentRound={currentRound}
-          onRestart={resetGame}
-          onNextRound={startNextRound}
-        />
       </div>
 
       {/* 排行榜模态框 */}
@@ -483,24 +533,6 @@ export const GameInterface: React.FC = () => {
           compositeScore: playerBest.compositeScore
         } : undefined}
         userCountryCode={userCountryCode}
-      />
-
-      {/* 游戏结果模态框 (替代原来的分数提交模态框) */}
-      <GameResultModal
-        isOpen={showGameResult}
-        onClose={() => setShowGameResult(false)}
-        onSubmitScore={handleAutoScoreSubmit}
-        onPlayAgain={() => {
-          setShowGameResult(false);
-          resetGame();
-        }}
-        onBackToStart={handleBackToStart}
-        gameStats={{
-          roundsCompleted: gameState.gameStatus === 'success' ? currentRound : currentRound - 1,
-          totalTime: totalGameTime,
-          finalComfort: gameState.currentComfort
-        }}
-        playerInfo={playerInfo}
       />
     </div>
   );

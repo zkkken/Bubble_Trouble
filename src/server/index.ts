@@ -7,8 +7,10 @@ import {
   getLeaderboard, 
   getPlayerBest, 
   debugLeaderboard,
+  getContinentStats,
   PlayerScore,
-  LeaderboardData 
+  LeaderboardData,
+  ContinentStats
 } from './core/leaderboard';
 import { getRedis } from '@devvit/redis';
 
@@ -159,10 +161,10 @@ router.post('/api/reset-game', async (req, res): Promise<void> => {
   }
 });
 
-// ==================== 全局排行榜API路由 ====================
+// ==================== 洲际排行榜API路由 ====================
 
 /**
- * 提交分数到全局排行榜
+ * 提交分数到全球排行榜
  * Submit score to global leaderboard
  * POST /api/submit-score
  */
@@ -184,10 +186,10 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       return;
     }
 
-    // 验证数据类型
-    if (typeof playerScore.roundsCompleted !== 'number' || typeof playerScore.totalTime !== 'number') {
-      const errorMsg = 'roundsCompleted and totalTime must be numbers';
-      console.error('Submit score type validation error:', errorMsg);
+    // 验证洲际ID
+    if (!playerScore.continentId) {
+      const errorMsg = 'continentId is required';
+      console.error('Submit score validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
         message: errorMsg
@@ -196,7 +198,7 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
     }
 
     console.log(`Processing score submission: ${playerScore.playerName} (${playerScore.playerId})`);
-    console.log(`Completion time: ${playerScore.completionTime}s, Rounds: ${playerScore.roundsCompleted}`);
+    console.log(`Completion time: ${playerScore.completionTime}s, Continent: ${playerScore.continentId}`);
 
     // 添加时间戳
     const playerScoreWithTimestamp: PlayerScore = {
@@ -227,30 +229,33 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
 });
 
 /**
- * 获取全局排行榜
- * Get global leaderboard
- * GET /api/leaderboard
+ * 获取排行榜数据 (支持洲际过滤)
+ * Get leaderboard data (supports continent filtering)
+ * GET /api/leaderboard?continentId=XX
  */
 router.get('/api/leaderboard', async (req, res): Promise<void> => {
   try {
     console.log('Leaderboard API called with query:', req.query);
     
     const limit = parseInt(req.query.limit as string) || 100;
+    const continentId = req.query.continentId as string;
     const redis = getRedis();
 
-    console.log(`Getting global leaderboard with limit: ${limit}`);
+    console.log(`Getting leaderboard with limit: ${limit}, continentId: ${continentId || 'global'}`);
 
     // 调试：打印 Redis 中的数据
     await debugLeaderboard(redis);
 
     const leaderboardData: LeaderboardData = await getLeaderboard({ 
       redis, 
-      limit 
+      limit,
+      continentId 
     });
 
-    console.log('Global leaderboard data retrieved:', {
+    console.log('Leaderboard data retrieved:', {
       entriesCount: leaderboardData.entries.length,
-      totalPlayers: leaderboardData.totalPlayers
+      totalPlayers: leaderboardData.totalPlayers,
+      continentId: leaderboardData.continentId
     });
 
     res.json({
@@ -259,6 +264,34 @@ router.get('/api/leaderboard', async (req, res): Promise<void> => {
     });
   } catch (error) {
     console.error('API Leaderboard Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ 
+      status: 'error', 
+      message 
+    });
+  }
+});
+
+/**
+ * 获取洲际统计数据
+ * Get continent statistics
+ * GET /api/leaderboard/stats
+ */
+router.get('/api/leaderboard/stats', async (_req, res): Promise<void> => {
+  try {
+    console.log('Continent stats API called');
+    
+    const redis = getRedis();
+    const continentStats: ContinentStats[] = await getContinentStats({ redis });
+
+    console.log('Continent statistics retrieved:', continentStats);
+
+    res.json({
+      status: 'success',
+      data: continentStats
+    });
+  } catch (error) {
+    console.error('API Continent Stats Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ 
       status: 'error', 
@@ -317,7 +350,7 @@ router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
     await debugLeaderboard(redis);
     res.json({ 
       status: 'success', 
-      message: 'Global leaderboard debug info printed to console' 
+      message: 'Continental leaderboard debug info printed to console' 
     });
   } catch (error) {
     console.error('Debug API Error:', error);
@@ -362,10 +395,12 @@ const port = getServerPort();
 const server = createServer(app);
 server.on('error', (err) => console.error(`server error; ${err.stack}`));
 server.listen(port, () => {
-  console.log(`🚀 Global Leaderboard Server running on http://localhost:${port}`);
+  console.log(`🚀 Continental Leaderboard Server running on http://localhost:${port}`);
   console.log('📊 Available endpoints:');
   console.log('  POST /api/submit-score - Submit player score to global leaderboard');
   console.log('  GET  /api/leaderboard - Get global leaderboard data');
+  console.log('  GET  /api/leaderboard?continentId=XX - Get continent-specific leaderboard');
+  console.log('  GET  /api/leaderboard/stats - Get continent statistics');
   console.log('  GET  /api/player-best - Get player personal best score');
   console.log('  GET  /api/debug-leaderboard - Debug leaderboard data');
   console.log('  GET  /api/health - Health check');
