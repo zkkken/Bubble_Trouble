@@ -1,20 +1,28 @@
 import express from 'express';
 import { createServer, getContext, getServerPort } from '@devvit/server';
 import { InitResponse, GameDataResponse, UpdateGameResponse, ResetGameResponse } from '../shared/types/game';
-import { LeaderboardResponse, SubmitScoreResponse } from '../shared/types/leaderboard';
 import { postConfigGet, postConfigNew, postConfigMaybeGet, handleButtonPress, resetGame, processGameUpdate } from './core/post';
-import { submitScore, getLeaderboard, getPlayerBest, debugLeaderboard } from './core/leaderboard';
+import { 
+  submitScore, 
+  getLeaderboard, 
+  getPlayerBest, 
+  debugLeaderboard,
+  PlayerScore,
+  LeaderboardData 
+} from './core/leaderboard';
 import { getRedis } from '@devvit/redis';
 
 const app = express();
 
+// 确保开启 JSON 解析
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.text());
 
 const router = express.Router();
 
-// 现有的游戏API路由
+// ==================== 现有的游戏API路由 ====================
+
 router.get('/api/init', async (_req, res): Promise<void> => {
   try {
     const { postId } = getContext();
@@ -151,17 +159,23 @@ router.post('/api/reset-game', async (req, res): Promise<void> => {
   }
 });
 
-// 复合分数排行榜API路由
+// ==================== 全局排行榜API路由 ====================
+
+/**
+ * 提交分数到全局排行榜
+ * Submit score to global leaderboard
+ * POST /api/submit-score
+ */
 router.post('/api/submit-score', async (req, res): Promise<void> => {
   try {
     console.log('Submit score API called with body:', req.body);
     
-    const { playerId, playerName, roundsCompleted, totalTime, difficulty, countryCode } = req.body;
+    const playerScore: PlayerScore = req.body;
     const redis = getRedis();
 
-    // 验证必需参数
-    if (!playerId || !playerName || typeof roundsCompleted !== 'number' || typeof totalTime !== 'number' || !countryCode) {
-      const errorMsg = 'playerId, playerName, roundsCompleted, totalTime, and countryCode are required';
+    // 验证必需字段
+    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.completionTime !== 'number') {
+      const errorMsg = 'Missing required fields: playerId, playerName, or completionTime';
       console.error('Submit score validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
@@ -170,10 +184,10 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       return;
     }
 
-    // 验证国家代码格式 (应该是2位字母)
-    if (!/^[A-Z]{2}$/i.test(countryCode)) {
-      const errorMsg = 'countryCode must be a valid 2-letter ISO country code';
-      console.error('Invalid country code:', countryCode);
+    // 验证数据类型
+    if (typeof playerScore.roundsCompleted !== 'number' || typeof playerScore.totalTime !== 'number') {
+      const errorMsg = 'roundsCompleted and totalTime must be numbers';
+      console.error('Submit score type validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
         message: errorMsg
@@ -181,84 +195,83 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
       return;
     }
 
-    console.log(`Processing composite score submission: ${playerName} (${playerId}), rounds: ${roundsCompleted}, time: ${totalTime}, difficulty: ${difficulty}, country: ${countryCode}`);
+    console.log(`Processing score submission: ${playerScore.playerName} (${playerScore.playerId})`);
+    console.log(`Completion time: ${playerScore.completionTime}s, Rounds: ${playerScore.roundsCompleted}`);
+
+    // 添加时间戳
+    const playerScoreWithTimestamp: PlayerScore = {
+      ...playerScore,
+      completedAt: Date.now()
+    };
 
     const result = await submitScore({
       redis,
-      playerId,
-      playerName,
-      roundsCompleted,
-      totalTime,
-      difficulty: difficulty || 'medium',
-      countryCode: countryCode.toUpperCase()
+      playerScore: playerScoreWithTimestamp
     });
 
-    console.log('Composite score submission result:', result);
+    console.log('Score submission result:', result);
 
-    const response: SubmitScoreResponse = {
+    res.status(201).json({
       status: 'success',
-      data: result
-    };
-
-    res.json(response);
+      data: result,
+      message: result.message
+    });
   } catch (error) {
     console.error('API Submit Score Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    const response: SubmitScoreResponse = {
-      status: 'error',
-      message
-    };
-    res.status(500).json(response);
+    res.status(500).json({ 
+      status: 'error', 
+      message 
+    });
   }
 });
 
+/**
+ * 获取全局排行榜
+ * Get global leaderboard
+ * GET /api/leaderboard
+ */
 router.get('/api/leaderboard', async (req, res): Promise<void> => {
   try {
     console.log('Leaderboard API called with query:', req.query);
     
-    const limit = parseInt(req.query.limit as string) || 50;
-    const countryCode = req.query.countryCode as string;
+    const limit = parseInt(req.query.limit as string) || 100;
     const redis = getRedis();
 
-    console.log(`Getting leaderboard with limit: ${limit}, countryCode: ${countryCode || 'global'}`);
-
-    // 验证国家代码格式（如果提供）
-    if (countryCode && !/^[A-Z]{2}$/i.test(countryCode)) {
-      res.status(400).json({ 
-        status: 'error', 
-        message: 'countryCode must be a valid 2-letter ISO country code' 
-      });
-      return;
-    }
+    console.log(`Getting global leaderboard with limit: ${limit}`);
 
     // 调试：打印 Redis 中的数据
     await debugLeaderboard(redis);
 
-    const leaderboardData = await getLeaderboard({ 
+    const leaderboardData: LeaderboardData = await getLeaderboard({ 
       redis, 
-      limit, 
-      countryCode: countryCode?.toUpperCase() 
+      limit 
     });
 
-    console.log('Composite score leaderboard data retrieved:', leaderboardData);
+    console.log('Global leaderboard data retrieved:', {
+      entriesCount: leaderboardData.entries.length,
+      totalPlayers: leaderboardData.totalPlayers
+    });
 
-    const response: LeaderboardResponse = {
+    res.json({
       status: 'success',
       data: leaderboardData
-    };
-
-    res.json(response);
+    });
   } catch (error) {
     console.error('API Leaderboard Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    const response: LeaderboardResponse = {
-      status: 'error',
-      message
-    };
-    res.status(500).json(response);
+    res.status(500).json({ 
+      status: 'error', 
+      message 
+    });
   }
 });
 
+/**
+ * 获取玩家个人最佳成绩
+ * Get player's personal best score
+ * GET /api/player-best
+ */
 router.get('/api/player-best', async (req, res): Promise<void> => {
   try {
     console.log('Player best API called with query:', req.query);
@@ -291,19 +304,69 @@ router.get('/api/player-best', async (req, res): Promise<void> => {
   }
 });
 
-// 调试路由
+// ==================== 调试和管理API路由 ====================
+
+/**
+ * 调试排行榜数据
+ * Debug leaderboard data
+ * GET /api/debug-leaderboard
+ */
 router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
   try {
     const redis = getRedis();
     await debugLeaderboard(redis);
-    res.json({ status: 'success', message: 'Composite score debug info printed to console' });
+    res.json({ 
+      status: 'success', 
+      message: 'Global leaderboard debug info printed to console' 
+    });
   } catch (error) {
     console.error('Debug API Error:', error);
-    res.status(500).json({ status: 'error', message: 'Debug failed' });
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Debug failed' 
+    });
   }
 });
+
+/**
+ * 健康检查
+ * Health check
+ * GET /api/health
+ */
+router.get('/api/health', async (_req, res): Promise<void> => {
+  try {
+    const redis = getRedis();
+    
+    // 简单的 Redis 连接测试
+    await redis.ping();
+    
+    res.json({
+      status: 'success',
+      message: 'Server and Redis are healthy',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 应用路由
+app.use(router);
 
 const port = getServerPort();
 const server = createServer(app);
 server.on('error', (err) => console.error(`server error; ${err.stack}`));
-server.listen(port, () => console.log(`http://localhost:${port}`));
+server.listen(port, () => {
+  console.log(`🚀 Global Leaderboard Server running on http://localhost:${port}`);
+  console.log('📊 Available endpoints:');
+  console.log('  POST /api/submit-score - Submit player score to global leaderboard');
+  console.log('  GET  /api/leaderboard - Get global leaderboard data');
+  console.log('  GET  /api/player-best - Get player personal best score');
+  console.log('  GET  /api/debug-leaderboard - Debug leaderboard data');
+  console.log('  GET  /api/health - Health check');
+});
