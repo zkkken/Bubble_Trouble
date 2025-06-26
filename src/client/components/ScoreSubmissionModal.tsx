@@ -13,7 +13,9 @@ interface ScoreSubmissionModalProps {
   onSubmit: (
     playerName: string, 
     difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string
+    countryCode: string,
+    catAvatarId: string,
+    continentId: string
   ) => void;
   gameStats: {
     roundsCompleted: number;
@@ -47,6 +49,28 @@ const COUNTRIES = [
   { code: 'FI', name: 'Finland', flag: '🇫🇮' },
 ];
 
+// 六大洲列表
+const CONTINENTS = [
+  { code: 'AS', name: 'Asia', flag: '🌏' },
+  { code: 'EU', name: 'Europe', flag: '🌍' },
+  { code: 'AF', name: 'Africa', flag: '🌍' },
+  { code: 'NA', name: 'North America', flag: '🌎' },
+  { code: 'SA', name: 'South America', flag: '🌎' },
+  { code: 'OC', name: 'Oceania', flag: '🌏' },
+];
+
+// 猫咪头像列表
+const CAT_AVATARS = [
+  { id: '🐱', name: 'Classic Cat', emoji: '🐱' },
+  { id: '🦁', name: 'Lion', emoji: '🦁' },
+  { id: '🐯', name: 'Tiger', emoji: '🐯' },
+  { id: '🐆', name: 'Leopard', emoji: '🐆' },
+  { id: '😸', name: 'Happy Cat', emoji: '😸' },
+  { id: '😻', name: 'Heart Eyes Cat', emoji: '😻' },
+  { id: '🙀', name: 'Surprised Cat', emoji: '🙀' },
+  { id: '😿', name: 'Crying Cat', emoji: '😿' },
+];
+
 export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
   isOpen,
   onClose,
@@ -57,6 +81,8 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
   const [playerName, setPlayerName] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [countryCode, setCountryCode] = useState(userCountryCode);
+  const [continentId, setContinentId] = useState('NA'); // 默认北美洲
+  const [catAvatarId, setCatAvatarId] = useState('🐱'); // 默认经典猫咪
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -70,9 +96,19 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
       return;
     }
 
+    if (!continentId) {
+      alert('Please select your continent!');
+      return;
+    }
+
+    if (!catAvatarId) {
+      alert('Please choose your cat avatar!');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await onSubmit(playerName.trim(), difficulty, countryCode);
+      await onSubmit(playerName.trim(), difficulty, countryCode, catAvatarId, continentId);
       onClose();
     } catch (error) {
       console.error('Error submitting score:', error);
@@ -106,6 +142,8 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
   if (!isOpen) return null;
 
   const selectedCountry = COUNTRIES.find(c => c.code === countryCode);
+  const selectedContinent = CONTINENTS.find(c => c.code === continentId);
+  const selectedAvatar = CAT_AVATARS.find(a => a.id === catAvatarId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -153,6 +191,57 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               maxLength={20}
             />
+          </div>
+
+          {/* Continent selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Continent
+            </label>
+            <select
+              value={continentId}
+              onChange={(e) => setContinentId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {CONTINENTS.map((continent) => (
+                <option key={continent.code} value={continent.code}>
+                  {continent.flag} {continent.name}
+                </option>
+              ))}
+            </select>
+            {selectedContinent && (
+              <p className="text-xs text-gray-500 mt-1">
+                Selected: {selectedContinent.flag} {selectedContinent.name}
+              </p>
+            )}
+          </div>
+
+          {/* Cat avatar selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Choose Your Cat Avatar
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {CAT_AVATARS.map((avatar) => (
+                <button
+                  key={avatar.id}
+                  onClick={() => setCatAvatarId(avatar.id)}
+                  className={`p-3 text-3xl rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                    catAvatarId === avatar.id
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  title={avatar.name}
+                >
+                  {avatar.emoji}
+                </button>
+              ))}
+            </div>
+            {selectedAvatar && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Selected: {selectedAvatar.emoji} {selectedAvatar.name}
+              </p>
+            )}
           </div>
 
           {/* Country selection */}

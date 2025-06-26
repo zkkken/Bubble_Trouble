@@ -13,6 +13,11 @@ export interface PlayerScore {
   difficulty: 'easy' | 'medium' | 'hard';
   countryCode: string; // ISO 3166-1 alpha-2 country code
   compositeScore: number; // Calculated composite score for ranking
+  
+  // 新增字段
+  catAvatarId: string;    // 猫咪头像ID
+  continentId: string;    // 大洲ID
+  completionFlag: 'Y' | 'N'; // 通关标志
 }
 
 export interface LeaderboardEntry {
@@ -26,6 +31,11 @@ export interface LeaderboardEntry {
   difficulty: 'easy' | 'medium' | 'hard';
   countryCode: string;
   compositeScore: number; // For debugging/verification
+  
+  // 新增字段
+  catAvatarId: string;
+  continentId: string;
+  completionFlag: 'Y' | 'N';
 }
 
 export interface LeaderboardData {
@@ -49,6 +59,9 @@ export interface SubmitScoreRequest {
   totalTime: number;
   difficulty: 'easy' | 'medium' | 'hard';
   countryCode: string;
+  catAvatarId: string;
+  continentId: string;
+  completionFlag: 'Y' | 'N';
 }
 
 export interface SubmitScoreResponse {

@@ -91,11 +91,30 @@ export const GameInterface: React.FC = () => {
     fetchPlayerBest();
   }, [fetchPlayerBest]);
 
-  // 处理分数提交 (复合分数版本)
-  const handleScoreSubmit = async (playerName: string, difficulty: 'easy' | 'medium' | 'hard', countryCode: string) => {
+  // 处理分数提交 (新版本，包含头像和大洲选择)
+  const handleScoreSubmit = async (
+    playerName: string, 
+    difficulty: 'easy' | 'medium' | 'hard',
+    countryCode: string,
+    catAvatarId: string,
+    continentId: string
+  ) => {
     try {
       const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
-      const result = await submitScore(playerName, roundsCompleted, totalGameTime, difficulty, countryCode);
+      
+      // 计算通关标志：如果总时间超过60秒则为'N'，否则为'Y'
+      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'N' : 'Y';
+      
+      const result = await submitScore(
+        playerName, 
+        roundsCompleted, 
+        totalGameTime, 
+        difficulty, 
+        countryCode,
+        catAvatarId,
+        continentId,
+        completionFlag
+      );
       
       // 提交成功后刷新玩家最佳成绩
       await fetchPlayerBest();
@@ -103,7 +122,8 @@ export const GameInterface: React.FC = () => {
       // 显示结果
       const message = `Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}\n` +
                      `Raw Score: ${result.score.toLocaleString()}\n` +
-                     `Composite Score: ${result.compositeScore.toLocaleString()}`;
+                     `Composite Score: ${result.compositeScore.toLocaleString()}\n` +
+                     `Avatar: ${catAvatarId} | Continent: ${continentId}`;
       alert(message);
     } catch (error) {
       console.error('Error submitting score:', error);
@@ -414,7 +434,7 @@ export const GameInterface: React.FC = () => {
         userCountryCode={userCountryCode}
       />
 
-      {/* 分数提交模态框 (复合分数版本) */}
+      {/* 分数提交模态框 (新版本，包含头像和大洲选择) */}
       <ScoreSubmissionModal
         isOpen={showScoreSubmission}
         onClose={() => setShowScoreSubmission(false)}
