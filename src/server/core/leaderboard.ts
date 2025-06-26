@@ -1,5 +1,5 @@
 /**
- * 全局游戏排行榜系统 - 服务端逻辑 (洲际排行榜版本)
+ * 全球游戏排行榜系统 - 服务端逻辑 (洲际排行榜版本)
  * Global Game Leaderboard System - Server Logic (Continental Leaderboard Version)
  */
 
@@ -155,13 +155,14 @@ export async function getLeaderboard({
       }
     }
 
-    // 获取总玩家数
+    // 获取总玩家数 - 使用 zRange 替代 zCard 来获取总玩家数，以提高兼容性
     let totalPlayers: number;
     if (continentId) {
       // 计算特定洲际的玩家数
       totalPlayers = entries.length;
     } else {
-      totalPlayers = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
+      const allPlayers = await redis.zRange(LEADERBOARD_KEY, 0, -1);
+      totalPlayers = allPlayers.length;
     }
     
     console.log(`Total players in ${leaderboardType} leaderboard: ${totalPlayers}`);
@@ -299,7 +300,9 @@ export async function getPlayerBest({
  */
 export async function cleanupLeaderboard(redis: Context['redis'] | RedisClient): Promise<void> {
   try {
-    const totalPlayers = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
+    // 使用 zRange 替代 zCard 来获取总玩家数，以提高兼容性
+    const allPlayers = await redis.zRange(LEADERBOARD_KEY, 0, -1);
+    const totalPlayers = allPlayers.length;
     
     if (totalPlayers > 1000) {
       // 删除排名 1000 以后的玩家（保留前 1000 名）
@@ -319,11 +322,12 @@ export async function debugLeaderboard(redis: Context['redis'] | RedisClient): P
   try {
     console.log('=== CONTINENTAL LEADERBOARD DEBUG INFO ===');
     
-    // 检查排行榜大小
-    const leaderboardSize = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
-    console.log(`Global leaderboard size: ${leaderboardSize}`);
+    // 检查排行榜大小 - 使用 zRange 替代 zCard 来获取总玩家数，以提高兼容性
+    const globalPlayers = await redis.zRange(LEADERBOARD_KEY, 0, -1);
+    const globalSize = globalPlayers.length;
+    console.log(`Global leaderboard size: ${globalSize}`);
     
-    if (leaderboardSize > 0) {
+    if (globalSize > 0) {
       // 获取前 10 名用于调试 (使用 zRevRange 因为时间长的排前面)
       const topPlayerIds = await redis.zRevRange(LEADERBOARD_KEY, 0, 9, { by: 'rank' });
       console.log('Top 10 players (by completion time - longest first):');
