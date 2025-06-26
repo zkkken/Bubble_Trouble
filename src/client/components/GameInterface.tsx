@@ -103,7 +103,7 @@ export const GameInterface: React.FC = () => {
       const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
       
       // 计算通关标志：如果总时间超过60秒则为'N'，否则为'Y'
-      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'N' : 'Y';
+      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'Y' : 'N';
       
       const result = await submitScore(
         playerName, 
