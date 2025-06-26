@@ -1,6 +1,6 @@
 /**
- * 主游戏界面组件 (复合分数版本)
- * 负责整体游戏界面的布局和交互
+ * 主游戏界面组件 (重构版本 - 支持开始游戏界面)
+ * 负责整体游戏界面的布局和交互，现在包含开始游戏流程
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -15,7 +15,8 @@ import { GameOverlay } from './GameOverlay';
 import { InterferenceOverlay } from './InterferenceOverlay';
 import { TestModeIndicator } from './TestModeIndicator';
 import { LeaderboardModal } from './LeaderboardModal';
-import { ScoreSubmissionModal } from './ScoreSubmissionModal';
+import { StartGameScreen } from './StartGameScreen';
+import { GameResultModal } from './GameResultModal';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -33,7 +34,18 @@ const GAME_CONFIG: GameConfig = {
   INTERFERENCE_DURATION: 8,
 };
 
+// 玩家信息接口
+interface PlayerInfo {
+  playerName: string;
+  continentId: string;
+  catAvatarId: string;
+}
+
 export const GameInterface: React.FC = () => {
+  // 界面控制状态
+  const [isGameStarted, setIsGameStarted] = useState(false);
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+
   // 游戏状态
   const {
     gameState,
@@ -58,61 +70,74 @@ export const GameInterface: React.FC = () => {
 
   // UI 状态
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showScoreSubmission, setShowScoreSubmission] = useState(false);
+  const [showGameResult, setShowGameResult] = useState(false);
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalGameTime, setTotalGameTime] = useState<number>(0);
   
   // 用户国家代码 (在实际应用中，这应该从用户数据或地理位置API获取)
   const [userCountryCode] = useState<string>('US'); // 默认美国，可以根据需要修改
 
+  // 处理开始游戏
+  const handleStartGame = (newPlayerInfo: PlayerInfo) => {
+    setPlayerInfo(newPlayerInfo);
+    setIsGameStarted(true);
+    setGameStartTime(Date.now());
+  };
+
+  // 处理返回开始界面
+  const handleBackToStart = () => {
+    setIsGameStarted(false);
+    setPlayerInfo(null);
+    setShowGameResult(false);
+    resetGame();
+  };
+
   // 当游戏开始时记录开始时间
   useEffect(() => {
-    if (gameState.gameStatus === 'playing' && currentRound === 1) {
+    if (gameState.gameStatus === 'playing' && currentRound === 1 && isGameStarted) {
       setGameStartTime(Date.now());
     }
-  }, [gameState.gameStatus, currentRound]);
+  }, [gameState.gameStatus, currentRound, isGameStarted]);
 
-  // 当游戏结束时计算总时间并显示分数提交
+  // 当游戏结束时计算总时间并显示结果
   useEffect(() => {
     if (gameState.gameStatus === 'success' || gameState.gameStatus === 'failure') {
       const endTime = Date.now();
       const totalTime = Math.round((endTime - gameStartTime) / 1000);
       setTotalGameTime(totalTime);
 
-      // 只有成功完成至少一轮才显示分数提交
+      // 只有成功完成至少一轮才显示结果
       if (currentRound > 1 || gameState.gameStatus === 'success') {
-        setShowScoreSubmission(true);
+        setShowGameResult(true);
       }
     }
   }, [gameState.gameStatus, gameStartTime, currentRound]);
 
   // 初始化时获取玩家最佳成绩
   useEffect(() => {
-    fetchPlayerBest();
-  }, [fetchPlayerBest]);
+    if (isGameStarted) {
+      fetchPlayerBest();
+    }
+  }, [fetchPlayerBest, isGameStarted]);
 
-  // 处理分数提交 (新版本，包含头像和大洲选择)
-  const handleScoreSubmit = async (
-    playerName: string, 
-    difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string,
-    catAvatarId: string,
-    continentId: string
-  ) => {
+  // 处理分数提交 (自动提交，使用预设的玩家信息)
+  const handleAutoScoreSubmit = async (difficulty: 'easy' | 'medium' | 'hard' = 'medium') => {
+    if (!playerInfo) return;
+
     try {
       const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
       
       // 计算通关标志：如果总时间超过60秒则为'N'，否则为'Y'
-      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'Y' : 'N';
+      const completionFlag: 'Y' | 'N' = totalGameTime > 60 ? 'N' : 'Y';
       
       const result = await submitScore(
-        playerName, 
+        playerInfo.playerName, 
         roundsCompleted, 
         totalGameTime, 
         difficulty, 
-        countryCode,
-        catAvatarId,
-        continentId,
+        userCountryCode,
+        playerInfo.catAvatarId,
+        playerInfo.continentId,
         completionFlag
       );
       
@@ -123,8 +148,9 @@ export const GameInterface: React.FC = () => {
       const message = `Score submitted! Your rank: #${result.rank}${result.isNewRecord ? ' (New Record!)' : ''}\n` +
                      `Raw Score: ${result.score.toLocaleString()}\n` +
                      `Composite Score: ${result.compositeScore.toLocaleString()}\n` +
-                     `Avatar: ${catAvatarId} | Continent: ${continentId}`;
-      alert(message);
+                     `Avatar: ${playerInfo.catAvatarId} | Continent: ${playerInfo.continentId}`;
+      console.log(message);
+      return result;
     } catch (error) {
       console.error('Error submitting score:', error);
       throw error;
@@ -138,6 +164,11 @@ export const GameInterface: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // 如果游戏未开始，显示开始游戏界面
+  if (!isGameStarted) {
+    return <StartGameScreen onStartGame={handleStartGame} />;
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
       {/* 测试模式指示器 */}
@@ -150,6 +181,26 @@ export const GameInterface: React.FC = () => {
       >
         🏆 Leaderboard
       </button>
+
+      {/* 返回开始界面按钮 */}
+      <button
+        onClick={handleBackToStart}
+        className="fixed top-4 left-4 z-40 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
+      >
+        ← Back to Start
+      </button>
+
+      {/* 玩家信息显示 */}
+      {playerInfo && (
+        <div className="fixed top-20 left-4 z-40 bg-white bg-opacity-90 px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-sm font-medium text-gray-800">
+            {playerInfo.catAvatarId} {playerInfo.playerName}
+          </div>
+          <div className="text-xs text-gray-600">
+            {playerInfo.continentId}
+          </div>
+        </div>
+      )}
       
       {/* 完全居中的游戏界面 */}
       <div className="relative">
@@ -421,7 +472,7 @@ export const GameInterface: React.FC = () => {
         />
       </div>
 
-      {/* 排行榜模态框 (复合分数版本) */}
+      {/* 排行榜模态框 */}
       <LeaderboardModal
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
@@ -434,17 +485,22 @@ export const GameInterface: React.FC = () => {
         userCountryCode={userCountryCode}
       />
 
-      {/* 分数提交模态框 (新版本，包含头像和大洲选择) */}
-      <ScoreSubmissionModal
-        isOpen={showScoreSubmission}
-        onClose={() => setShowScoreSubmission(false)}
-        onSubmit={handleScoreSubmit}
+      {/* 游戏结果模态框 (替代原来的分数提交模态框) */}
+      <GameResultModal
+        isOpen={showGameResult}
+        onClose={() => setShowGameResult(false)}
+        onSubmitScore={handleAutoScoreSubmit}
+        onPlayAgain={() => {
+          setShowGameResult(false);
+          resetGame();
+        }}
+        onBackToStart={handleBackToStart}
         gameStats={{
           roundsCompleted: gameState.gameStatus === 'success' ? currentRound : currentRound - 1,
           totalTime: totalGameTime,
           finalComfort: gameState.currentComfort
         }}
-        userCountryCode={userCountryCode}
+        playerInfo={playerInfo}
       />
     </div>
   );

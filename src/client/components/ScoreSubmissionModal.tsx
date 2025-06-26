@@ -1,159 +1,50 @@
 /**
- * 分数提交模态框组件 (复合分数版本)
- * Score Submission Modal Component (Composite Score Version)
+ * 简化的分数提交模态框组件
+ * 现在只用于显示分数，不再收集用户信息
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 
 interface ScoreSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (
-    playerName: string, 
-    difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string,
-    catAvatarId: string,
-    continentId: string
-  ) => void;
   gameStats: {
     roundsCompleted: number;
     totalTime: number;
     finalComfort: number;
   };
-  userCountryCode?: string; // 用户的国家代码
 }
-
-// 常见国家列表
-const COUNTRIES = [
-  { code: 'US', name: 'United States', flag: '🇺🇸' },
-  { code: 'CN', name: 'China', flag: '🇨🇳' },
-  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
-  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-  { code: 'FR', name: 'France', flag: '🇫🇷' },
-  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺' },
-  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-  { code: 'IN', name: 'India', flag: '🇮🇳' },
-  { code: 'RU', name: 'Russia', flag: '🇷🇺' },
-  { code: 'IT', name: 'Italy', flag: '🇮🇹' },
-  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
-  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
-  { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
-  { code: 'SE', name: 'Sweden', flag: '🇸🇪' },
-  { code: 'NO', name: 'Norway', flag: '🇳🇴' },
-  { code: 'DK', name: 'Denmark', flag: '🇩🇰' },
-  { code: 'FI', name: 'Finland', flag: '🇫🇮' },
-];
-
-// 六大洲列表
-const CONTINENTS = [
-  { code: 'AS', name: 'Asia', flag: '🌏' },
-  { code: 'EU', name: 'Europe', flag: '🌍' },
-  { code: 'AF', name: 'Africa', flag: '🌍' },
-  { code: 'NA', name: 'North America', flag: '🌎' },
-  { code: 'SA', name: 'South America', flag: '🌎' },
-  { code: 'OC', name: 'Oceania', flag: '🌏' },
-];
-
-// 猫咪头像列表
-const CAT_AVATARS = [
-  { id: '🐱', name: 'Classic Cat', emoji: '🐱' },
-  { id: '🦁', name: 'Lion', emoji: '🦁' },
-  { id: '🐯', name: 'Tiger', emoji: '🐯' },
-  { id: '🐆', name: 'Leopard', emoji: '🐆' },
-  { id: '😸', name: 'Happy Cat', emoji: '😸' },
-  { id: '😻', name: 'Heart Eyes Cat', emoji: '😻' },
-  { id: '🙀', name: 'Surprised Cat', emoji: '🙀' },
-  { id: '😿', name: 'Crying Cat', emoji: '😿' },
-];
 
 export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
   gameStats,
-  userCountryCode = 'US'
 }) => {
-  const [playerName, setPlayerName] = useState('');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [countryCode, setCountryCode] = useState(userCountryCode);
-  const [continentId, setContinentId] = useState('NA'); // 默认北美洲
-  const [catAvatarId, setCatAvatarId] = useState('🐱'); // 默认经典猫咪
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!playerName.trim()) {
-      alert('Please enter your name!');
-      return;
-    }
-
-    if (!countryCode) {
-      alert('Please select your country!');
-      return;
-    }
-
-    if (!continentId) {
-      alert('Please select your continent!');
-      return;
-    }
-
-    if (!catAvatarId) {
-      alert('Please choose your cat avatar!');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onSubmit(playerName.trim(), difficulty, countryCode, catAvatarId, continentId);
-      onClose();
-    } catch (error) {
-      console.error('Error submitting score:', error);
-      alert('Failed to submit score. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const calculateEstimatedRawScore = (): number => {
-    const baseScore = gameStats.roundsCompleted * 1000;
-    const timeBonus = Math.max(0, (180 - gameStats.totalTime) * 10);
-    const comboBonus = gameStats.roundsCompleted > 1 ? (gameStats.roundsCompleted - 1) * 500 : 0;
-    const difficultyMultiplier = { easy: 1.0, medium: 1.5, hard: 2.0 }[difficulty];
-    
-    return Math.round((baseScore + timeBonus + comboBonus) * difficultyMultiplier);
-  };
-
-  const calculateEstimatedCompositeScore = (): number => {
-    const rawScore = calculateEstimatedRawScore();
-    const COMPOSITE_SCORE_MULTIPLIER = 10000000;
-    return (gameStats.roundsCompleted * COMPOSITE_SCORE_MULTIPLIER) + rawScore;
-  };
-
   if (!isOpen) return null;
 
-  const selectedCountry = COUNTRIES.find(c => c.code === countryCode);
-  const selectedContinent = CONTINENTS.find(c => c.code === continentId);
-  const selectedAvatar = CAT_AVATARS.find(a => a.id === catAvatarId);
+  const isSuccess = gameStats.roundsCompleted > 0 && gameStats.finalComfort >= 0.8;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white p-6 rounded-t-lg">
+        <div className={`${isSuccess ? 'bg-gradient-to-r from-green-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-orange-600'} text-white p-6 rounded-t-lg`}>
           <div className="text-center">
-            <div className="text-4xl mb-2">🎉</div>
-            <h2 className="text-2xl font-bold">Great Job!</h2>
-            <p className="text-green-100 mt-1">Submit your composite score to the leaderboard</p>
+            <div className="text-4xl mb-2">{isSuccess ? '🎉' : '😿'}</div>
+            <h2 className="text-2xl font-bold">
+              {isSuccess ? 'Game Complete!' : 'Game Over'}
+            </h2>
+            <p className={`${isSuccess ? 'text-green-100' : 'text-red-100'} mt-1`}>
+              {isSuccess ? 'Well done!' : 'Better luck next time!'}
+            </p>
           </div>
         </div>
 
@@ -161,7 +52,7 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
         <div className="p-6">
           {/* Game stats */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-bold text-gray-800 mb-3">Your Performance</h3>
+            <h3 className="font-bold text-gray-800 mb-3">Final Results</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Rounds Completed:</span>
@@ -178,168 +69,13 @@ export const ScoreSubmissionModal: React.FC<ScoreSubmissionModalProps> = ({
             </div>
           </div>
 
-          {/* Player name input */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Name
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              maxLength={20}
-            />
-          </div>
-
-          {/* Continent selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Continent
-            </label>
-            <select
-              value={continentId}
-              onChange={(e) => setContinentId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {CONTINENTS.map((continent) => (
-                <option key={continent.code} value={continent.code}>
-                  {continent.flag} {continent.name}
-                </option>
-              ))}
-            </select>
-            {selectedContinent && (
-              <p className="text-xs text-gray-500 mt-1">
-                Selected: {selectedContinent.flag} {selectedContinent.name}
-              </p>
-            )}
-          </div>
-
-          {/* Cat avatar selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Choose Your Cat Avatar
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {CAT_AVATARS.map((avatar) => (
-                <button
-                  key={avatar.id}
-                  onClick={() => setCatAvatarId(avatar.id)}
-                  className={`p-3 text-3xl rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
-                    catAvatarId === avatar.id
-                      ? 'border-blue-500 bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  title={avatar.name}
-                >
-                  {avatar.emoji}
-                </button>
-              ))}
-            </div>
-            {selectedAvatar && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Selected: {selectedAvatar.emoji} {selectedAvatar.name}
-              </p>
-            )}
-          </div>
-
-          {/* Country selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Country
-            </label>
-            <select
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {COUNTRIES.map((country) => (
-                <option key={country.code} value={country.code}>
-                  {country.flag} {country.name}
-                </option>
-              ))}
-            </select>
-            {selectedCountry && (
-              <p className="text-xs text-gray-500 mt-1">
-                You'll compete in the {selectedCountry.name} leaderboard
-              </p>
-            )}
-          </div>
-
-          {/* Difficulty selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Difficulty Level
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['easy', 'medium', 'hard'] as const).map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setDifficulty(level)}
-                  className={`p-3 rounded-lg border-2 text-center transition-all ${
-                    difficulty === level
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="text-lg mb-1">
-                    {level === 'easy' && '🟢'}
-                    {level === 'medium' && '🟡'}
-                    {level === 'hard' && '🔴'}
-                  </div>
-                  <div className="text-sm font-medium capitalize">{level}</div>
-                  <div className="text-xs text-gray-500">
-                    {level === 'easy' && '×1.0'}
-                    {level === 'medium' && '×1.5'}
-                    {level === 'hard' && '×2.0'}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Estimated scores */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <div className="text-center">
-              <div className="text-sm text-blue-600 mb-1">Estimated Scores</div>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-sm text-blue-600">Raw Score: </span>
-                  <span className="text-lg font-bold text-blue-700">
-                    {calculateEstimatedRawScore().toLocaleString()}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-sm text-blue-600">Composite Score: </span>
-                  <span className="text-lg font-bold text-blue-700">
-                    {calculateEstimatedCompositeScore().toLocaleString()}
-                  </span>
-                </div>
-              </div>
-              <div className="text-xs text-blue-500 mt-2">
-                Ranking priority: Rounds first, then raw score
-              </div>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              disabled={isSubmitting}
-            >
-              Skip
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !playerName.trim()}
-              className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-lg font-medium"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Score'}
-            </button>
-          </div>
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
