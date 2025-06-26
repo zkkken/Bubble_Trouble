@@ -75,6 +75,30 @@ export const GameInterface: React.FC = () => {
   // 用户国家代码 (在实际应用中，这应该从用户数据或地理位置API获取)
   const [userCountryCode] = useState<string>('US'); // 默认美国，可以根据需要修改
 
+  // 🐞 调试按钮处理函数
+  const handleDebugClick = async () => {
+    try {
+      console.log('--- 开始获取数据库调试信息 ---');
+      
+      const response = await fetch('/api/debug-leaderboard');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('--- 数据库调试信息 ---', data);
+      console.log('--- 调试信息获取完成 ---');
+      
+      // 额外显示一个用户友好的提示
+      alert('数据库调试信息已打印到控制台！请打开开发者工具的Console标签查看详细信息。');
+      
+    } catch (error) {
+      console.error('--- 调试信息获取失败 ---', error);
+      alert(`获取调试信息失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  };
+
   // 处理开始游戏
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     setPlayerInfo(newPlayerInfo);
@@ -187,13 +211,24 @@ export const GameInterface: React.FC = () => {
       {/* 测试模式指示器 */}
       <TestModeIndicator />
       
-      {/* 排行榜按钮 */}
-      <button
-        onClick={() => setShowLeaderboard(true)}
-        className="fixed top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-      >
-        🏆 Leaderboard
-      </button>
+      {/* 顶部按钮组 */}
+      <div className="fixed top-4 right-4 z-40 flex gap-2">
+        {/* 排行榜按钮 */}
+        <button
+          onClick={() => setShowLeaderboard(true)}
+          className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
+        >
+          🏆 Leaderboard
+        </button>
+        
+        {/* 🐞 调试按钮 */}
+        <button
+          onClick={handleDebugClick}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
+        >
+          🐞 查看数据库
+        </button>
+      </div>
 
       {/* 返回开始界面按钮 */}
       <button
