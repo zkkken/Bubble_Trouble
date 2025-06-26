@@ -161,7 +161,7 @@ export async function getLeaderboard({
       // 计算特定洲际的玩家数
       totalPlayers = entries.length;
     } else {
-      totalPlayers = await redis.zCard(LEADERBOARD_KEY);
+      totalPlayers = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
     }
     
     console.log(`Total players in ${leaderboardType} leaderboard: ${totalPlayers}`);
@@ -299,7 +299,7 @@ export async function getPlayerBest({
  */
 export async function cleanupLeaderboard(redis: Context['redis'] | RedisClient): Promise<void> {
   try {
-    const totalPlayers = await redis.zCard(LEADERBOARD_KEY);
+    const totalPlayers = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
     
     if (totalPlayers > 1000) {
       // 删除排名 1000 以后的玩家（保留前 1000 名）
@@ -320,7 +320,7 @@ export async function debugLeaderboard(redis: Context['redis'] | RedisClient): P
     console.log('=== CONTINENTAL LEADERBOARD DEBUG INFO ===');
     
     // 检查排行榜大小
-    const leaderboardSize = await redis.zCard(LEADERBOARD_KEY);
+    const leaderboardSize = await redis.zCount(LEADERBOARD_KEY, '-inf', '+inf');
     console.log(`Global leaderboard size: ${leaderboardSize}`);
     
     if (leaderboardSize > 0) {
