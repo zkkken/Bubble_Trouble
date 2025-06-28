@@ -1,6 +1,6 @@
 /**
- * 舒适度管理系统
- * 负责处理猫咪舒适度的计算和状态变化
+ * 舒适度系统
+ * 负责处理游戏中的舒适度变化逻辑
  * 
  * @author 开发者A - 游戏核心逻辑负责人
  */
@@ -15,8 +15,8 @@ export class ComfortSystem {
   }
 
   /**
-   * 更新舒适度基于温度准确性
-   * Update comfort based on temperature accuracy
+   * 更新舒适度基于温度是否在容忍范围内
+   * Update comfort based on whether temperature is within tolerance range
    */
   updateComfort(
     currentComfort: number,
@@ -31,8 +31,22 @@ export class ComfortSystem {
       newComfort -= this.config.COMFORT_CHANGE_RATE * deltaTime;
     }
 
-    // 限制舒适度范围在 0-1 之间
+    // 确保舒适度值在有效范围内 (0-1)
     return Math.max(0, Math.min(1, newComfort));
+  }
+
+  /**
+   * 获取基于舒适度的猫咪头像
+   * Get cat avatar based on comfort level
+   */
+  getComfortAvatar(comfortLevel: number): string {
+    if (comfortLevel >= 0.8) {
+      return "/avatar-yellowsmiley.png";
+    } else if (comfortLevel <= 0.3) {
+      return "/avatar-bad.png";
+    } else {
+      return "/avatar-yellowsmiley.png";
+    }
   }
 
   /**
@@ -44,22 +58,20 @@ export class ComfortSystem {
   }
 
   /**
-   * 获取舒适度对应的颜色
-   * Get color based on comfort level
+   * 获取舒适度等级描述
+   * Get comfort level description
    */
-  getComfortColor(comfortLevel: number): string {
-    if (comfortLevel >= 0.8) return '#10b981'; // Green
-    if (comfortLevel >= 0.5) return '#f59e0b'; // Yellow
-    return '#ef4444'; // Red
-  }
-
-  /**
-   * 获取舒适度对应的表情
-   * Get emoji based on comfort level
-   */
-  getComfortEmoji(comfortLevel: number): string {
-    if (comfortLevel >= 0.8) return '😸'; // Happy cat
-    if (comfortLevel >= 0.5) return '😐'; // Neutral cat
-    return '🙀'; // Scared cat
+  getComfortDescription(comfortLevel: number): string {
+    if (comfortLevel >= 0.8) {
+      return "Very Happy";
+    } else if (comfortLevel >= 0.6) {
+      return "Happy";
+    } else if (comfortLevel >= 0.4) {
+      return "Neutral";
+    } else if (comfortLevel >= 0.2) {
+      return "Uncomfortable";
+    } else {
+      return "Very Unhappy";
+    }
   }
 }
