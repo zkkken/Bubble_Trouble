@@ -3,8 +3,9 @@ import '../server/index';
 import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
 
+// 🎯 修复：确保正确的配置
 defineConfig({
-  name: '[Bolt] Cat Comfort Game',
+  name: 'Cat Comfort Game',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
@@ -14,15 +15,6 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
       <vstack width={'100%'} height={'100%'} alignment="center middle">
-        <image
-          url="loading.gif"
-          description="Loading..."
-          height={'140px'}
-          width={'140px'}
-          imageHeight={'240px'}
-          imageWidth={'240px'}
-        />
-        <spacer size="small" />
         <text maxWidth={`80%`} size="large" weight="bold" alignment="center middle" wrap>
           {text}
         </text>
@@ -31,11 +23,11 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   );
 };
 
-// 🎯 修复：简化的游戏预览组件，不使用 assetURL
+// 🎯 修复：简化的游戏预览组件
 export const CatComfortGameDevvit: Devvit.BlockComponent = () => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
-      <vstack width={'100%'} height={'100%'} alignment="center middle">
+      <vstack width={'100%'} height={'100%'} alignment="center middle" backgroundColor="#2f2f2f">
         <text size="xxlarge" weight="bold" color="white">
           🐱 Cat Comfort Game 🐱
         </text>
@@ -89,8 +81,30 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = () => {
   );
 };
 
+// 🎯 修复：添加 WebView 组件
+export const GameWebView: Devvit.BlockComponent = () => {
+  const { ui } = Devvit.useContext();
+  
+  return (
+    <vstack width={'100%'} height={'100%'} alignment="center middle">
+      <button
+        onPress={() => {
+          ui.webView.postMessage('webview', {
+            type: 'initialData',
+            data: { message: 'Hello from Devvit!' }
+          });
+        }}
+        appearance="primary"
+        size="large"
+      >
+        🎮 Play Cat Comfort Game
+      </button>
+    </vstack>
+  );
+};
+
 Devvit.addMenuItem({
-  label: '[Bolt Cat Comfort Game]: New Post',
+  label: 'Cat Comfort Game: New Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (event, context) => {
@@ -100,7 +114,7 @@ Devvit.addMenuItem({
     try {
       const subreddit = await reddit.getCurrentSubreddit();
       
-      // 🎯 修复：直接使用简化的预览组件，不涉及 assetURL
+      // 🎯 修复：使用简化的预览组件
       post = await reddit.submitPost({
         title: 'Cat Comfort Game - Keep the Cat Happy! 🐱',
         subredditName: subreddit.name,
@@ -126,6 +140,44 @@ Devvit.addMenuItem({
         console.error('Unknown error creating post:', error);
       }
     }
+  },
+});
+
+// 🎯 修复：添加 WebView 处理
+Devvit.addCustomPostType({
+  name: 'Cat Comfort Game',
+  height: 'tall',
+  render: (context) => {
+    const { useState, useWebView } = Devvit;
+    const [webviewVisible, setWebviewVisible] = useState(false);
+    
+    const { postId } = context;
+    
+    const webView = useWebView({
+      id: 'cat-comfort-game',
+      url: 'index.html',
+      onMessage: (msg) => {
+        console.log('Received message from webview:', msg);
+      },
+    });
+
+    if (webviewVisible) {
+      return webView;
+    }
+
+    return (
+      <vstack width={'100%'} height={'100%'} alignment="center middle" backgroundColor="#2f2f2f">
+        <CatComfortGameDevvit />
+        <spacer size="large" />
+        <button
+          onPress={() => setWebviewVisible(true)}
+          appearance="primary"
+          size="large"
+        >
+          🎮 Start Game
+        </button>
+      </vstack>
+    );
   },
 });
 
