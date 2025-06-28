@@ -15,6 +15,7 @@ import { TestModeIndicator } from './TestModeIndicator';
 import { LeaderboardModal } from './LeaderboardModal';
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
+import { GameLaunchScreen } from './GameLaunchScreen';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -41,8 +42,10 @@ interface PlayerInfo {
 
 export const GameInterface: React.FC = () => {
   // 界面控制状态
+  const [showLaunchScreen, setShowLaunchScreen] = useState(true);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  const [isMusicOn, setIsMusicOn] = useState(true);
   // 游戏状态
   const {
     gameState,
@@ -98,6 +101,17 @@ export const GameInterface: React.FC = () => {
     }
   };
 
+  // 处理从启动页面进入游戏设置
+  const handleLaunchToSetup = () => {
+    setShowLaunchScreen(false);
+  };
+
+  // 处理音乐切换
+  const handleToggleMusic = () => {
+    setIsMusicOn(!isMusicOn);
+    console.log(`音乐${!isMusicOn ? '开启' : '关闭'}`);
+  };
+
   // 处理开始游戏
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     setPlayerInfo(newPlayerInfo);
@@ -110,6 +124,7 @@ export const GameInterface: React.FC = () => {
     setIsGameStarted(false);
     setPlayerInfo(null);
     setShowGameCompletion(false);
+    setShowLaunchScreen(true);
     resetGame();
   };
 
@@ -180,6 +195,17 @@ export const GameInterface: React.FC = () => {
     const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // 如果显示启动页面
+  if (showLaunchScreen) {
+    return (
+      <GameLaunchScreen 
+        onStartGame={handleLaunchToSetup}
+        onToggleMusic={handleToggleMusic}
+        isMusicOn={isMusicOn}
+      />
+    );
+  }
 
   // 如果游戏未开始，显示开始游戏界面
   if (!isGameStarted) {
