@@ -8,6 +8,19 @@ interface GameLaunchScreenProps {
   isMusicEnabled?: boolean;
 }
 
+interface GameAsset {
+  src: string;
+  alt: string;
+  className: string;
+  id?: string;
+}
+
+interface GameAssets {
+  title: GameAsset;
+  tagline: GameAsset;
+  buttons: [GameAsset, GameAsset, GameAsset]; // Fixed length tuple type
+}
+
 export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   onStartGame,
   onToggleMusic,
@@ -16,11 +29,16 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Game assets data - 使用与当前项目相同的图片加载方式
-  const gameAssets = {
+  const gameAssets: GameAssets = {
     title: {
       src: "/Title_BubbleTrouble.png",
       alt: "Cat Comfort Game Title",
       className: "w-[259px] h-[259px] mx-auto mt-8",
+    },
+    tagline: {
+      src: "/Are_You_Ready_For_A_Wash.png",
+      alt: "Are you ready for a wash?",
+      className: "mt-2 w-auto h-auto",
     },
     buttons: [
       {
@@ -67,8 +85,8 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
 
   return (
     <>
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-cyan-500 to-green-400">
-        <Card className="w-[724px] h-[584px] bg-[#2f2f2f] rounded-none overflow-hidden">
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-[724px] h-[584px] bg-[#2f2f2f] rounded-none overflow-hidden border-0">
           <CardContent className="p-0 relative h-full bg-[url(/Bg_Main.png)] bg-cover bg-[50%_50%] flex flex-col items-center">
             {/* Game title */}
             <img
@@ -78,13 +96,14 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
             />
 
             {/* Game tagline */}
-            <div className="mt-2 font-bold text-[#f09fcf] text-[32px] text-center tracking-[0] leading-[38px] whitespace-nowrap drop-shadow-lg"
-                 style={{ WebkitTextStroke: '2px #3d76ce' }}>
-              Keep Your Cat Comfortable!
-            </div>
+            <img
+              className={gameAssets.tagline.className}
+              alt={gameAssets.tagline.alt}
+              src={gameAssets.tagline.src}
+            />
 
             {/* Start button */}
-            <div className="mt-4">
+            <div className="mt-4" style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}>
               <button
                 onClick={() => handleButtonClick('start')}
                 className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"

@@ -16,14 +16,15 @@ interface UseLeaderboardReturn {
   error: string | null;
   submitScore: (
     playerName: string,
-    roundsCompleted: number,
-    totalTime: number,
-    difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string,
+    enduranceDuration: number,
     catAvatarId: string,
     continentId: string,
-    completionFlag: 'Y' | 'N'
-  ) => Promise<{ rank: number; isNewRecord: boolean; score: number; compositeScore: number }>;
+    // 可选的向后兼容参数
+    roundsCompleted?: number,
+    totalTime?: number,
+    difficulty?: 'easy' | 'medium' | 'hard',
+    countryCode?: string
+  ) => Promise<{ rank: number; isNewRecord: boolean; enduranceDuration: number; score?: number; compositeScore?: number }>;
   fetchLeaderboard: (countryCode?: string) => Promise<void>;
   fetchPlayerBest: () => Promise<void>;
 }
@@ -131,55 +132,8 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
               completionFlag: score.completionFlag || 'Y'
             }));
         } else {
-          // 创建一些示例数据
-          const countries = countryCode ? [countryCode.toUpperCase()] : ['US', 'CN', 'JP', 'DE', 'GB'];
-          entries = [
-            {
-              rank: 1,
-              playerId: 'demo_player_1',
-              playerName: 'CompositeKing',
-              score: 15750,
-              roundsCompleted: 5,
-              totalTime: 120,
-              completedAt: Date.now() - 86400000,
-              difficulty: 'hard' as const,
-              countryCode: countries[0],
-              compositeScore: calculateCompositeScore(5, 15750),
-              catAvatarId: '🦁',
-              continentId: 'NA',
-              completionFlag: 'Y' as const
-            },
-            {
-              rank: 2,
-              playerId: 'demo_player_2',
-              playerName: 'RoundMaster',
-              score: 12300,
-              roundsCompleted: 4,
-              totalTime: 95,
-              completedAt: Date.now() - 172800000,
-              difficulty: 'medium' as const,
-              countryCode: countries[Math.min(1, countries.length - 1)],
-              compositeScore: calculateCompositeScore(4, 12300),
-              catAvatarId: '🐯',
-              continentId: 'AS',
-              completionFlag: 'Y' as const
-            },
-            {
-              rank: 3,
-              playerId: 'demo_player_3',
-              playerName: 'ScoreHunter',
-              score: 9800,
-              roundsCompleted: 3,
-              totalTime: 85,
-              completedAt: Date.now() - 259200000,
-              difficulty: 'medium' as const,
-              countryCode: countries[Math.min(2, countries.length - 1)],
-              compositeScore: calculateCompositeScore(3, 9800),
-              catAvatarId: '😸',
-              continentId: 'EU',
-              completionFlag: 'Y' as const
-            }
-          ];
+                  // 在测试模式下返回空排行榜
+        entries = [];
         }
 
         const mockData: LeaderboardData = {
@@ -264,24 +218,22 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
   // 提交分数
   const submitScore = useCallback(async (
     playerName: string,
-    roundsCompleted: number,
-    totalTime: number,
-    difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string,
+    enduranceDuration: number,
     catAvatarId: string,
     continentId: string,
-    completionFlag: 'Y' | 'N'
-  ): Promise<{ rank: number; isNewRecord: boolean; score: number; compositeScore: number }> => {
+    // 可选的向后兼容参数
+    roundsCompleted?: number,
+    totalTime?: number,
+    difficulty?: 'easy' | 'medium' | 'hard',
+    countryCode?: string
+  ): Promise<{ rank: number; isNewRecord: boolean; enduranceDuration: number; score?: number; compositeScore?: number }> => {
     const playerId = getPlayerId();
 
     if (isTestMode()) {
-      // 测试模式：模拟复合分数计算和排名
-      debugLog('Submitting mock composite score', { 
-        playerName, roundsCompleted, totalTime, difficulty, countryCode, catAvatarId, continentId, completionFlag 
+      // 测试模式：直接基于坚持时长进行排名
+      debugLog('Submitting mock endurance score', { 
+        playerName, enduranceDuration, catAvatarId, continentId 
       });
-
-      const rawScore = calculateRawScore(roundsCompleted, totalTime, difficulty);
-      const compositeScore = calculateCompositeScore(roundsCompleted, rawScore);
 
       // 检查是否为新记录
       const existingScoreStr = localStorage.getItem(`catComfortGame_score_${playerId}`);
@@ -290,21 +242,20 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       if (existingScoreStr) {
         try {
           const existingScore = JSON.parse(existingScoreStr);
-          const oldRounds = existingScore.roundsCompleted || 0;
-          const oldRawScore = existingScore.score || 0;
+          const oldDuration = existingScore.enduranceDuration || 0;
           
-          isNewRecord = isNewPersonalBest(roundsCompleted, rawScore, oldRounds, oldRawScore);
+          isNewRecord = enduranceDuration > oldDuration;
           
-          debugLog('Composite score comparison', {
-            new: { rounds: roundsCompleted, rawScore, compositeScore },
-            old: { rounds: oldRounds, rawScore: oldRawScore, compositeScore: existingScore.compositeScore },
+          debugLog('Endurance duration comparison', {
+            new: { enduranceDuration },
+            old: { enduranceDuration: oldDuration },
             isNewRecord
           });
           
           // 如果不是新记录，返回现有排名
           if (!isNewRecord) {
             const rank = 1; // 简化的排名计算
-            return { rank, isNewRecord: false, score: oldRawScore, compositeScore: existingScore.compositeScore };
+            return { rank, isNewRecord: false, enduranceDuration: oldDuration };
           }
         } catch (parseError) {
           console.error('Error parsing existing score:', parseError);
@@ -316,23 +267,22 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         const playerScore: PlayerScore = {
           playerId,
           playerName,
-          score: rawScore,
-          roundsCompleted,
-          totalTime,
-          completedAt: Date.now(),
-          difficulty,
-          countryCode: countryCode.toUpperCase(),
-          compositeScore,
+          enduranceDuration,
           catAvatarId,
           continentId,
-          completionFlag
+          completedAt: Date.now(),
+          // 可选的向后兼容字段
+          roundsCompleted,
+          totalTime,
+          difficulty,
+          countryCode: countryCode || 'US'
         };
 
         // 保存到本地存储
         localStorage.setItem(`catComfortGame_score_${playerId}`, JSON.stringify(playerScore));
         localStorage.setItem('catComfortGame_playerBest', JSON.stringify(playerScore));
         
-        debugLog('New composite score saved to localStorage', playerScore);
+        debugLog('New endurance score saved to localStorage', playerScore);
       }
 
       // 计算排名（基于所有本地分数）
@@ -349,17 +299,17 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         }
       }
 
-      // 按复合分数排序
-      allScores.sort((a, b) => (b.compositeScore || 0) - (a.compositeScore || 0));
+      // 按坚持时长排序
+      allScores.sort((a, b) => (b.enduranceDuration || 0) - (a.enduranceDuration || 0));
       const rank = allScores.findIndex(s => s.playerId === playerId) + 1;
 
-      debugLog('Mock composite score submitted', { rawScore, compositeScore, rank, isNewRecord });
+      debugLog('Mock endurance score submitted', { enduranceDuration, rank, isNewRecord });
 
-      return { rank: rank || 1, isNewRecord, score: rawScore, compositeScore };
+      return { rank: rank || 1, isNewRecord, enduranceDuration };
     } else {
       // 生产环境：调用真实API
-      debugLog('Submitting real composite score to API', { 
-        playerName, roundsCompleted, totalTime, difficulty, countryCode, catAvatarId, continentId, completionFlag 
+      debugLog('Submitting real endurance score to API', { 
+        playerName, enduranceDuration, catAvatarId, continentId 
       });
       
       const response = await fetch('/api/submit-score', {
@@ -370,13 +320,14 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         body: JSON.stringify({
           playerId,
           playerName,
+          enduranceDuration,
+          catAvatarId,
+          continentId,
+          // 可选的向后兼容字段
           roundsCompleted,
           totalTime,
           difficulty,
-          countryCode: countryCode.toUpperCase(),
-          catAvatarId,
-          continentId,
-          completionFlag
+          countryCode: countryCode || 'US'
         }),
       });
 
@@ -385,7 +336,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       }
 
       const result = await response.json();
-      debugLog('Composite score submission API response', result);
+      debugLog('Endurance score submission API response', result);
 
       if (result.status === 'success') {
         return result.data;

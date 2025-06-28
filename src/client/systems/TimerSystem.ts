@@ -15,11 +15,11 @@ export class TimerSystem {
   }
 
   /**
-   * 更新游戏主计时器
-   * Update main game timer
+   * 更新游戏主计时器 - 现在是正计时（坚持时长）
+   * Update main game timer - now counts up (endurance time)
    */
   updateGameTimer(currentTimer: number, deltaTime: number): number {
-    return Math.max(0, currentTimer - deltaTime);
+    return currentTimer + deltaTime;
   }
 
   /**
@@ -47,11 +47,11 @@ export class TimerSystem {
   }
 
   /**
-   * 检查是否因时间耗尽而失败
-   * Check if game failed due to time running out
+   * 检查是否因舒适度过低而失败（新的失败条件）
+   * Check if game failed due to low comfort
    */
-  isTimeFailure(gameTimer: number): boolean {
-    return gameTimer <= 0;
+  isComfortFailure(currentComfort: number): boolean {
+    return currentComfort <= 0.1; // 舒适度降到10%以下时游戏失败
   }
 
   /**
@@ -63,8 +63,8 @@ export class TimerSystem {
   }
 
   /**
-   * 格式化时间显示
-   * Format time display
+   * 格式化时间显示 - 显示坚持时长
+   * Format time display - shows endurance time
    */
   formatTime(seconds: number): string {
     const mins = Math.floor(seconds / 60);
@@ -78,5 +78,13 @@ export class TimerSystem {
    */
   getRemainingSuccessTime(successHoldTimer: number): number {
     return Math.ceil(this.config.SUCCESS_HOLD_TIME - successHoldTimer);
+  }
+
+  /**
+   * 获取坚持时长（秒）
+   * Get endurance duration in seconds
+   */
+  getEnduranceDuration(gameTimer: number): number {
+    return Math.floor(gameTimer);
   }
 }

@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { GameState, GameConfig } from '../types/GameTypes';
 import { GameStateManager } from '../systems/GameStateManager';
 import { isTestMode, debugLog } from '../config/testMode';
-import { mockGameApiService } from '../services/mockGameApi';
+
 
 interface UseGameStateReturn {
   gameState: GameState;
@@ -34,8 +34,14 @@ export const useGameState = (config: GameConfig): UseGameStateReturn => {
   // 在测试模式下，保存状态到本地存储
   const saveStateInTestMode = useCallback((state: GameState, round: number) => {
     if (isTestMode()) {
-      mockGameApiService.saveGameState(state);
-      mockGameApiService.saveCurrentRound(round);
+      // 在测试模式下保存状态到localStorage
+      try {
+        localStorage.setItem('catComfortGame_gameState', JSON.stringify(state));
+        localStorage.setItem('catComfortGame_currentRound', JSON.stringify(round));
+        debugLog('Game state saved to localStorage', { state, round });
+      } catch (error) {
+        debugLog('Failed to save to localStorage', error);
+      }
     }
   }, []);
 

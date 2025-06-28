@@ -110,44 +110,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           const countries = countryCode ? [countryCode.toUpperCase()] : ['US', 'CN', 'JP', 'DE', 'GB'];
           const COMPOSITE_SCORE_MULTIPLIER = 10000000;
           
-          entries = [
-            {
-              rank: 1,
-              playerId: 'demo_player_1',
-              playerName: 'CompositeKing',
-              score: 15750,
-              roundsCompleted: 5,
-              totalTime: 120,
-              completedAt: Date.now() - 86400000,
-              difficulty: 'hard' as const,
-              countryCode: countries[0],
-              compositeScore: (5 * COMPOSITE_SCORE_MULTIPLIER) + 15750
-            },
-            {
-              rank: 2,
-              playerId: 'demo_player_2',
-              playerName: 'RoundMaster',
-              score: 12300,
-              roundsCompleted: 4,
-              totalTime: 95,
-              completedAt: Date.now() - 172800000,
-              difficulty: 'medium' as const,
-              countryCode: countries[Math.min(1, countries.length - 1)],
-              compositeScore: (4 * COMPOSITE_SCORE_MULTIPLIER) + 12300
-            },
-            {
-              rank: 3,
-              playerId: 'demo_player_3',
-              playerName: 'ScoreHunter',
-              score: 9800,
-              roundsCompleted: 3,
-              totalTime: 85,
-              completedAt: Date.now() - 259200000,
-              difficulty: 'medium' as const,
-              countryCode: countries[Math.min(2, countries.length - 1)],
-              compositeScore: (3 * COMPOSITE_SCORE_MULTIPLIER) + 9800
-            }
-          ];
+          // 在测试模式下返回空排行榜
+          entries = [];
         }
 
         const mockData: LeaderboardData = {

@@ -6,14 +6,42 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Cat Comfort Game - Standalone Test Mode</title>
+    <title>Cat Comfort Game - 本地测试模式</title>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.typekit.net/pda3sty.css">
     <style>
+      /* 确保Silkscreen字体正确加载和渲染 */
+      @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+      
+      /* 强制Silkscreen字体渲染优化，增强粗体效果 */
+      .silkscreen-text {
+        font-family: 'Silkscreen', monospace !important;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-display: swap;
+        font-weight: 700 !important;
+        /* 统一的边框和阴影效果 */
+        -webkit-text-stroke: 2px #3A368E;
+        text-shadow: 
+          3px 3px 0 #3A368E,
+          -1px 1px 0 #3A368E,
+          1px -1px 0 #3A368E,
+          -1px -1px 0 #3A368E,
+          2px 2px 0 #3A368E,
+          -2px 2px 0 #3A368E,
+          2px -2px 0 #3A368E,
+          -2px -2px 0 #3A368E;
+      }
       /* 确保在任何环境中都能正确显示 */
       body {
         margin: 0;
         padding: 0;
         overflow: hidden;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        font-family: "lores-12", sans-serif;
+        font-weight: 400;
+        font-style: normal;
       }
       
       #root {
@@ -21,8 +49,8 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        /* 蓝到绿的渐变背景 */
-        background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 25%, #10b981 75%, #22c55e 100%);
+        /* 与启动页面一致的蓝到绿的渐变背景 */
+        background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 50%, #34d399 100%);
       }
       
       /* 响应式优化 */
@@ -56,6 +84,49 @@
         100% { transform: rotate(360deg); }
       }
       
+      /* 泡泡飘入动画 */
+      @keyframes bubble-float-0 {
+        0% {
+          transform: translateY(100px) scale(0.3);
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateY(0) scale(1);
+          opacity: 0.6;
+        }
+      }
+      
+      @keyframes bubble-float-1 {
+        0% {
+          transform: translateX(-80px) translateY(80px) scale(0.3);
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateX(0) translateY(0) scale(1);
+          opacity: 0.6;
+        }
+      }
+      
+      @keyframes bubble-float-2 {
+        0% {
+          transform: translateX(80px) translateY(120px) scale(0.3);
+          opacity: 0;
+        }
+        50% {
+          opacity: 0.6;
+        }
+        100% {
+          transform: translateX(0) translateY(0) scale(1);
+          opacity: 0.6;
+        }
+      }
+      
       /* 强制去除所有可能的 padding */
       .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
         padding: 0 !important;
@@ -68,89 +139,56 @@
         height: 844px;
         margin: 0 auto;
       }
+
+      /* 本地测试模式标识 */
+      .test-mode-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(90deg, #10b981, #06b6d4);
+        color: white;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 9999;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
     </style>
+    
+    <script>
+      // 强制启用测试模式
+      if (typeof window !== 'undefined') {
+        window.__FORCE_TEST_MODE__ = true;
+        localStorage.setItem('forceTestMode', 'true');
+        sessionStorage.setItem('forceTestMode', 'true');
+        console.log('🧪 本地测试模式已强制启用');
+      }
+      
+      // 显示环境信息
+      console.log('🌐 运行环境:', {
+        hostname: window.location.hostname,
+        port: window.location.port,
+        protocol: window.location.protocol,
+        testMode: true
+      });
+    </script>
   </head>
-  <body class="h-full bg-[#121213]">
-    <div id="root" class="h-full">
-      <!-- 初始加载状态 -->
+  <body>
+    <div id="root">
       <div class="loading">
         <div class="loading-spinner"></div>
-        <div>🐱 Loading Cat Comfort Game...</div>
-        <div style="font-size: 14px; margin-top: 10px; opacity: 0.8;">
-          Standalone Test Mode - No Setup Required!
-        </div>
+        <div>🐱 Cat Comfort Game Loading...</div>
+        <div style="margin-top: 10px; font-size: 14px; opacity: 0.8;">本地测试模式</div>
       </div>
     </div>
-    
-    <!-- 独立测试模式初始化脚本 -->
-    <script>
-      // 🚀 强制启用独立测试模式
-      console.log('🧪 STANDALONE TEST MODE ACTIVATED');
-      console.log('✅ Bypassing all Devvit requirements');
-      console.log('🎮 Game ready to run locally!');
-      
-      // 检测运行环境
-      const hostname = window.location.hostname;
-      const port = window.location.port;
-      const isBolt = hostname.includes('bolt') || hostname.includes('stackblitz') || hostname.includes('webcontainer');
-      const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-      
-      console.log('🔍 Environment Detection:', {
-        hostname,
-        port,
-        isBolt,
-        isLocal,
-        userAgent: navigator.userAgent
-      });
-      
-      // 设置全局标识
-      window.__TEST_MODE__ = true;
-      window.__SKIP_DEVVIT__ = true;
-      window.__STANDALONE_GAME__ = true;
-      window.__BOLT_PREVIEW__ = isBolt;
-      window.__LOCAL_DEV__ = isLocal;
-      
-      // 设置环境变量
-      if (!window.process) {
-        window.process = { env: {} };
-      }
-      window.process.env.NODE_ENV = 'development';
-      window.process.env.VITE_TEST_MODE = 'true';
-      
-      // 避免任何 Devvit 相关的检查
-      window.addEventListener('error', function(e) {
-        if (e.message && e.message.includes('devvit')) {
-          console.log('🛡️ Blocked Devvit error in test mode:', e.message);
-          e.preventDefault();
-          return false;
-        }
-      });
-      
-      // 模拟成功的环境检查
-      window.__ENVIRONMENT_CHECKS__ = {
-        authentication: true,
-        appInitialization: true,
-        subredditConfiguration: true,
-        testMode: true
-      };
-      
-      // 强制启用 import.meta.env.DEV
-      if (!window.import) {
-        window.import = {};
-      }
-      if (!window.import.meta) {
-        window.import.meta = {};
-      }
-      if (!window.import.meta.env) {
-        window.import.meta.env = {};
-      }
-      window.import.meta.env.DEV = true;
-      window.import.meta.env.MODE = 'development';
-      
-      console.log('🎯 All environment checks bypassed successfully!');
-      console.log('🚀 Game should load in test mode now!');
-    </script>
-    
-    <script type="module" src="main.tsx"></script>
+
+    <!-- 测试模式横幅 -->
+    <div class="test-mode-banner">
+      🧪 Cat Comfort Game - 本地测试模式 | http://localhost:7474
+    </div>
+
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>

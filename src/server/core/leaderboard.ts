@@ -14,15 +14,17 @@ const PLAYER_SCORES_KEY = 'player_scores_hash';
 export interface PlayerScore {
   playerId: string;
   playerName: string;
-  catAvatarId: string;
-  continentId: string;
-  completionTime: number; // 通关时间（秒）- 现在时间越长排名越高
-  completionFlag: 'Y' | 'N'; // 是否成功通关
-  roundsCompleted: number; // 完成的回合数
-  totalTime: number; // 总游戏时间
+  catAvatarId: string; // 选择的猫的ID
+  continentId: string; // 选择的地区ID
+  enduranceDuration: number; // 坚持时长（秒）- 唯一排名依据
+  completedAt: number; // 完成时间戳
+  
+  // 保留的可选字段（向后兼容）
+  completionTime?: number;
+  roundsCompleted?: number;
+  totalTime?: number;
   difficulty?: 'easy' | 'medium' | 'hard';
   countryCode?: string;
-  completedAt: number; // 完成时间戳
 }
 
 // 排行榜条目
@@ -66,21 +68,26 @@ export async function submitScore({
 }: {
   redis: Context['redis'] | RedisClient;
   playerScore: PlayerScore;
-}): Promise<{ success: boolean; rank: number; message: string }> {
+}): Promise<{ success: boolean; rank: number; message: string; enduranceDuration: number }> {
   try {
     console.log(`Submitting score for player ${playerScore.playerId} (${playerScore.playerName})`);
-    console.log(`Completion time: ${playerScore.completionTime}s, Continent: ${playerScore.continentId}`);
+    console.log(`Endurance duration: ${playerScore.enduranceDuration}s, Continent: ${playerScore.continentId}`);
     
     // 验证必需字段
-    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.completionTime !== 'number') {
-      throw new Error('Missing required fields: playerId, playerName, or completionTime');
+    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.enduranceDuration !== 'number') {
+      throw new Error('Missing required fields: playerId, playerName, or enduranceDuration');
+    }
+
+    // 验证洲际ID和猫ID
+    if (!playerScore.continentId || !playerScore.catAvatarId) {
+      throw new Error('continentId and catAvatarId are required');
     }
 
     // 保存玩家详细数据到 Hash
     await redis.hSet(PLAYER_SCORES_KEY, playerScore.playerId, JSON.stringify(playerScore));
     
-    // 使用完成时间作为分数，时间越长排名越高，所以使用正数
-    const score = playerScore.completionTime;
+    // 使用坚持时长作为分数，时间越长排名越高
+    const score = playerScore.enduranceDuration;
     
     // 将玩家分数添加到全球排行榜 (使用 zRevRange 获取时需要时间长的在前面)
     await redis.zAdd(LEADERBOARD_KEY, {
@@ -88,7 +95,7 @@ export async function submitScore({
       score: score
     });
     
-    console.log(`Player ${playerScore.playerName} added to global leaderboard with score ${score}`);
+    console.log(`Player ${playerScore.playerName} added to global leaderboard with endurance duration ${score}s`);
     
     // 获取玩家在排行榜中的排名
     const rank = await getPlayerRank(redis, playerScore.playerId);
@@ -98,6 +105,7 @@ export async function submitScore({
     return {
       success: true,
       rank: rank,
+      enduranceDuration: playerScore.enduranceDuration,
       message: `Score submitted successfully. Current rank: ${rank}`
     };
   } catch (error) {
@@ -145,7 +153,7 @@ export async function getLeaderboard({
               rank: entries.length + 1 // 重新计算排名
             };
             entries.push(entry);
-            console.log(`Rank ${entry.rank}: ${entry.playerName} (${entry.continentId}) - ${entry.completionTime}s`);
+            console.log(`Rank ${entry.rank}: ${entry.playerName} (${entry.continentId}) - ${entry.enduranceDuration}s`);
           }
         } catch (parseError) {
           console.error(`Error parsing player data for ${playerId}:`, parseError);

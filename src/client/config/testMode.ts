@@ -7,7 +7,14 @@ export const TEST_MODE = {
   // 强制启用测试模式的条件
   enabled: (() => {
     // 检查是否在开发环境
-    const isDev = import.meta.env?.DEV;
+    const isDev = typeof window !== 'undefined' && 
+      (window.location.hostname !== window.location.hostname.replace('localhost', '') ||
+       window.location.port !== '');
+    
+    // 强制启用测试模式
+    const forceTestMode = typeof window !== 'undefined' && 
+      (localStorage.getItem('forceTestMode') === 'true' ||
+       sessionStorage.getItem('forceTestMode') === 'true');
     
     // 检查URL参数
     const hasTestParam = typeof window !== 'undefined' && 
@@ -22,7 +29,8 @@ export const TEST_MODE = {
        window.location.hostname.includes('webcontainer') ||
        window.location.port === '7474' ||
        window.location.port === '5173' ||
-       window.location.port === '3000');
+       window.location.port === '3000' ||
+       window.location.port === '4173');
     
     // 检查是否通过测试命令启动
     const isTestCommand = typeof window !== 'undefined' &&
@@ -41,6 +49,7 @@ export const TEST_MODE = {
     
     console.log('🔍 Test Mode Detection:', {
       isDev,
+      forceTestMode,
       hasTestParam,
       isLocalDev,
       isTestCommand,
@@ -49,7 +58,7 @@ export const TEST_MODE = {
       port: typeof window !== 'undefined' ? window.location.port : 'N/A'
     });
     
-    return isDev || hasTestParam || isLocalDev || isTestCommand || isBoltEnvironment;
+    return isDev || forceTestMode || hasTestParam || isLocalDev || isTestCommand || isBoltEnvironment;
   })(),
   
   // 测试模式下的配置

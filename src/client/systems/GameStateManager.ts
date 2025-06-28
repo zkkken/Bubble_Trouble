@@ -44,7 +44,7 @@ export class GameStateManager {
       targetTemperature: this.temperatureSystem.generateRandomTargetTemperature(),
       toleranceWidth: this.config.TOLERANCE_WIDTH,
       currentComfort: 0.5,
-      gameTimer: this.config.GAME_DURATION,
+      gameTimer: 0, // 现在从0开始计时（坚持时长）
       successHoldTimer: 0,
       isPlusHeld: false,
       isMinusHeld: false,
@@ -66,18 +66,13 @@ export class GameStateManager {
 
     let newState = { ...currentState };
 
-    // 1. 更新计时器
+    // 1. 更新计时器（现在是正计时，记录坚持时长）
     newState.gameTimer = this.timerSystem.updateGameTimer(newState.gameTimer, deltaTime);
     newState.interferenceTimer = this.timerSystem.updateInterferenceTimer(newState.interferenceTimer, deltaTime);
 
-    // 2. 检查时间失败条件 - Game only ends when time runs out
-    if (this.timerSystem.isTimeFailure(newState.gameTimer)) {
-      // Check if comfort is high enough for success
-      if (newState.currentComfort >= 0.8) {
-        newState.gameStatus = 'success';
-      } else {
-        newState.gameStatus = 'failure';
-      }
+    // 2. 检查舒适度失败条件 - 舒适度过低时游戏结束
+    if (this.timerSystem.isComfortFailure(newState.currentComfort)) {
+      newState.gameStatus = 'failure';
       return newState;
     }
 
@@ -140,13 +135,16 @@ export class GameStateManager {
 
     // 7. Comfort can go to 0 but game doesn't end - only when time runs out
 
-    // 8. 处理成功逻辑 - Success is determined at the end of time
+    // 8. 更新成功保持计时器（仅用于UI显示，不触发游戏结束）
     const isMaxComfort = this.comfortSystem.isMaxComfort(newState.currentComfort);
     newState.successHoldTimer = this.timerSystem.updateSuccessHoldTimer(
       newState.successHoldTimer,
       isMaxComfort,
       deltaTime
     );
+
+    // 注意：移除了成功条件检查，游戏只会因为舒适度过低而失败
+    // 玩家需要尽可能长时间地维持猫咪的舒适度
 
     return newState;
   }

@@ -1,37 +1,29 @@
-import React from 'react';
+import React, { HTMLAttributes } from 'react';
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
   children?: React.ReactNode;
 }
 
-export const Card: React.FC<CardProps> = ({ className = '', children }) => {
+export function Card({ className = '', ...props }: CardProps) {
   return (
-    <div className={`rounded-xl border bg-white text-gray-900 shadow ${className}`}>
-      {children}
+    <div className={`rounded-xl border text-gray-900 shadow ${className}`} {...props}>
+      {props.children}
     </div>
   );
-};
+}
 
-export const CardContent: React.FC<CardProps> = ({ className = '', children }) => {
-  return (
-    <div className={`p-6 pt-0 ${className}`}>
-      {children}
-    </div>
-  );
-};
+export function CardHeader({ className = '', ...props }: CardProps) {
+  return <div className={`p-6 ${className}`} {...props} />;
+}
 
-const CardHeader = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={`flex flex-col space-y-1.5 p-6 ${className}`}
-    {...props}
-  />
-));
-CardHeader.displayName = "CardHeader";
+export function CardContent({ className = '', ...props }: CardProps) {
+  return <div className={`p-6 pt-0 ${className}`} {...props} />;
+}
+
+export function CardFooter({ className = '', ...props }: CardProps) {
+  return <div className={`p-6 pt-0 ${className}`} {...props} />;
+}
 
 const CardTitle = React.forwardRef<
   HTMLDivElement,
@@ -57,21 +49,7 @@ const CardDescription = React.forwardRef<
 ));
 CardDescription.displayName = "CardDescription";
 
-const CardFooter = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={`flex items-center p-6 pt-0 ${className}`}
-    {...props}
-  />
-));
-CardFooter.displayName = "CardFooter";
-
 export {
-  CardHeader,
-  CardFooter,
   CardTitle,
   CardDescription,
 }; 
