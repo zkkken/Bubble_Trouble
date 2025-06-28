@@ -1,0 +1,26 @@
+# 自动识别文本文件，并确保它们在仓库中以 LF 存储
+* text=auto
+
+# 对于以下后缀的文件，强制在工作目录中也使用 LF 换行符
+*.ts    eol=lf
+*.tsx   eol=lf
+*.js    eol=lf
+*.jsx   eol=lf
+*.json  eol=lf
+*.md    eol=lf
+*.yaml  eol=lf
+*.yml   eol=lf
+*.css   eol=lf
+*.html  eol=lf
+*.txt   eol=lf
+
+# 确保某些文件类型被视为二进制文件
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary 

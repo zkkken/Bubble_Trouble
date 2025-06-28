@@ -207,3 +207,4 @@ export const StartGameScreen: React.FC<StartGameScreenProps> = ({ onStartGame })
     </div>
   );
 };
+

@@ -43,7 +43,6 @@ export const GameInterface: React.FC = () => {
   // 界面控制状态
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
-
   // 游戏状态
   const {
     gameState,
