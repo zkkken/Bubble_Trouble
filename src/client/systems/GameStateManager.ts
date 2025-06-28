@@ -85,7 +85,6 @@ export class GameStateManager {
 
       // 如果干扰时间耗尽，自动清除干扰
       if (newState.interferenceEvent.remainingTime <= 0) {
-        console.log(`🎯 Interference ${newState.interferenceEvent.type} ended`); // Debug log
         newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
         newState.isControlsReversed = false;
         newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();

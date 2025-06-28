@@ -161,7 +161,7 @@ router.post('/api/reset-game', async (req, res): Promise<void> => {
   }
 });
 
-// ==================== 洲际排行榜API路由 ====================
+// ==================== 坚持时长排行榜API路由 ====================
 
 /**
  * 提交分数到全球排行榜
@@ -176,8 +176,8 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
     const redis = getRedis();
 
     // 验证必需字段
-    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.completionTime !== 'number') {
-      const errorMsg = 'Missing required fields: playerId, playerName, or completionTime';
+    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.enduranceDuration !== 'number') {
+      const errorMsg = 'Missing required fields: playerId, playerName, or enduranceDuration';
       console.error('Submit score validation error:', errorMsg);
       res.status(400).json({ 
         status: 'error', 
@@ -198,7 +198,7 @@ router.post('/api/submit-score', async (req, res): Promise<void> => {
     }
 
     console.log(`Processing score submission: ${playerScore.playerName} (${playerScore.playerId})`);
-    console.log(`Completion time: ${playerScore.completionTime}s, Continent: ${playerScore.continentId}`);
+    console.log(`Endurance duration: ${playerScore.enduranceDuration}s, Continent: ${playerScore.continentId}`);
 
     // 添加时间戳
     const playerScoreWithTimestamp: PlayerScore = {
@@ -350,7 +350,7 @@ router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
     await debugLeaderboard(redis);
     res.json({ 
       status: 'success', 
-      message: 'Continental leaderboard debug info printed to console' 
+      message: 'Endurance leaderboard debug info printed to console' 
     });
   } catch (error) {
     console.error('Debug API Error:', error);
@@ -395,7 +395,7 @@ const port = getServerPort();
 const server = createServer(app);
 server.on('error', (err) => console.error(`server error; ${err.stack}`));
 server.listen(port, () => {
-  console.log(`🚀 Continental Leaderboard Server running on http://localhost:${port}`);
+  console.log(`🚀 Endurance Leaderboard Server running on http://localhost:${port}`);
   console.log('📊 Available endpoints:');
   console.log('  POST /api/submit-score - Submit player score to global leaderboard');
   console.log('  GET  /api/leaderboard - Get global leaderboard data');

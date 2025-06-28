@@ -36,7 +36,6 @@ export class InterferenceSystem {
     ];
     const randomIndex = Math.floor(Math.random() * types.length);
     const selectedType = types[randomIndex] || 'controls_reversed'; // Fallback to ensure valid type
-    console.log(`🎯 Selected interference type: ${selectedType}`); // Debug log
     return selectedType;
   }
 
@@ -52,8 +51,6 @@ export class InterferenceSystem {
     } else {
       duration = this.config.INTERFERENCE_DURATION;
     }
-    
-    console.log(`🎯 Creating interference event: ${type} for ${duration}s`); // Debug log
     
     return {
       type,

@@ -1,6 +1,6 @@
 /**
- * 全局游戏排行榜系统 - 服务端逻辑 (洲际排行榜版本)
- * Global Game Leaderboard System - Server Logic (Continental Leaderboard Version)
+ * 全局游戏排行榜系统 - 服务端逻辑 (坚持时长排行榜版本)
+ * Global Game Leaderboard System - Server Logic (Endurance Duration Leaderboard Version)
  */
 
 import { Context } from '@devvit/public-api';
@@ -325,7 +325,7 @@ export async function cleanupLeaderboard(redis: Context['redis'] | RedisClient):
  */
 export async function debugLeaderboard(redis: Context['redis'] | RedisClient): Promise<void> {
   try {
-    console.log('=== CONTINENTAL LEADERBOARD DEBUG INFO ===');
+    console.log('=== ENDURANCE LEADERBOARD DEBUG INFO ===');
     
     // 检查排行榜大小
     const leaderboardSize = await redis.zCard(LEADERBOARD_KEY);
@@ -334,7 +334,7 @@ export async function debugLeaderboard(redis: Context['redis'] | RedisClient): P
     if (leaderboardSize > 0) {
       // 获取前 10 名用于调试 (使用 zRevRange 因为时间长的排前面)
       const topPlayerIds = await redis.zRevRange(LEADERBOARD_KEY, 0, 9, { by: 'rank' });
-      console.log('Top 10 players (by completion time - longest first):');
+      console.log('Top 10 players (by endurance duration - longest first):');
       
       for (let i = 0; i < topPlayerIds.length; i++) {
         const playerId = topPlayerIds[i];
@@ -343,7 +343,7 @@ export async function debugLeaderboard(redis: Context['redis'] | RedisClient): P
         if (playerDataStr) {
           try {
             const playerData: PlayerScore = JSON.parse(playerDataStr);
-            console.log(`Rank ${i + 1}: ${playerData.playerName} (${playerData.continentId}) - ${playerData.completionTime}s (${playerData.roundsCompleted} rounds)`);
+            console.log(`Rank ${i + 1}: ${playerData.playerName} (${playerData.continentId}) - ${playerData.enduranceDuration}s`);
           } catch (parseError) {
             console.log(`Rank ${i + 1}: [Parse Error] ${playerId}`);
           }
@@ -357,7 +357,7 @@ export async function debugLeaderboard(redis: Context['redis'] | RedisClient): P
     const continentStats = await getContinentStats({ redis });
     console.log('Continent statistics:', continentStats);
     
-    console.log('=== END CONTINENTAL LEADERBOARD DEBUG INFO ===');
+    console.log('=== END ENDURANCE LEADERBOARD DEBUG INFO ===');
   } catch (error) {
     console.error('Error in debug function:', error);
   }
