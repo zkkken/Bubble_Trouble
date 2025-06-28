@@ -19,7 +19,10 @@ interface UseLeaderboardReturn {
     roundsCompleted: number,
     totalTime: number,
     difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string
+    countryCode: string,
+    catAvatarId: string,
+    continentId: string,
+    completionFlag: 'Y' | 'N'
   ) => Promise<{ rank: number; isNewRecord: boolean; score: number; compositeScore: number }>;
   fetchLeaderboard: (countryCode?: string) => Promise<void>;
   fetchPlayerBest: () => Promise<void>;
@@ -122,7 +125,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
               completedAt: score.completedAt,
               difficulty: score.difficulty,
               countryCode: score.countryCode || 'US',
-              compositeScore: score.compositeScore || 0
+              compositeScore: score.compositeScore || 0,
+              catAvatarId: score.catAvatarId || '🐱',
+              continentId: score.continentId || 'NA',
+              completionFlag: score.completionFlag || 'Y'
             }));
         } else {
           // 创建一些示例数据
@@ -138,7 +144,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
               completedAt: Date.now() - 86400000,
               difficulty: 'hard' as const,
               countryCode: countries[0],
-              compositeScore: calculateCompositeScore(5, 15750)
+              compositeScore: calculateCompositeScore(5, 15750),
+              catAvatarId: '🦁',
+              continentId: 'NA',
+              completionFlag: 'Y' as const
             },
             {
               rank: 2,
@@ -150,7 +159,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
               completedAt: Date.now() - 172800000,
               difficulty: 'medium' as const,
               countryCode: countries[Math.min(1, countries.length - 1)],
-              compositeScore: calculateCompositeScore(4, 12300)
+              compositeScore: calculateCompositeScore(4, 12300),
+              catAvatarId: '🐯',
+              continentId: 'AS',
+              completionFlag: 'Y' as const
             },
             {
               rank: 3,
@@ -162,7 +174,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
               completedAt: Date.now() - 259200000,
               difficulty: 'medium' as const,
               countryCode: countries[Math.min(2, countries.length - 1)],
-              compositeScore: calculateCompositeScore(3, 9800)
+              compositeScore: calculateCompositeScore(3, 9800),
+              catAvatarId: '😸',
+              continentId: 'EU',
+              completionFlag: 'Y' as const
             }
           ];
         }
@@ -177,10 +192,9 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         // 模拟网络延迟
         await new Promise(resolve => setTimeout(resolve, 300));
         setLeaderboardData(mockData);
-        debugLog('Mock composite score leaderboard data loaded', mockData);
+        debugLog('Mock composite score data set successfully', mockData);
       } else {
-        // 生产环境：调用真实API
-        debugLog('Fetching real composite score leaderboard data from API', { countryCode });
+        debugLog('Using production mode, calling API');
         
         const url = new URL('/api/leaderboard', window.location.origin);
         if (countryCode) {
@@ -199,7 +213,7 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
         
         if (result.status === 'success') {
           setLeaderboardData(result.data);
-          debugLog('Production composite score leaderboard data set successfully', result.data);
+          debugLog('Production composite score data set successfully', result.data);
         } else {
           throw new Error(result.message || 'Failed to load leaderboard');
         }
@@ -253,13 +267,18 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
     roundsCompleted: number,
     totalTime: number,
     difficulty: 'easy' | 'medium' | 'hard',
-    countryCode: string
+    countryCode: string,
+    catAvatarId: string,
+    continentId: string,
+    completionFlag: 'Y' | 'N'
   ): Promise<{ rank: number; isNewRecord: boolean; score: number; compositeScore: number }> => {
     const playerId = getPlayerId();
 
     if (isTestMode()) {
       // 测试模式：模拟复合分数计算和排名
-      debugLog('Submitting mock composite score', { playerName, roundsCompleted, totalTime, difficulty, countryCode });
+      debugLog('Submitting mock composite score', { 
+        playerName, roundsCompleted, totalTime, difficulty, countryCode, catAvatarId, continentId, completionFlag 
+      });
 
       const rawScore = calculateRawScore(roundsCompleted, totalTime, difficulty);
       const compositeScore = calculateCompositeScore(roundsCompleted, rawScore);
@@ -303,7 +322,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
           completedAt: Date.now(),
           difficulty,
           countryCode: countryCode.toUpperCase(),
-          compositeScore
+          compositeScore,
+          catAvatarId,
+          continentId,
+          completionFlag
         };
 
         // 保存到本地存储
@@ -336,7 +358,9 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
       return { rank: rank || 1, isNewRecord, score: rawScore, compositeScore };
     } else {
       // 生产环境：调用真实API
-      debugLog('Submitting real composite score to API', { playerName, roundsCompleted, totalTime, difficulty, countryCode });
+      debugLog('Submitting real composite score to API', { 
+        playerName, roundsCompleted, totalTime, difficulty, countryCode, catAvatarId, continentId, completionFlag 
+      });
       
       const response = await fetch('/api/submit-score', {
         method: 'POST',
@@ -349,7 +373,10 @@ export const useLeaderboard = (): UseLeaderboardReturn => {
           roundsCompleted,
           totalTime,
           difficulty,
-          countryCode: countryCode.toUpperCase()
+          countryCode: countryCode.toUpperCase(),
+          catAvatarId,
+          continentId,
+          completionFlag
         }),
       });
 
