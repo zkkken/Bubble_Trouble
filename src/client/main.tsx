@@ -35,7 +35,7 @@ console.log('🎯 Test mode status:', {
   boltPreview: (window as any).__BOLT_PREVIEW__
 });
 
-// 如果测试模式未启用，强制启用
+// 如果测试模式未启用，强制启用（同步方式）
 if (!isTestMode()) {
   console.warn('⚠️ Test mode not detected, force enabling...');
   forceEnableTestMode();

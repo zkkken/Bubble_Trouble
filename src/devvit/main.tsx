@@ -81,28 +81,6 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = () => {
   );
 };
 
-// 🎯 修复：添加 WebView 组件
-export const GameWebView: Devvit.BlockComponent = () => {
-  const { ui } = Devvit.useContext();
-  
-  return (
-    <vstack width={'100%'} height={'100%'} alignment="center middle">
-      <button
-        onPress={() => {
-          ui.webView.postMessage('webview', {
-            type: 'initialData',
-            data: { message: 'Hello from Devvit!' }
-          });
-        }}
-        appearance="primary"
-        size="large"
-      >
-        🎮 Play Cat Comfort Game
-      </button>
-    </vstack>
-  );
-};
-
 Devvit.addMenuItem({
   label: 'Cat Comfort Game: New Post',
   location: 'subreddit',
@@ -149,8 +127,6 @@ Devvit.addCustomPostType({
   height: 'tall',
   render: (context) => {
     const [webviewVisible, setWebviewVisible] = Devvit.useState(false);
-    
-    const { postId } = context;
     
     const webView = Devvit.useWebView({
       id: 'cat-comfort-game',
