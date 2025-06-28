@@ -1,12 +1,11 @@
 /**
  * 游戏API服务
- * 处理与后端的数据交互，支持测试模式
+ * 处理与后端的数据交互
  * 
  * @author 开发者C - 服务端API负责人
  */
 
 import { GameState } from '../types/GameTypes';
-import { isTestMode, debugLog } from '../config/testMode';
 
 interface ApiResponse<T> {
   status: 'success' | 'error';
@@ -26,14 +25,6 @@ class GameApiService {
    * 通用的API调用方法
    */
   private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
-    if (isTestMode()) {
-      debugLog('Test mode: API call blocked for', endpoint);
-      return {
-        status: 'error',
-        message: 'API calls are disabled in test mode'
-      };
-    }
-
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, options);
       return await response.json();

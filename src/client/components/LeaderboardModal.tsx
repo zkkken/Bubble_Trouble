@@ -1,13 +1,12 @@
 /**
- * 排行榜模态框组件 (复合分数版本)
- * Leaderboard Modal Component (Composite Score Version)
+ * 排行榜模态框组件
+ * Leaderboard Modal Component
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
 import React, { useState, useEffect } from 'react';
 import { LeaderboardData, LeaderboardEntry } from '../../shared/types/leaderboard';
-import { isTestMode, debugLog } from '../config/testMode';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -58,102 +57,27 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     setError(null);
     
     try {
-      debugLog('LeaderboardModal: Starting to fetch composite score leaderboard data', { countryCode });
+      const url = new URL('/api/leaderboard', window.location.origin);
+      if (countryCode) {
+        url.searchParams.set('countryCode', countryCode);
+      }
       
-      if (isTestMode()) {
-        debugLog('LeaderboardModal: Using test mode');
-        
-        // 测试模式：从本地存储获取数据
-        const localScores = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('catComfortGame_score_')) {
-            try {
-              const scoreData = JSON.parse(localStorage.getItem(key) || '');
-              localScores.push(scoreData);
-            } catch (e) {
-              debugLog('LeaderboardModal: Error parsing local score', e);
-            }
-          }
-        }
-
-        debugLog('LeaderboardModal: Found local scores', localScores);
-
-        // 过滤国家数据（如果指定了国家代码）
-        let filteredScores = localScores;
-        if (countryCode) {
-          filteredScores = localScores.filter(score => 
-            score.countryCode && score.countryCode.toUpperCase() === countryCode.toUpperCase()
-          );
-        }
-
-        let entries = [];
-        if (filteredScores.length > 0) {
-          // 按复合分数排序
-          entries = filteredScores
-            .sort((a, b) => (b.compositeScore || 0) - (a.compositeScore || 0))
-            .map((score, index) => ({
-              rank: index + 1,
-              playerId: score.playerId,
-              playerName: score.playerName,
-              score: score.score, // 原始分数
-              roundsCompleted: score.roundsCompleted,
-              totalTime: score.totalTime,
-              completedAt: score.completedAt,
-              difficulty: score.difficulty,
-              countryCode: score.countryCode || 'US',
-              compositeScore: score.compositeScore || 0
-            }));
-        } else {
-          // 如果没有本地分数，创建一些示例数据
-          debugLog('LeaderboardModal: No local scores found, creating demo data');
-          const countries = countryCode ? [countryCode.toUpperCase()] : ['US', 'CN', 'JP', 'DE', 'GB'];
-          const COMPOSITE_SCORE_MULTIPLIER = 10000000;
-          
-          // 在测试模式下返回空排行榜
-          entries = [];
-        }
-
-        const mockData: LeaderboardData = {
-          entries,
-          totalPlayers: Math.max(entries.length, 156),
-          lastUpdated: Date.now(),
-          countryCode: countryCode?.toUpperCase()
-        };
-
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setLeaderboardData(mockData);
-        debugLog('LeaderboardModal: Mock composite score data set successfully', mockData);
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setLeaderboardData(result.data);
       } else {
-        debugLog('LeaderboardModal: Using production mode, calling API');
-        
-        const url = new URL('/api/leaderboard', window.location.origin);
-        if (countryCode) {
-          url.searchParams.set('countryCode', countryCode);
-        }
-        
-        const response = await fetch(url.toString());
-        debugLog('LeaderboardModal: API response status', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        debugLog('LeaderboardModal: API response data', result);
-        
-        if (result.status === 'success') {
-          setLeaderboardData(result.data);
-          debugLog('LeaderboardModal: Production composite score data set successfully', result.data);
-        } else {
-          throw new Error(result.message || 'Failed to load leaderboard');
-        }
+        throw new Error(result.message || 'Failed to load leaderboard');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error while loading leaderboard';
       setError(errorMessage);
-      debugLog('LeaderboardModal: Error occurred', errorMessage);
       console.error('Error fetching leaderboard:', err);
     } finally {
       setLoading(false);
@@ -162,7 +86,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      debugLog('LeaderboardModal: Modal opened, fetching data', { selectedCountry });
       fetchLeaderboard(selectedCountry || undefined);
     }
   }, [isOpen, selectedCountry]);
@@ -217,7 +140,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <div>
               <h2 className="text-2xl font-bold">🏆 Cat Comfort Leaderboard</h2>
               <p className="text-blue-100 mt-1">
-                {selectedCountryInfo ? selectedCountryInfo.name : 'Global rankings'} - Ranked by rounds first, then score
+                {selectedCountryInfo ? selectedCountryInfo.name : 'Global rankings'} - Ranked by endurance time
               </p>
             </div>
             <button
@@ -268,10 +191,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           {loading && (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-600">Loading composite score leaderboard...</p>
-              {isTestMode() && (
-                <p className="mt-1 text-sm text-blue-600">Test Mode: Loading local scores</p>
-              )}
+              <p className="mt-2 text-gray-600">Loading leaderboard...</p>
             </div>
           )}
 
@@ -284,13 +204,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               >
                 Try Again
               </button>
-              {isTestMode() && (
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Test Mode Debug:</strong> Try playing a game first to generate some scores!
-                  </p>
-                </div>
-              )}
             </div>
           )}
 
@@ -304,11 +217,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <div className="text-sm text-gray-500 mt-1">
                   Last updated: {formatDate(leaderboardData.lastUpdated)}
                 </div>
-                {isTestMode() && (
-                  <div className="text-xs text-blue-600 mt-1">
-                    Test Mode: Showing {leaderboardData.entries.length} local scores
-                  </div>
-                )}
               </div>
 
               {/* Leaderboard entries */}
@@ -316,13 +224,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <div className="text-center py-8 text-gray-500">
                   <div className="text-4xl mb-4">🐱</div>
                   <div>No scores yet for {selectedCountryInfo?.name || 'this region'}. Be the first to play!</div>
-                  {isTestMode() && (
-                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Test Mode:</strong> Complete a game and submit your score to see it here!
-                      </p>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -349,14 +250,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         <div>
                           <div className="font-bold text-gray-800 flex items-center gap-2">
                             {entry.playerName}
-                            <span className="text-sm">{getCountryFlag(entry.countryCode)}</span>
+                            <span className="text-sm">{getCountryFlag(entry.countryCode || 'US')}</span>
                           </div>
                           <div className="text-sm text-gray-600 flex items-center gap-2">
-                            <span>{getDifficultyEmoji(entry.difficulty)}</span>
-                            <span className={getDifficultyColor(entry.difficulty)}>
-                              {entry.difficulty.toUpperCase()}
-                            </span>
-                            <span>•</span>
+                            {entry.difficulty && (
+                              <>
+                                <span>{getDifficultyEmoji(entry.difficulty)}</span>
+                                <span className={getDifficultyColor(entry.difficulty)}>
+                                  {entry.difficulty.toUpperCase()}
+                                </span>
+                                <span>•</span>
+                              </>
+                            )}
                             <span>{formatDate(entry.completedAt)}</span>
                           </div>
                         </div>
@@ -365,17 +270,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       {/* Score and stats */}
                       <div className="text-right">
                         <div className="text-lg font-bold text-blue-600">
-                          🎮 {entry.roundsCompleted} rounds
+                          ⏱️ {entry.enduranceDuration}s
                         </div>
-                        <div className="text-sm font-medium text-green-600">
-                          🎯 {entry.score.toLocaleString()} pts
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          ⏱️ {formatTime(entry.totalTime)}
-                        </div>
-                        {entry.compositeScore && (
-                          <div className="text-xs text-gray-400">
-                            Composite: {entry.compositeScore.toLocaleString()}
+                        {entry.roundsCompleted && (
+                          <div className="text-sm font-medium text-green-600">
+                            🎮 {entry.roundsCompleted} rounds
+                          </div>
+                        )}
+                        {entry.totalTime && (
+                          <div className="text-xs text-gray-600">
+                            Total: {formatTime(entry.totalTime)}
                           </div>
                         )}
                       </div>
@@ -391,7 +295,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         <div className="bg-gray-50 px-6 py-4 border-t">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              🎮 Ranking: Rounds completed first, then raw score!
+              🎮 Ranking: Endurance time (how long you survived)!
             </div>
             <button
               onClick={onClose}

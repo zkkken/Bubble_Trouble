@@ -87,8 +87,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     "/Cat_3.png", "/Cat_4.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png"
   ];
 
-
-
   // 洲际名称映射
   const continentNames: { [key: string]: string } = {
     'OC': 'OCEANIA',
@@ -118,18 +116,9 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
         return stored;
       }
       
-      // 测试模式下，设置一个默认洲际用于演示
-      const isTestModeActive = (window as any).__TEST_MODE__ || 
-        (window as any).__FORCE_TEST_MODE__ ||
-        window.location.hostname === 'localhost' ||
-        window.location.port === '7474' ||
-        window.location.port === '5173';
-      
-      if (isTestModeActive) {
-        // 设置玩家在大洋洲（排名最后），这样容易看到效果
-        localStorage.setItem('catComfortGame_playerContinent', 'OC');
-        return 'OC';
-      }
+      // 设置玩家在大洋洲（排名最后），这样容易看到效果
+      localStorage.setItem('catComfortGame_playerContinent', 'OC');
+      return 'OC';
     }
     // 默认返回亚洲
     return 'AS';
@@ -163,7 +152,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     };
 
     let attempts = 0;
-    while (cats.length < numCats && attempts < 100) {
+    while (cats.length < numCats - 1 && attempts < 100) {
       const size = Math.floor(Math.random() * 21) + 40; // 调整为40-60px
       const x = Math.floor(Math.random() * (313 - size));
       const y = Math.floor(Math.random() * (143 - size));
@@ -185,46 +174,15 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     return cats;
   };
 
-
-
   // 获取洲际统计数据并生成排名
   useEffect(() => {
     const fetchContinentStats = async () => {
       try {
-        // 检查是否在测试模式下运行
-        const isTestModeActive = typeof window !== 'undefined' && (
-          (window as any).__TEST_MODE__ || 
-          (window as any).__FORCE_TEST_MODE__ ||
-          window.location.hostname === 'localhost' ||
-          window.location.port === '7474' ||
-          window.location.port === '5173'
-        );
+        const response = await fetch('/api/leaderboard/stats');
+        const data = await response.json();
         
-        let data;
-        
-        if (isTestModeActive) {
-          // 测试模式：返回空数据
-          console.log('🧪 洲际排行榜：测试模式，返回空数据');
-          
-          // 模拟网络延迟
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          data = {
-            status: 'success',
-            data: []
-          };
-          
-          console.log('🧪 测试模式：返回空洲际统计数据');
-        } else {
-          // 生产模式：调用真实API
-          console.log('🌐 洲际排行榜：使用生产模式API');
-          
-          const response = await fetch('/api/leaderboard/stats');
-          data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         if (data.status === 'success') {
@@ -325,7 +283,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     );
   }
 
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
       <div className="w-[724px] h-[584px] bg-[#2f2f2f] overflow-hidden relative">
@@ -334,7 +291,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           {/* 背景图片 */}
           <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
           
-
           {/* 舒适度进度条 */}
           <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
             <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656] opacity-60">
@@ -360,8 +316,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
 
         {/* 半透明覆盖层 */}
         <div className="absolute inset-0 bg-[#545454] opacity-50" />
-
-
 
         {/* 返回按钮 */}
         <button
@@ -546,4 +500,4 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
       </div>
     </div>
   );
-}; 
+};

@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "devvit-react-starter-experimental",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
@@ -14,10 +14,6 @@
     "dev:client": "cd src/client && vite build --watch",
     "dev:devvit": "devvit playtest catShowerTesting",
     "dev:vite": "cd src/client && vite --port 7474",
-    "dev:test": "cd src/client && vite --port 7474 --mode test",
-    "test:game": "cd src/client && vite --port 7474",
-    "start:local": "cd src/client && vite --port 7474 --host --open",
-    "local": "npm run start:local",
     "login": "devvit login --copy-paste",
     "lint": "eslint ./src",
     "lint:fix": "eslint --fix ./src",

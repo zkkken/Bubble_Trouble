@@ -32,35 +32,11 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   React.useEffect(() => {
     const fetchContinentLeaderboard = async () => {
       try {
-        // 检查是否在测试模式下运行
-        const isTestModeActive = typeof window !== 'undefined' && (
-          (window as any).__TEST_MODE__ || 
-          (window as any).__FORCE_TEST_MODE__ ||
-          window.location.hostname === 'localhost' ||
-          window.location.port === '7474' ||
-          window.location.port === '5173'
-        );
+        const response = await fetch(`/api/leaderboard/continent/${continentId}?limit=20`);
+        const data = await response.json();
         
-        let data;
-        
-        if (isTestModeActive) {
-          // 测试模式：返回空数据
-          console.log(`🧪 洲际排行榜：测试模式，返回空数据 - ${continentName}`);
-          
-          // 模拟网络延迟
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          data = { players: [] };
-        } else {
-          // 生产模式：调用真实API
-          console.log(`🌐 洲际排行榜：使用生产模式API - ${continentName}`);
-          
-          const response = await fetch(`/api/leaderboard/continent/${continentId}?limit=20`);
-          data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
         setPlayers(data.players || data);
@@ -75,8 +51,6 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
 
     fetchContinentLeaderboard();
   }, [continentId, continentName]);
-
-
 
   // 滚动条相关函数
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -134,11 +108,6 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
       setScrollBarTop(newScrollBarTop);
     }
   };
-
-
-
-
-
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
@@ -214,78 +183,78 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                   </div>
                 ) : (
                   players.map((player, index) => (
-                                      <div
-                    key={index}
-                    className="flex-shrink-0 w-[333px] h-[50px] flex flex-row items-start"
-                    style={{ gap: '55px' }}
-                  >
-                    {/* Frame 86 - 左侧区域 (徽章 + 名字) */}
-                    <div 
-                      className="w-[174px] h-[50px] flex flex-row items-start"
-                      style={{ gap: '4px' }}
+                    <div
+                      key={index}
+                      className="flex-shrink-0 w-[333px] h-[50px] flex flex-row items-start"
+                      style={{ gap: '55px' }}
                     >
-                      {/* RankingBadge - 50x50px */}
-                      <div className="w-[50px] h-[50px] flex-shrink-0">
-                        {player.hasBadge ? (
-                          <img
-                            className="w-full h-full object-cover"
-                            alt={`Rank ${player.rank} badge`}
-                            src={player.badgeSrc}
-                          />
-                        ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                            <div
-                              className="[font-family:'Silkscreen',Helvetica] font-normal text-black text-center tracking-[0] leading-[38px] whitespace-nowrap"
-                              style={{ fontSize: '1.25rem' }}
-                            >
-                              {player.rank}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* 玩家名字区域，位置(54,6) */}
+                      {/* Frame 86 - 左侧区域 (徽章 + 名字) */}
                       <div 
-                        className="w-full h-[38px] flex items-center mt-[6px]"
+                        className="w-[174px] h-[50px] flex flex-row items-start"
+                        style={{ gap: '4px' }}
                       >
+                        {/* RankingBadge - 50x50px */}
+                        <div className="w-[50px] h-[50px] flex-shrink-0">
+                          {player.hasBadge ? (
+                            <img
+                              className="w-full h-full object-cover"
+                              alt={`Rank ${player.rank} badge`}
+                              src={player.badgeSrc}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div
+                                className="[font-family:'Silkscreen',Helvetica] font-normal text-black text-center tracking-[0] leading-[38px] whitespace-nowrap"
+                                style={{ fontSize: '1.25rem' }}
+                              >
+                                {player.rank}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* 玩家名字区域，位置(54,6) */}
                         <div 
-                          className="[font-family:'Pixelify_Sans',Helvetica] font-bold text-black tracking-[0] leading-[38px] whitespace-nowrap overflow-hidden text-ellipsis w-full"
-                          style={{ fontSize: '1.5rem' }}
+                          className="w-full h-[38px] flex items-center mt-[6px]"
                         >
-                          {player.name.slice(0, 15)}
+                          <div 
+                            className="[font-family:'Pixelify_Sans',Helvetica] font-bold text-black tracking-[0] leading-[38px] whitespace-nowrap overflow-hidden text-ellipsis w-full"
+                            style={{ fontSize: '1.5rem' }}
+                          >
+                            {player.name.slice(0, 15)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 时间文本 - 90x38px区域，位置(243,6) */}
+                      <div 
+                        className="w-[90px] h-[38px] flex items-center justify-center mt-[6px]"
+                      >
+                        <div
+                          className="text-center whitespace-nowrap tracking-[0] leading-[38px]"
+                          style={index < 3 ? {
+                            color: '#F1BA08',
+                            textAlign: 'center',
+                            WebkitTextStrokeWidth: '2px',
+                            WebkitTextStrokeColor: '#000',
+                            fontFamily: 'Silkscreen',
+                            fontSize: '1.5rem',
+                            fontStyle: 'normal',
+                            fontWeight: 700,
+                            lineHeight: '38px'
+                          } : {
+                            fontFamily: 'Silkscreen',
+                            fontSize: '1.25rem',
+                            fontStyle: 'normal',
+                            fontWeight: 'normal',
+                            lineHeight: '38px',
+                            color: '#000'
+                          }}
+                        >
+                          {player.time}
                         </div>
                       </div>
                     </div>
-
-                    {/* 时间文本 - 90x38px区域，位置(243,6) */}
-                    <div 
-                      className="w-[90px] h-[38px] flex items-center justify-center mt-[6px]"
-                    >
-                      <div
-                        className="text-center whitespace-nowrap tracking-[0] leading-[38px]"
-                        style={index < 3 ? {
-                          color: '#F1BA08',
-                          textAlign: 'center',
-                          WebkitTextStrokeWidth: '2px',
-                          WebkitTextStrokeColor: '#000',
-                          fontFamily: 'Silkscreen',
-                          fontSize: '1.5rem',
-                          fontStyle: 'normal',
-                          fontWeight: 700,
-                          lineHeight: '38px'
-                        } : {
-                          fontFamily: 'Silkscreen',
-                          fontSize: '1.25rem',
-                          fontStyle: 'normal',
-                          fontWeight: 'normal',
-                          lineHeight: '38px',
-                          color: '#000'
-                        }}
-                      >
-                        {player.time}
-                      </div>
-                    </div>
-                  </div>
                   ))
                 )}
               </div>
@@ -325,4 +294,4 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
       </div>
     </div>
   );
-}; 
+};

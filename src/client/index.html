@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Cat Comfort Game - 本地测试模式</title>
+    <title>Cat Comfort Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://use.typekit.net/pda3sty.css">
@@ -139,54 +139,14 @@
         height: 844px;
         margin: 0 auto;
       }
-
-      /* 本地测试模式标识 */
-      .test-mode-banner {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(90deg, #10b981, #06b6d4);
-        color: white;
-        text-align: center;
-        padding: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        z-index: 9999;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
     </style>
-    
-    <script>
-      // 强制启用测试模式
-      if (typeof window !== 'undefined') {
-        window.__FORCE_TEST_MODE__ = true;
-        localStorage.setItem('forceTestMode', 'true');
-        sessionStorage.setItem('forceTestMode', 'true');
-        console.log('🧪 本地测试模式已强制启用');
-      }
-      
-      // 显示环境信息
-      console.log('🌐 运行环境:', {
-        hostname: window.location.hostname,
-        port: window.location.port,
-        protocol: window.location.protocol,
-        testMode: true
-      });
-    </script>
   </head>
   <body>
     <div id="root">
       <div class="loading">
         <div class="loading-spinner"></div>
         <div>🐱 Cat Comfort Game Loading...</div>
-        <div style="margin-top: 10px; font-size: 14px; opacity: 0.8;">本地测试模式</div>
       </div>
-    </div>
-
-    <!-- 测试模式横幅 -->
-    <div class="test-mode-banner">
-      🧪 Cat Comfort Game - 本地测试模式 | http://localhost:7474
     </div>
 
     <script type="module" src="/main.tsx"></script>
