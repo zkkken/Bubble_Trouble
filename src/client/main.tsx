@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { CatComfortGame } from './CatComfortGame';
-import { initTestMode, isTestMode, debugLog, forceEnableTestMode } from './config/testMode';
+import { initTestMode, isTestMode, debugLog } from './config/testMode';
 import './index.css';
 
 // 强制初始化测试模式
@@ -35,9 +35,10 @@ console.log('🎯 Test mode status:', {
   boltPreview: (window as any).__BOLT_PREVIEW__
 });
 
-// 如果测试模式未启用，强制启用（同步方式）
+// 如果测试模式未启用，强制启用
 if (!isTestMode()) {
   console.warn('⚠️ Test mode not detected, force enabling...');
+  const { forceEnableTestMode } = await import('./config/testMode');
   forceEnableTestMode();
 }
 
