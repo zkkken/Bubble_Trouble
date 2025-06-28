@@ -148,12 +148,11 @@ Devvit.addCustomPostType({
   name: 'Cat Comfort Game',
   height: 'tall',
   render: (context) => {
-    const { useState, useWebView } = Devvit;
-    const [webviewVisible, setWebviewVisible] = useState(false);
+    const [webviewVisible, setWebviewVisible] = Devvit.useState(false);
     
     const { postId } = context;
     
-    const webView = useWebView({
+    const webView = Devvit.useWebView({
       id: 'cat-comfort-game',
       url: 'index.html',
       onMessage: (msg) => {
