@@ -41,11 +41,10 @@ interface PlayerInfo {
 }
 
 export const GameInterface: React.FC = () => {
-  // 界面控制状态
+  // 界面控制状态 - 添加启动页面状态
   const [showLaunchScreen, setShowLaunchScreen] = useState(true);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
-  const [isMusicOn, setIsMusicOn] = useState(true);
   // 游戏状态
   const {
     gameState,
@@ -101,17 +100,6 @@ export const GameInterface: React.FC = () => {
     }
   };
 
-  // 处理从启动页面进入游戏设置
-  const handleLaunchToSetup = () => {
-    setShowLaunchScreen(false);
-  };
-
-  // 处理音乐切换
-  const handleToggleMusic = () => {
-    setIsMusicOn(!isMusicOn);
-    console.log(`音乐${!isMusicOn ? '开启' : '关闭'}`);
-  };
-
   // 处理开始游戏
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     setPlayerInfo(newPlayerInfo);
@@ -119,12 +107,17 @@ export const GameInterface: React.FC = () => {
     setGameStartTime(Date.now());
   };
 
+  // 处理从启动页面进入游戏设置
+  const handleStartFromLaunch = () => {
+    setShowLaunchScreen(false);
+  };
+
   // 处理返回开始界面
   const handleBackToStart = () => {
+    setShowLaunchScreen(true);
     setIsGameStarted(false);
     setPlayerInfo(null);
     setShowGameCompletion(false);
-    setShowLaunchScreen(true);
     resetGame();
   };
 
@@ -155,7 +148,7 @@ export const GameInterface: React.FC = () => {
   // 初始化时获取玩家最佳成绩
   useEffect(() => {
     if (isGameStarted) {
-      fetchPlayerBest();
+    fetchPlayerBest();
     }
   }, [fetchPlayerBest, isGameStarted]);
 
@@ -196,15 +189,9 @@ export const GameInterface: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 如果显示启动页面
+  // 如果显示启动页面，显示游戏启动界面
   if (showLaunchScreen) {
-    return (
-      <GameLaunchScreen 
-        onStartGame={handleLaunchToSetup}
-        onToggleMusic={handleToggleMusic}
-        isMusicOn={isMusicOn}
-      />
-    );
+    return <GameLaunchScreen onStartGame={handleStartFromLaunch} />;
   }
 
   // 如果游戏未开始，显示开始游戏界面
@@ -238,13 +225,13 @@ export const GameInterface: React.FC = () => {
       
       {/* 顶部按钮组 */}
       <div className="fixed top-4 right-4 z-40 flex gap-2">
-        {/* 排行榜按钮 */}
-        <button
-          onClick={() => setShowLeaderboard(true)}
+      {/* 排行榜按钮 */}
+      <button
+        onClick={() => setShowLeaderboard(true)}
           className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-        >
-          🏆 Leaderboard
-        </button>
+      >
+        🏆 Leaderboard
+      </button>
         
         {/* 🐞 调试按钮 */}
         <button
