@@ -7,13 +7,15 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="no">
     <title>Cat Comfort Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+      
       /* 确保Silkscreen字体正确加载和渲染 */
-      /* 强制Silkscreen字体渲染优化，增强粗体效果 */
+      
       .silkscreen-text {
         font-family: 'Silkscreen', monospace !important;
         text-rendering: optimizeLegibility;
@@ -21,7 +23,6 @@
         -moz-osx-font-smoothing: grayscale;
         font-display: swap;
         font-weight: 700 !important;
-        /* 统一的边框和阴影效果 */
         -webkit-text-stroke: 2px #3A368E;
         text-shadow: 
           3px 3px 0 #3A368E,
@@ -33,7 +34,9 @@
           2px -2px 0 #3A368E,
           -2px -2px 0 #3A368E;
       }
+      
       /* 确保在任何环境中都能正确显示 */
+      
       body {
         margin: 0;
         padding: 0;
@@ -42,21 +45,25 @@
         font-weight: 400;
         font-style: normal;
       }
+      
       #root {
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        /* 与启动页面一致的蓝到绿的渐变背景 */
         background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 50%, #34d399 100%);
       }
+      
       /* 响应式优化 */
+      
       @media (max-width: 500px) {
         #root {
           padding: 10px;
         }
       }
+      
       /* 加载动画 */
+      
       .loading {
         display: flex;
         flex-direction: column;
@@ -64,6 +71,7 @@
         color: white;
         font-size: 18px;
       }
+      
       .loading-spinner {
         width: 40px;
         height: 40px;
@@ -73,11 +81,14 @@
         animation: spin 1s linear infinite;
         margin-bottom: 20px;
       }
+      
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+      
       /* 泡泡飘入动画 */
+      
       @keyframes bubble-float-0 {
         0% {
           transform: translateY(100px) scale(0.3);
@@ -91,6 +102,7 @@
           opacity: 0.6;
         }
       }
+      
       @keyframes bubble-float-1 {
         0% {
           transform: translateX(-80px) translateY(80px) scale(0.3);
@@ -104,6 +116,7 @@
           opacity: 0.6;
         }
       }
+      
       @keyframes bubble-float-2 {
         0% {
           transform: translateX(80px) translateY(120px) scale(0.3);
@@ -117,23 +130,64 @@
           opacity: 0.6;
         }
       }
+      
       /* 强制去除所有可能的 padding */
+      
       .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
         padding: 0 !important;
       }
+      
       /* 确保游戏在任何环境下都能正确显示 */
+      
       .game-container {
         position: relative;
         width: 390px;
         height: 844px;
         margin: 0 auto;
       }
-      /* 禁用 Service Worker 相关功能 */
-      .no-service-worker {
+      
+      /* 隐藏控制台错误相关的样式 */
+      
+      .devvit-error-suppression {
         display: none;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-DV8OD8Ov.js"></script>
+    
+    <!-- 添加错误抑制脚本 -->
+    <script>
+      // 抑制 Devvit 内部错误
+      window.addEventListener('error', function(event) {
+        if (event.message && (
+          event.message.includes('AsyncLocalStorage') ||
+          event.message.includes('beforeinstallprompt') ||
+          (event.filename && (
+            event.filename.includes('devvit-runtime') ||
+            event.filename.includes('dist-') ||
+            event.filename.includes('shell-') ||
+            event.filename.includes('icon-')
+          ))
+        )) {
+          event.preventDefault();
+          return false;
+        }
+      });
+      
+      // 抑制未处理的 Promise 拒绝
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && event.reason.message && 
+            event.reason.message.includes('AsyncLocalStorage')) {
+          event.preventDefault();
+          return false;
+        }
+      });
+      
+      // 禁用 PWA 安装提示
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        return false;
+      });
+    </script>
+    <script type="module" crossorigin src="/assets/index-DTH6Q0y0.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-B7qJ7wAz.css">
   </head>
   <body>
