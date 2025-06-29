@@ -98,11 +98,15 @@ const PixelGameInterface: React.FC<{
         <img
           className={`w-full h-full object-cover ${catFlipped ? 'scale-x-[-1]' : ''}`}
           alt="Cat in shower"
-          src="/cat-shower.png"
+          src="/Cat_1.png"
           onError={(e) => {
-            // 如果专用图片不存在，使用现有的猫咪图片
+            // 如果图片加载失败，显示文字替代
             const target = e.target as HTMLImageElement;
-            target.src = "/Cat_1.png";
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full bg-orange-500 rounded-full flex items-center justify-center text-4xl">🐱</div>';
+            }
           }}
         />
       </div>
@@ -183,6 +187,14 @@ const PixelGameInterface: React.FC<{
           className="w-full h-full object-cover"
           alt={gameState.controlsReversed ? "Temperature plus" : "Temperature minus"}
           src={gameState.controlsReversed ? "/button-temp-plus.png" : "/button-temp-minus.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-blue-500 rounded flex items-center justify-center text-white text-2xl font-bold">${gameState.controlsReversed ? '+' : '-'}</div>`;
+            }
+          }}
         />
       </button>
 
@@ -198,6 +210,14 @@ const PixelGameInterface: React.FC<{
           className="w-full h-full object-cover"
           alt={gameState.controlsReversed ? "Temperature minus" : "Temperature plus"}
           src={gameState.controlsReversed ? "/button-temp-minus.png" : "/button-temp-plus.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-red-500 rounded flex items-center justify-center text-white text-2xl font-bold">${gameState.controlsReversed ? '-' : '+'}</div>`;
+            }
+          }}
         />
       </button>
 
@@ -211,22 +231,23 @@ const PixelGameInterface: React.FC<{
           className="w-full h-full object-cover"
           alt="Center tap button"
           src="/button-center-interaction.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full bg-green-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">🚿</div>';
+            }
+          }}
         />
       </button>
 
       {/* 计时器 (左上角) */}
       <div className="absolute left-[275px] top-[36px] flex items-center gap-2">
         {/* 时钟图标 (32x32px) */}
-        <img
-          className="w-[32px] h-[32px]"
-          alt="Clock"
-          src="/clock-icon.png"
-          onError={(e) => {
-            // 如果图片不存在，隐藏
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-          }}
-        />
+        <div className="w-[32px] h-[32px] flex items-center justify-center text-2xl">
+          ⏰
+        </div>
         
         {/* 时间文字 */}
         <div 
@@ -260,6 +281,14 @@ const PixelGameInterface: React.FC<{
           className="w-full h-full object-cover"
           alt={isMusicOn ? "Music on" : "Music off"}
           src={isMusicOn ? "/Button_Music_On.png" : "/Button_Music_Off.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-purple-500 rounded flex items-center justify-center text-white text-lg font-bold">${isMusicOn ? '🔊' : '🔇'}</div>`;
+            }
+          }}
         />
       </button>
 
@@ -269,6 +298,14 @@ const PixelGameInterface: React.FC<{
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort <= 0.2 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort fail"
           src="/avatar-bad.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl">😿</div>';
+            }
+          }}
         />
       </div>
 
@@ -278,11 +315,16 @@ const PixelGameInterface: React.FC<{
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort >= 0.8 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort success"
           src="/avatar-yellowsmiley.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl">😻</div>';
+            }
+          }}
         />
       </div>
-
-
-
 
       {/* 干扰事件指示器 */}
       {gameState.interferenceEvent?.isActive && (
