@@ -6,36 +6,36 @@
 export interface PlayerScore {
   playerId: string;
   playerName: string;
-  score: number; // This will be the raw game score
-  roundsCompleted: number;
-  totalTime: number;
+  enduranceDuration: number; // 坚持时长（秒）- 唯一的评分标准
+  catAvatarId: string;    // 选择的猫的ID
+  continentId: string;    // 选择的地区ID
   completedAt: number; // timestamp
-  difficulty: 'easy' | 'medium' | 'hard';
-  countryCode: string; // ISO 3166-1 alpha-2 country code
-  compositeScore: number; // Calculated composite score for ranking
   
-  // 新增字段
-  catAvatarId: string;    // 猫咪头像ID
-  continentId: string;    // 大洲ID
-  completionFlag: 'Y' | 'N'; // 通关标志
+  // 保留的可选字段（向后兼容）
+  score?: number;
+  roundsCompleted?: number;
+  totalTime?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  countryCode?: string;
+  compositeScore?: number;
 }
 
 export interface LeaderboardEntry {
   rank: number;
   playerId: string;
   playerName: string;
-  score: number; // Raw game score for display
-  roundsCompleted: number;
-  totalTime: number;
-  completedAt: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  countryCode: string;
-  compositeScore: number; // For debugging/verification
-  
-  // 新增字段
+  enduranceDuration: number; // 坚持时长（秒）- 唯一排名依据
   catAvatarId: string;
   continentId: string;
-  completionFlag: 'Y' | 'N';
+  completedAt: number;
+  
+  // 保留的可选字段（向后兼容）
+  score?: number;
+  roundsCompleted?: number;
+  totalTime?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  countryCode?: string;
+  compositeScore?: number;
 }
 
 export interface LeaderboardData {
@@ -54,14 +54,16 @@ export interface LeaderboardResponse {
 export interface SubmitScoreRequest {
   playerId: string;
   playerName: string;
-  score: number; // Raw game score
-  roundsCompleted: number;
-  totalTime: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  countryCode: string;
-  catAvatarId: string;
-  continentId: string;
-  completionFlag: 'Y' | 'N';
+  enduranceDuration: number; // 坚持时长（秒）
+  catAvatarId: string; // 选择的猫的ID
+  continentId: string; // 选择的地区ID
+  
+  // 保留的可选字段（向后兼容）
+  score?: number;
+  roundsCompleted?: number;
+  totalTime?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  countryCode?: string;
 }
 
 export interface SubmitScoreResponse {
@@ -69,8 +71,9 @@ export interface SubmitScoreResponse {
   data?: {
     rank: number;
     isNewRecord: boolean;
-    score: number; // Raw score
-    compositeScore: number;
+    enduranceDuration: number; // 坚持时长
+    score?: number; // Raw score (optional, for backward compatibility)
+    compositeScore?: number; // (optional, for backward compatibility)
   };
   message?: string;
 }

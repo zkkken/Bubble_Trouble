@@ -31,7 +31,7 @@ export const Preview: Devvit.BlockComponent<{ text?: string }> = ({ text = 'Load
   );
 };
 
-// 🎯 修复：简化的游戏预览组件，不使用 assetURL
+// 简化的游戏预览组件，避免复杂的资源加载
 export const CatComfortGameDevvit: Devvit.BlockComponent = () => {
   return (
     <zstack width={'100%'} height={'100%'} alignment="center middle">
@@ -100,7 +100,7 @@ Devvit.addMenuItem({
     try {
       const subreddit = await reddit.getCurrentSubreddit();
       
-      // 🎯 修复：直接使用简化的预览组件，不涉及 assetURL
+      // 使用简化的预览组件，避免资源加载问题
       post = await reddit.submitPost({
         title: 'Cat Comfort Game - Keep the Cat Happy! 🐱',
         subredditName: subreddit.name,
@@ -116,7 +116,11 @@ Devvit.addMenuItem({
       ui.navigateTo(post.url);
     } catch (error) {
       if (post) {
-        await post.remove(false);
+        try {
+          await post.remove(false);
+        } catch (removeError) {
+          console.error('Error removing post after creation failure:', removeError);
+        }
       }
       if (error instanceof Error) {
         ui.showToast({ text: `❌ Error creating post: ${error.message}` });

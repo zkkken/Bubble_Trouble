@@ -1,20 +1,18 @@
 /**
- * 主游戏界面组件 (游戏结算界面版本)
- * 负责整体游戏界面的布局和交互，现在包含新的游戏结算界面
+ * 主游戏界面组件 (基于Figma设计图重构)
+ * 724x584像素的像素艺术风格游戏界面
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from './ui/card';
 import { GameConfig } from '../types/GameTypes';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import { ProgressBar } from './ProgressBar';
-import { TestModeIndicator } from './TestModeIndicator';
 import { LeaderboardModal } from './LeaderboardModal';
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
+import { GameLaunchScreen } from './GameLaunchScreen';
 
 // 游戏配置
 const GAME_CONFIG: GameConfig = {
@@ -39,10 +37,360 @@ interface PlayerInfo {
   catAvatarId: string;
 }
 
+// 像素艺术风格的游戏主界面组件
+const PixelGameInterface: React.FC<{ 
+  gameState: any; 
+  currentRound: number;
+  playerInfo: PlayerInfo;
+  onPlusPress: () => void;
+  onPlusRelease: () => void;
+  onMinusPress: () => void;
+  onMinusRelease: () => void;
+  onCenterButtonClick: () => void;
+  onBackToStart: () => void;
+}> = ({ 
+  gameState, 
+  currentRound, 
+  playerInfo,
+  onPlusPress, 
+  onPlusRelease, 
+  onMinusPress, 
+  onMinusRelease, 
+  onCenterButtonClick,
+  onBackToStart 
+}) => {
+  
+  // 猫咪翻转状态
+  const [catFlipped, setCatFlipped] = useState(false);
+  
+  // 音乐状态
+  const [isMusicOn, setIsMusicOn] = useState(true);
+  
+  // 时间格式化
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 猫咪自动翻转效果
+  useEffect(() => {
+    const flipInterval = setInterval(() => {
+      setCatFlipped(prev => !prev);
+    }, 3000 + Math.random() * 3000); // 3-6秒随机间隔
+
+    return () => clearInterval(flipInterval);
+  }, []);
+
+  // 音乐按钮处理
+  const handleMusicToggle = () => {
+    setIsMusicOn(prev => !prev);
+    // 这里可以添加实际的音乐控制逻辑
+  };
+
+  return (
+    <div className="w-[724px] h-[584px] bg-[#2f2f2f] relative">
+      {/* 背景图像 - 像素艺术天空 */}
+      <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+      
+      {/* 中央角色 - 洗澡猫咪 (120x120px, 居中偏下) */}
+      <div className="absolute w-[120px] h-[120px] left-[302px] top-[232px]">
+        <img
+          className={`w-full h-full object-cover ${catFlipped ? 'scale-x-[-1]' : ''}`}
+          alt="Cat in shower"
+          src="/Cat_1.png"
+          onError={(e) => {
+            // 如果图片加载失败，显示文字替代
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full bg-orange-500 rounded-full flex items-center justify-center text-4xl">🐱</div>';
+            }
+          }}
+        />
+      </div>
+
+      {/* 舒适度进度条 (顶部, 628x24px) */}
+      <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
+        <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656]">
+          <div 
+            className="h-full bg-[#5ff367] transition-all duration-200"
+            style={{ width: `${Math.max(0, Math.min(100, gameState.currentComfort * 100))}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 温度进度条系统 (628x78px) */}
+      <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px]">
+        {/* 温度条背景 */}
+        <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+          {/* 温度容忍带 (橙色区域) - 可以覆盖全宽度 */}
+          <div
+            className="absolute top-0 h-full bg-[#ff9500] opacity-60"
+            style={{
+              left: `${Math.max(0, (gameState.targetTemperature - gameState.toleranceWidth) * 100)}%`,
+              width: `${Math.min(100, (gameState.toleranceWidth * 2) * 100)}%`,
+            }}
+          />
+          
+          {/* 温度填充 (蓝色) - 可以覆盖全宽度 */}
+          <div 
+            className="h-full bg-[#728cff] transition-all duration-100"
+            style={{ width: `${Math.max(0, Math.min(100, gameState.currentTemperature * 100))}%` }}
+          />
+        </div>
+
+        {/* 温度指针 (16x40px) - 可以移动到整个温度条 */}
+        <div
+          className="absolute w-[16px] h-[40px] bg-[#f8cb56] border-[#3a3656] border-[5px] transition-all duration-100"
+          style={{
+            left: `${(gameState.currentTemperature * 612) - 8}px`, // 612 = 628 - 16 (指针宽度)
+            top: '0px',
+          }}
+        />
+
+        {/* 目标温度显示 - 跟随温度容忍带中心位置 */}
+        <div 
+          className="absolute top-[40px] transform -translate-x-1/2 silkscreen-text"
+          style={{
+            left: `${gameState.targetTemperature * 628}px`, // 跟随目标温度位置，覆盖全宽度
+            color: '#F0BC08',
+            textAlign: 'center',
+            fontFamily: 'Silkscreen, monospace',
+            fontSize: '18px',
+            fontStyle: 'normal',
+            fontWeight: '700',
+            lineHeight: '1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // 强制字体渲染优化
+            textRendering: 'optimizeLegibility',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+          }}
+        >
+          {Math.round(gameState.targetTemperature * 40 + 20)}°C
+        </div>
+      </div>
+
+      {/* 控制按钮 - 左侧按钮 (56x56px) - 根据controls_reversed切换功能和图片 */}
+      <button
+        className="absolute left-[84px] top-[460px] w-[56px] h-[56px] transition-all duration-100 hover:scale-105 active:scale-95"
+        onMouseDown={gameState.controlsReversed ? onPlusPress : onMinusPress}
+        onMouseUp={gameState.controlsReversed ? onPlusRelease : onMinusRelease}
+        onMouseLeave={gameState.controlsReversed ? onPlusRelease : onMinusRelease}
+        disabled={gameState.gameStatus !== 'playing'}
+      >
+        <img
+          className="w-full h-full object-cover"
+          alt={gameState.controlsReversed ? "Temperature plus" : "Temperature minus"}
+          src={gameState.controlsReversed ? "/button-temp-plus.png" : "/button-temp-minus.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-blue-500 rounded flex items-center justify-center text-white text-2xl font-bold">${gameState.controlsReversed ? '+' : '-'}</div>`;
+            }
+          }}
+        />
+      </button>
+
+      {/* 控制按钮 - 右侧按钮 (56x56px) - 根据controls_reversed切换功能和图片 */}
+      <button
+        className="absolute left-[584px] top-[460px] w-[56px] h-[56px] transition-all duration-100 hover:scale-105 active:scale-95"
+        onMouseDown={gameState.controlsReversed ? onMinusPress : onPlusPress}
+        onMouseUp={gameState.controlsReversed ? onMinusRelease : onPlusRelease}
+        onMouseLeave={gameState.controlsReversed ? onMinusRelease : onPlusRelease}
+        disabled={gameState.gameStatus !== 'playing'}
+      >
+        <img
+          className="w-full h-full object-cover"
+          alt={gameState.controlsReversed ? "Temperature minus" : "Temperature plus"}
+          src={gameState.controlsReversed ? "/button-temp-minus.png" : "/button-temp-plus.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-red-500 rounded flex items-center justify-center text-white text-2xl font-bold">${gameState.controlsReversed ? '-' : '+'}</div>`;
+            }
+          }}
+        />
+      </button>
+
+      {/* 中央水龙头按钮 (80x80px) */}
+      <button
+        className="absolute left-[322px] top-[448px] w-[80px] h-[80px] transition-all duration-200 hover:scale-105 active:scale-95"
+        onClick={onCenterButtonClick}
+        disabled={gameState.gameStatus !== 'playing'}
+      >
+        <img
+          className="w-full h-full object-cover"
+          alt="Center tap button"
+          src="/button-center-interaction.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full bg-green-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">🚿</div>';
+            }
+          }}
+        />
+      </button>
+
+      {/* 计时器 (左上角) */}
+      <div className="absolute left-[275px] top-[36px] flex items-center gap-2">
+        {/* 时钟图标 (32x32px) */}
+        <div className="w-[32px] h-[32px] flex items-center justify-center text-2xl">
+          ⏰
+        </div>
+        
+        {/* 时间文字 */}
+        <div 
+          className="text-white font-bold silkscreen-text"
+          style={{
+            color: '#FFF',
+            fontFamily: 'Silkscreen, monospace',
+            fontSize: '28px',
+            fontStyle: 'normal',
+            fontWeight: '700',
+            lineHeight: '1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // 字体渲染优化
+            textRendering: 'optimizeLegibility',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+          }}
+        >
+          {formatTime(gameState.gameTimer)}
+        </div>
+      </div>
+
+      {/* 音乐按钮 (右上角, 80x36px) */}
+      <button 
+        className="absolute left-[620px] top-[24px] w-[80px] h-[36px] transition-all duration-200 hover:scale-105"
+        onClick={handleMusicToggle}
+      >
+        <img
+          className="w-full h-full object-cover"
+          alt={isMusicOn ? "Music on" : "Music off"}
+          src={isMusicOn ? "/Button_Music_On.png" : "/Button_Music_Off.png"}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `<div class="w-full h-full bg-purple-500 rounded flex items-center justify-center text-white text-lg font-bold">${isMusicOn ? '🔊' : '🔇'}</div>`;
+            }
+          }}
+        />
+      </button>
+
+      {/* 状态图标 - 左侧失败图标 (28x28px) */}
+      <div className="absolute left-[48px] top-[72px] w-[28px] h-[28px]">
+        <img
+          className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort <= 0.2 ? 'opacity-100' : 'opacity-30'}`}
+          alt="Comfort fail"
+          src="/avatar-bad.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl">😿</div>';
+            }
+          }}
+        />
+      </div>
+
+      {/* 状态图标 - 右侧成功图标 (28x28px) */}
+      <div className="absolute left-[648px] top-[72px] w-[28px] h-[28px]">
+        <img
+          className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort >= 0.8 ? 'opacity-100' : 'opacity-30'}`}
+          alt="Comfort success"
+          src="/avatar-yellowsmiley.png"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl">😻</div>';
+            }
+          }}
+        />
+      </div>
+
+      {/* 干扰事件指示器 */}
+      {gameState.interferenceEvent?.isActive && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-purple-600 bg-opacity-90 text-white p-4 rounded-lg text-center">
+          <div className="text-lg font-bold mb-2">⚡ INTERFERENCE ⚡</div>
+          <div className="text-sm">
+            {gameState.interferenceEvent.type === 'controls_reversed' && '🤡 Controls Reversed!'}
+            {gameState.interferenceEvent.type === 'temperature_shock' && '🥶 Temperature Shock!'}
+            {gameState.interferenceEvent.type === 'bubble_obstruction' && '🫧 Bubble Obstruction!'}
+          </div>
+        </div>
+      )}
+
+      {/* 泡泡效果 - 仅在Bubble Obstruction时显示 */}
+      {gameState.interferenceEvent?.isActive && gameState.interferenceEvent.type === 'bubble_obstruction' && (
+        <>
+          {/* 大型泡泡覆盖整个界面，但避开控制按钮区域 */}
+          {[
+            // 上半部分泡泡
+            { left: 50, top: 50, size: 80 },
+            { left: 200, top: 30, size: 120 },
+            { left: 400, top: 80, size: 100 },
+            { left: 550, top: 40, size: 90 },
+            { left: 150, top: 150, size: 110 },
+            { left: 450, top: 180, size: 95 },
+            { left: 600, top: 120, size: 85 },
+            
+            // 中间部分泡泡（避开猫咪区域）
+            { left: 100, top: 280, size: 70 },
+            { left: 500, top: 300, size: 75 },
+            { left: 30, top: 350, size: 65 },
+            { left: 600, top: 320, size: 80 },
+            
+            // 下半部分泡泡（避开控制按钮）
+            { left: 200, top: 500, size: 60 },
+            { left: 400, top: 520, size: 70 },
+            { left: 50, top: 480, size: 55 },
+            { left: 600, top: 490, size: 65 },
+          ].map((bubble, index) => (
+            <div
+              key={index}
+              className="absolute rounded-full opacity-60"
+              style={{
+                width: `${bubble.size}px`,
+                height: `${bubble.size}px`,
+                left: `${bubble.left}px`,
+                top: `${bubble.top}px`,
+                background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(173,216,230,0.7))`,
+                border: '3px solid rgba(135,206,235,0.6)',
+                boxShadow: 'inset 0 0 20px rgba(255,255,255,0.4), 0 0 10px rgba(173,216,230,0.3)',
+                animation: `bubble-float-${index % 3} 3s ease-out forwards`,
+              }}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+};
+
 export const GameInterface: React.FC = () => {
-  // 界面控制状态
+  // 界面控制状态 - 添加启动页面状态
+  const [showLaunchScreen, setShowLaunchScreen] = useState(true);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  
   // 游戏状态
   const {
     gameState,
@@ -53,15 +401,12 @@ export const GameInterface: React.FC = () => {
     handleMinusRelease,
     handleCenterButtonClick,
     resetGame,
-    startNextRound,
   } = useGameState(GAME_CONFIG);
 
   // 排行榜状态
   const {
-    leaderboardData,
     playerBest,
     submitScore,
-    fetchLeaderboard,
     fetchPlayerBest,
   } = useLeaderboard();
 
@@ -74,39 +419,23 @@ export const GameInterface: React.FC = () => {
   // 用户国家代码 (在实际应用中，这应该从用户数据或地理位置API获取)
   const [userCountryCode] = useState<string>('US'); // 默认美国，可以根据需要修改
 
-  // 🐞 调试按钮处理函数
-  const handleDebugClick = async () => {
-    try {
-      console.log('--- 开始获取数据库调试信息 ---');
-      
-      const response = await fetch('/api/debug-leaderboard');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('--- 数据库调试信息 ---', data);
-      console.log('--- 调试信息获取完成 ---');
-      
-      // 额外显示一个用户友好的提示
-      alert('数据库调试信息已打印到控制台！请打开开发者工具的Console标签查看详细信息。');
-      
-    } catch (error) {
-      console.error('--- 调试信息获取失败 ---', error);
-      alert(`获取调试信息失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    }
-  };
-
   // 处理开始游戏
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     setPlayerInfo(newPlayerInfo);
     setIsGameStarted(true);
+    setShowGameCompletion(false); // 确保重置游戏完成状态
     setGameStartTime(Date.now());
+    resetGame(); // 重置游戏状态
+  };
+
+  // 处理从启动页面进入游戏设置
+  const handleStartFromLaunch = () => {
+    setShowLaunchScreen(false);
   };
 
   // 处理返回开始界面
   const handleBackToStart = () => {
+    setShowLaunchScreen(true);
     setIsGameStarted(false);
     setPlayerInfo(null);
     setShowGameCompletion(false);
@@ -132,15 +461,17 @@ export const GameInterface: React.FC = () => {
         handleAutoScoreSubmit(totalTime);
       }
 
-      // 显示游戏结算界面
+      // 延迟一小段时间显示游戏结算界面，避免立即跳转
+      setTimeout(() => {
       setShowGameCompletion(true);
+      }, 1000);
     }
   }, [gameState.gameStatus, gameStartTime, currentRound, playerInfo]);
 
   // 初始化时获取玩家最佳成绩
   useEffect(() => {
     if (isGameStarted) {
-      fetchPlayerBest();
+    fetchPlayerBest();
     }
   }, [fetchPlayerBest, isGameStarted]);
 
@@ -149,20 +480,19 @@ export const GameInterface: React.FC = () => {
     if (!playerInfo) return;
 
     try {
-      const roundsCompleted = gameState.gameStatus === 'success' ? currentRound : currentRound - 1;
-      
-      // 计算通关标志：如果总时间超过60秒则为'N'，否则为'Y'
-      const completionFlag: 'Y' | 'N' = totalTime > 60 ? 'N' : 'Y';
+      // 获取坚持时长（从gameTimer获取）
+      const enduranceDuration = Math.floor(gameState.gameTimer);
       
       const result = await submitScore(
         playerInfo.playerName, 
-        roundsCompleted, 
-        totalTime, 
-        'medium', // 默认难度
-        userCountryCode,
+        enduranceDuration, // 坚持时长
         playerInfo.catAvatarId,
         playerInfo.continentId,
-        completionFlag
+        // 可选参数
+        0, // roundsCompleted
+        totalTime || 0, // totalTime
+        'medium', // difficulty
+        userCountryCode || 'US' // countryCode
       );
       
       // 提交成功后刷新玩家最佳成绩
@@ -174,16 +504,14 @@ export const GameInterface: React.FC = () => {
     }
   };
 
-  // 格式化时间函数
-  const formatTimeDisplay = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  // 如果显示启动页面，显示游戏启动界面
+  if (showLaunchScreen) {
+    return <GameLaunchScreen onStartGame={handleStartFromLaunch} />;
+  }
 
   // 如果游戏未开始，显示开始游戏界面
   if (!isGameStarted) {
-    return <StartGameScreen onStartGame={handleStartGame} />;
+    return <StartGameScreen onStartGame={handleStartGame} onBackToLaunch={handleBackToStart} />;
   }
 
   // 如果游戏结束，显示游戏结算界面
@@ -206,368 +534,36 @@ export const GameInterface: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-400 via-blue-300 to-green-400">
-      {/* 测试模式指示器 */}
-      <TestModeIndicator />
-      
-      {/* 顶部按钮组 */}
-      <div className="fixed top-4 right-4 z-40 flex gap-2">
-        {/* 排行榜按钮 */}
-        <button
-          onClick={() => setShowLeaderboard(true)}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-        >
-          🏆 Leaderboard
-        </button>
-        
-        {/* 🐞 调试按钮 */}
-        <button
-          onClick={handleDebugClick}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-        >
-          🐞 查看数据库
-        </button>
-      </div>
-
-      {/* 返回开始界面按钮 */}
-      <button
-        onClick={handleBackToStart}
-        className="fixed top-4 left-4 z-40 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all duration-200 flex items-center gap-2"
-      >
-        ← Back to Start
-      </button>
-
-      {/* 玩家信息显示 */}
+    <div className="flex items-center justify-center min-h-screen">
+      {/* 像素艺术风格游戏界面 */}
       {playerInfo && (
-        <div className="fixed top-20 left-4 z-40 bg-white bg-opacity-90 px-4 py-2 rounded-lg shadow-lg">
-          <div className="text-sm font-medium text-gray-800">
-            {playerInfo.catAvatarId} {playerInfo.playerName}
-          </div>
-          <div className="text-xs text-gray-600">
-            {playerInfo.continentId}
-          </div>
-        </div>
+        <PixelGameInterface
+          gameState={gameState}
+          currentRound={currentRound}
+          playerInfo={playerInfo}
+          onPlusPress={handlePlusPress}
+          onPlusRelease={handlePlusRelease}
+          onMinusPress={handleMinusPress}
+          onMinusRelease={handleMinusRelease}
+          onCenterButtonClick={handleCenterButtonClick}
+          onBackToStart={handleBackToStart}
+        />
       )}
-      
-      {/* 完全居中的游戏界面 */}
-      <div className="relative">
-        <Card className="w-[390px] h-[844px] border-0 shadow-2xl">
-          <CardContent className="!p-0 h-[844px] bg-white">
-            <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
-              
-              {/* Debug info - Show current interference type */}
-              <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs z-50">
-                Interference: {gameState.interferenceEvent.type} 
-                {gameState.interferenceEvent.isActive && ` (${Math.ceil(gameState.interferenceEvent.remainingTime)}s)`}
-              </div>
-              
-              {/* Timer Display - Replacing the vertical bar */}
-              <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
-                {/* Round indicator */}
-                <div className="bg-[#36417E] text-white px-3 py-1 rounded-lg mb-2 text-sm font-bold">
-                  Round {currentRound}
-                </div>
-                
-                {/* Timer display */}
-                <div 
-                  className="bg-[#36417E] text-white px-4 py-3 rounded-lg text-center shadow-lg"
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    minWidth: '80px'
-                  }}
-                >
-                  {formatTimeDisplay(gameState.gameTimer)}
-                </div>
-                
-                {/* Next round preview */}
-                {gameState.gameStatus === 'playing' && currentRound < 3 && (
-                  <div className="text-xs text-gray-600 mt-1 text-center">
-                    Next: {Math.max(10, 30 - (currentRound * 10))}s
-                  </div>
-                )}
-              </div>
-
-              {/* Avatar_Bad - Left side position */}
-              <img
-                className="absolute object-cover transition-all duration-300"
-                alt="Bad cat avatar"
-                src="/avatar-bad.png"
-                style={{
-                  width: '35.5px',
-                  height: '36px',
-                  top: '131px',
-                  left: '25px'
-                }}
-              />
-
-              {/* Avatar_YellowSmiley - Right side position */}
-              <img
-                className="absolute object-cover transition-all duration-300"
-                alt="Happy cat avatar"
-                src="/avatar-yellowsmiley.png"
-                style={{
-                  width: '35.5px',
-                  height: '36px',
-                  top: '126px',
-                  left: '329px'
-                }}
-              />
-
-              {/* Comfort Progress Bar - Custom styled */}
-              <div 
-                className="absolute"
-                style={{
-                  top: '172px',
-                  left: '25px',
-                  width: '340px',
-                  height: '28px',
-                  border: '6px solid #36417E',
-                  background: '#D9D9D9',
-                  borderRadius: '4px'
-                }}
-              >
-                <div className="relative w-full h-full overflow-hidden">
-                  <ProgressBar
-                    value={gameState.currentComfort}
-                    className="w-full h-full"
-                    barColor="#5FF367"
-                    backgroundColor="transparent"
-                  />
-                  
-                  {/* Success hold timer */}
-                  {gameState.currentComfort >= 1.0 && gameState.successHoldTimer > 0 && (
-                    <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-                        Hold: {Math.ceil(GAME_CONFIG.SUCCESS_HOLD_TIME - gameState.successHoldTimer)}s
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Temperature Bar Container - Without progress bar */}
-              <div 
-                className="absolute"
-                style={{
-                  top: '218px',
-                  left: '25px',
-                  width: '340px',
-                  height: '39px',
-                  border: '6px solid #36417E',
-                  background: '#D9D9D9',
-                  borderRadius: '4px'
-                }}
-              >
-                <div className="relative w-full h-full overflow-hidden">
-                  {/* Temperature Tolerance Band */}
-                  <div
-                    className="absolute top-0 h-full opacity-60"
-                    style={{
-                      left: `${Math.max(0, (gameState.targetTemperature - gameState.toleranceWidth)) * 100}%`,
-                      width: `${Math.min(100, (gameState.toleranceWidth * 2) * 100)}%`,
-                      background: '#F99945',
-                    }}
-                  />
-                  
-                  {/* Target temperature line */}
-                  <div
-                    className="absolute top-0 w-1 h-full bg-red-600 z-10"
-                    style={{
-                      left: `${gameState.targetTemperature * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Target Temperature Display - Only number */}
-              <div 
-                className="absolute text-center"
-                style={{
-                  top: '275px',
-                  left: '25px',
-                  width: '340px',
-                  fontFamily: 'Elza Condensed Black, sans-serif',
-                  fontSize: '23px',
-                  letterSpacing: '-0.423px',
-                  color: '#36417E',
-                  fontWeight: '900'
-                }}
-              >
-                {Math.round(gameState.targetTemperature * 100)}
-              </div>
-
-              {/* Temperature Pointer */}
-              <div
-                className="absolute transition-all duration-100 flex items-center justify-center z-20"
-                style={{
-                  top: '209px',
-                  left: `${25 + (gameState.currentTemperature * 315)}px`,
-                  width: '25px',
-                  height: '57px',
-                  border: '6px solid #36417E',
-                  background: '#F8CB56',
-                  borderRadius: '4px'
-                }}
-              />
-
-              {/* Control buttons */}
-              <button
-                className={`absolute w-[63px] h-[62px] top-[692px] left-8 transition-all duration-100 hover:scale-105 active:scale-95 ${
-                  gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
-                }`}
-                onMouseDown={handleMinusPress}
-                onMouseUp={handleMinusRelease}
-                onMouseLeave={handleMinusRelease}
-                onTouchStart={handleMinusPress}
-                onTouchEnd={handleMinusRelease}
-                disabled={gameState.gameStatus !== 'playing'}
-              >
-                <img
-                  className="w-full h-full object-cover"
-                  alt="Temperature minus"
-                  src="/button-temp-minus.png"
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-2xl">
-                  {gameState.isControlsReversed ? '+' : '-'}
-                </div>
-              </button>
-
-              {/* Center interaction button - visibility based on interference type */}
-              <div className="absolute w-[111px] h-28 top-[667px] left-36">
-                <button
-                  onClick={handleCenterButtonClick}
-                  className={`w-full h-full relative transition-all duration-200 ${
-                    gameState.interferenceEvent.isActive && 
-                    gameState.interferenceEvent.type !== 'controls_reversed'
-                      ? 'hover:scale-105 active:scale-95 animate-pulse' 
-                      : 'opacity-50 cursor-default'
-                  }`}
-                  disabled={
-                    !gameState.interferenceEvent.isActive || 
-                    gameState.interferenceEvent.type === 'controls_reversed'
-                  }
-                >
-                  <img
-                    className="w-full h-full object-cover"
-                    alt="Center interaction button"
-                    src="/button-center-interaction.png"
-                  />
-                  {gameState.interferenceEvent.isActive && 
-                   gameState.interferenceEvent.type !== 'controls_reversed' && (
-                    <>
-                      <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
-                          CLICK!
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Plus button */}
-              <button
-                className={`absolute w-[71px] h-16 top-[691px] left-[296px] transition-all duration-100 hover:scale-105 active:scale-95 ${
-                  gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
-                }`}
-                onMouseDown={handlePlusPress}
-                onMouseUp={handlePlusRelease}
-                onMouseLeave={handlePlusRelease}
-                onTouchStart={handlePlusPress}
-                onTouchEnd={handlePlusRelease}
-                disabled={gameState.gameStatus !== 'playing'}
-              >
-                <img
-                  className="w-full h-full object-cover"
-                  alt="Temperature plus"
-                  src="/button-temp-plus.png"
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-2xl">
-                  {gameState.isControlsReversed ? '-' : '+'}
-                </div>
-              </button>
-
-              {/* Game status indicators */}
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-sm">
-                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Temp: {Math.round(gameState.currentTemperature * 100)}%
-                </div>
-                <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Target: {Math.round(gameState.targetTemperature * 100)}%
-                </div>
-              </div>
-
-              {/* Interference system overlays */}
-              {gameState.interferenceEvent.isActive && (
-                <>
-                  {/* Interference notification */}
-                  <div className="absolute top-16 left-4 right-4 z-40">
-                    <div className="bg-purple-500 text-white p-3 rounded-lg shadow-lg animate-pulse">
-                      <div className="flex items-center justify-center mb-2">
-                        <span className="text-2xl mr-2">
-                          {gameState.interferenceEvent.type === 'controls_reversed' && '🔄'}
-                          {gameState.interferenceEvent.type === 'temperature_shock' && '⚡'}
-                          {gameState.interferenceEvent.type === 'bubble_obstruction' && '🫧'}
-                        </span>
-                        <h3 className="font-bold text-lg">
-                          {gameState.interferenceEvent.type === 'controls_reversed' && 'Controls Reversed!'}
-                          {gameState.interferenceEvent.type === 'temperature_shock' && 'Temperature Shock!'}
-                          {gameState.interferenceEvent.type === 'bubble_obstruction' && 'Bubble Trouble!'}
-                        </h3>
-                      </div>
-                      <p className="text-center text-sm">
-                        {gameState.interferenceEvent.type === 'controls_reversed' && 'The + and - buttons are swapped!'}
-                        {gameState.interferenceEvent.type === 'temperature_shock' && 'The target temperature has shifted!'}
-                        {gameState.interferenceEvent.type === 'bubble_obstruction' && 'Bubbles are blocking your view!'}
-                      </p>
-                      {gameState.interferenceEvent.type !== 'controls_reversed' && (
-                        <p className="text-center text-xs mt-1 opacity-80">
-                          Click the center button to fix!
-                        </p>
-                      )}
-                      {gameState.interferenceEvent.type === 'controls_reversed' && (
-                        <p className="text-center text-xs mt-1 opacity-80">
-                          Auto-clears in {Math.ceil(gameState.interferenceEvent.remainingTime)}s
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Enhanced Bubble obstruction effect */}
-                  {gameState.interferenceEvent.type === 'bubble_obstruction' && (
-                    <div className="absolute inset-0 z-30 pointer-events-none">
-                      <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-white bg-opacity-85 rounded-full animate-bounce shadow-lg" />
-                      <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-white bg-opacity-80 rounded-full animate-pulse shadow-lg" />
-                      <div className="absolute bottom-1/3 left-1/3 w-16 h-16 bg-white bg-opacity-90 rounded-full animate-bounce shadow-lg" />
-                      <div className="absolute top-1/2 right-1/3 w-18 h-18 bg-white bg-opacity-75 rounded-full animate-pulse shadow-lg" />
-                      <div className="absolute top-2/3 left-1/5 w-12 h-12 bg-white bg-opacity-70 rounded-full animate-bounce shadow-md" />
-                      <div className="absolute bottom-1/4 right-1/5 w-14 h-14 bg-white bg-opacity-85 rounded-full animate-pulse shadow-md" />
-                      <div className="absolute top-1/5 right-2/5 w-10 h-10 bg-white bg-opacity-80 rounded-full animate-bounce shadow-md" />
-                      <div className="absolute top-[218px] left-[25px] w-[340px] h-[39px] bg-white bg-opacity-40 rounded animate-pulse" />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* 排行榜模态框 */}
+       {showLeaderboard && playerBest && (
       <LeaderboardModal
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
-        currentPlayerScore={playerBest ? {
-          score: playerBest.score,
-          rank: 1, // 这里需要从API获取实际排名
+           currentPlayerScore={{
+             score: playerBest.totalTime,
+             rank: 0,
           roundsCompleted: playerBest.roundsCompleted,
           compositeScore: playerBest.compositeScore
-        } : undefined}
+           }}
         userCountryCode={userCountryCode}
       />
+       )}
     </div>
   );
 };

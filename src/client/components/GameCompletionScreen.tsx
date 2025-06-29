@@ -1,41 +1,14 @@
 /**
- * 游戏结算界面组件
- * 展示全球洲际分布和可交互的洲际排行榜
+ * 游戏结算界面组件 - 全新UI设计
+ * 基于新的卡片式设计，展示游戏结果和统计数据
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
 import React, { useState, useEffect } from 'react';
-import { isTestMode, debugLog } from '../config/testMode';
-
-// 洲际统计数据接口
-interface ContinentStats {
-  continentId: string;
-  continentName: string;
-  playerCount: number;
-  flag: string;
-}
-
-// 排行榜条目接口
-interface LeaderboardEntry {
-  rank: number;
-  playerId: string;
-  playerName: string;
-  catAvatarId: string;
-  continentId: string;
-  completionTime: number;
-  roundsCompleted: number;
-  totalTime: number;
-  completedAt: number;
-}
-
-// 排行榜数据接口
-interface LeaderboardData {
-  entries: LeaderboardEntry[];
-  totalPlayers: number;
-  lastUpdated: number;
-  continentId?: string;
-}
+import { Button } from './ui/button';
+import { Card, CardContent } from './ui/card';
+import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
@@ -58,442 +31,396 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   gameStats,
   playerInfo,
 }) => {
-  // 状态管理
-  const [continentStats, setContinentStats] = useState<ContinentStats[]>([]);
-  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // 获取洲际统计数据
-  const fetchContinentStats = async () => {
-    try {
-      debugLog('GameCompletionScreen: Fetching continent statistics');
-      
-      if (isTestMode()) {
-        // 测试模式：生成模拟数据
-        const mockStats: ContinentStats[] = [
-          { continentId: 'AS', continentName: 'Asia', playerCount: 1247, flag: '🌏' },
-          { continentId: 'EU', continentName: 'Europe', playerCount: 892, flag: '🌍' },
-          { continentId: 'NA', continentName: 'North America', playerCount: 756, flag: '🌎' },
-          { continentId: 'SA', continentName: 'South America', playerCount: 423, flag: '🌎' },
-          { continentId: 'AF', continentName: 'Africa', playerCount: 334, flag: '🌍' },
-          { continentId: 'OC', continentName: 'Oceania', playerCount: 156, flag: '🌏' },
-        ];
-        
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setContinentStats(mockStats);
-        debugLog('GameCompletionScreen: Mock continent stats loaded', mockStats);
-      } else {
-        // 生产环境：调用真实API
-        const response = await fetch('/api/leaderboard/stats');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        if (result.status === 'success') {
-          setContinentStats(result.data);
-          debugLog('GameCompletionScreen: Real continent stats loaded', result.data);
-        } else {
-          throw new Error(result.message || 'Failed to load continent statistics');
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Network error while loading continent statistics';
-      setError(errorMessage);
-      debugLog('GameCompletionScreen: Error loading continent stats', errorMessage);
-      console.error('Error fetching continent stats:', err);
-    }
-  };
-
-  // 获取洲际排行榜数据
-  const fetchContinentLeaderboard = async (continentId: string) => {
-    try {
-      setLoading(true);
-      debugLog('GameCompletionScreen: Fetching continent leaderboard', { continentId });
-      
-      if (isTestMode()) {
-        // 测试模式：生成模拟排行榜数据
-        const mockLeaderboard: LeaderboardData = {
-          entries: [
-            {
-              rank: 1,
-              playerId: 'player_1',
-              playerName: 'TimeKeeper',
-              catAvatarId: '🦁',
-              continentId,
-              completionTime: 180,
-              roundsCompleted: 5,
-              totalTime: 180,
-              completedAt: Date.now() - 86400000
-            },
-            {
-              rank: 2,
-              playerId: 'player_2',
-              playerName: 'SlowAndSteady',
-              catAvatarId: '🐯',
-              continentId,
-              completionTime: 165,
-              roundsCompleted: 4,
-              totalTime: 165,
-              completedAt: Date.now() - 172800000
-            },
-            {
-              rank: 3,
-              playerId: 'player_3',
-              playerName: 'PatientPlayer',
-              catAvatarId: '😸',
-              continentId,
-              completionTime: 150,
-              roundsCompleted: 3,
-              totalTime: 150,
-              completedAt: Date.now() - 259200000
-            },
-            {
-              rank: 4,
-              playerId: 'player_4',
-              playerName: 'CalmCat',
-              catAvatarId: '😻',
-              continentId,
-              completionTime: 135,
-              roundsCompleted: 3,
-              totalTime: 135,
-              completedAt: Date.now() - 345600000
-            },
-            {
-              rank: 5,
-              playerId: 'player_5',
-              playerName: 'RelaxedGamer',
-              catAvatarId: '🐱',
-              continentId,
-              completionTime: 120,
-              roundsCompleted: 2,
-              totalTime: 120,
-              completedAt: Date.now() - 432000000
-            }
-          ],
-          totalPlayers: 50,
-          lastUpdated: Date.now(),
-          continentId
-        };
-        
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setLeaderboardData(mockLeaderboard);
-        debugLog('GameCompletionScreen: Mock continent leaderboard loaded', mockLeaderboard);
-      } else {
-        // 生产环境：调用真实API
-        const response = await fetch(`/api/leaderboard?continentId=${continentId}&limit=50`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        if (result.status === 'success') {
-          setLeaderboardData(result.data);
-          debugLog('GameCompletionScreen: Real continent leaderboard loaded', result.data);
-        } else {
-          throw new Error(result.message || 'Failed to load continent leaderboard');
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Network error while loading continent leaderboard';
-      setError(errorMessage);
-      debugLog('GameCompletionScreen: Error loading continent leaderboard', errorMessage);
-      console.error('Error fetching continent leaderboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 初始化时获取洲际统计数据
-  useEffect(() => {
-    const initializeData = async () => {
-      setLoading(true);
-      await fetchContinentStats();
-      setLoading(false);
-    };
-    
-    initializeData();
-  }, []);
-
-  // 处理洲际选择
-  const handleContinentSelect = (continentId: string) => {
-    setSelectedContinent(continentId);
-    setLeaderboardData(null);
-    fetchContinentLeaderboard(continentId);
-  };
-
-  // 返回洲际视图
-  const handleBackToContinents = () => {
-    setSelectedContinent(null);
-    setLeaderboardData(null);
-  };
-
-  // 格式化时间
+  const [showRanking, setShowRanking] = useState(false);
+  // 格式化时间显示
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 格式化日期
-  const formatDate = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleDateString();
+  // 获取洲际名称
+  const getContinentName = (continentId: string): string => {
+    const continentNames: { [key: string]: string } = {
+      'AS': 'Asia',
+      'EU': 'Europe', 
+      'NA': 'North America',
+      'SA': 'South America',
+      'AF': 'Africa',
+      'OC': 'Oceania'
+    };
+    return continentNames[continentId] || continentId;
   };
 
-  // 获取玩家数最多的洲际
-  const getTopContinent = (): ContinentStats | null => {
-    if (continentStats.length === 0) return null;
-    return continentStats.reduce((prev, current) => 
-      prev.playerCount > current.playerCount ? prev : current
-    );
+  // 计算表现百分比（基于时间和轮数）
+  const getPerformancePercentage = (): number => {
+    // 简单的性能计算：基于完成轮数和时间
+    const baseScore = gameStats.roundsCompleted * 20;
+    const timeBonus = Math.max(0, 60 - gameStats.totalTime) * 2;
+    return Math.min(99, Math.max(1, baseScore + timeBonus));
   };
 
-  const topContinent = getTopContinent();
-  const isSuccess = gameStats.roundsCompleted > 0 && gameStats.finalComfort >= 0.8;
+  // 动态生成猫咪数据
+  const generateCats = () => {
+    // 模拟排行榜人数（在实际应用中，这应该来自真实的排行榜数据）
+    const leaderboardCount = Math.floor(Math.random() * 100) + 10; // 10-110人
+    const catCount = Math.max(8, Math.min(20, Math.floor(leaderboardCount / 5))); // 最少8个，最多20个
+    
+    const catImages = ["/Cat_1.png", "/Cat_2.png", "/Cat_3.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png", "/Cat_2-1.png"];
+    
+    // 主猫咪和玩家姓名标签组合位置（居中）
+    const centerX = 394 / 2; // 卡片宽度的一半
+    const mainCatAndNameTagArea = {
+      left: centerX - 105/2, // 以姓名标签宽度为准居中
+      top: 48,
+      width: 120, // 以主猫咪宽度为准
+      height: 66 + 120, // 姓名标签高度 + 主猫咪高度
+    };
+    
+    // 为了兼容现有逻辑，保留mainCat对象但标记为已处理
+    const mainCat = {
+      src: "/Cat_1.png",
+      size: 120,
+      top: 114,
+      left: centerX - 60, // 居中
+      isMain: true,
+    };
+    
+    // 生成其他猫咪
+    const otherCats: Array<{
+      src: string;
+      size: number;
+      top: number;
+      left: number;
+      isMain: boolean;
+      flipped: boolean;
+    }> = [];
+    const usedPositions: Array<{
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    }> = [];
+    
+    // 主猫咪现在在组合区域中，不需要单独添加
+    
+    // 添加主猫咪和姓名标签组合区域到已使用位置
+    usedPositions.push({
+      left: mainCatAndNameTagArea.left - 5,
+      top: mainCatAndNameTagArea.top - 5,
+      right: mainCatAndNameTagArea.left + mainCatAndNameTagArea.width + 5,
+      bottom: mainCatAndNameTagArea.top + mainCatAndNameTagArea.height + 5,
+    });
+    
+    // 检查位置是否冲突
+    const isPositionValid = (left: number, top: number, size: number) => {
+      for (const usedPos of usedPositions) {
+        if (
+          left < usedPos.right &&
+          left + size > usedPos.left &&
+          top < usedPos.bottom &&
+          top + size > usedPos.top
+        ) {
+          return false;
+        }
+      }
+      return left >= 16 && left + size <= 378 && top >= 114 && top + size <= 280; // 卡片边界限制
+    };
+    
+    // 生成其他猫咪
+    let attempts = 0;
+    while (otherCats.length < catCount - 1 && attempts < 100) {
+      // 70%概率生成50-100px的猫咪，30%概率生成45-49px的猫咪
+      const size = Math.random() > 0.3 
+        ? Math.floor(Math.random() * 51) + 50  // 50-100px
+        : Math.floor(Math.random() * 5) + 45; // 45-49px
+      const left = Math.floor(Math.random() * (394 - size - 32)) + 16; // 卡片内随机位置
+      const top = Math.floor(Math.random() * (280 - size - 114)) + 114; // 避开上方区域
+      
+      if (isPositionValid(left, top, size)) {
+        otherCats.push({
+          src: catImages[Math.floor(Math.random() * catImages.length)] || "/Cat_1.png",
+          size,
+          top,
+          left,
+          isMain: false,
+          flipped: Math.random() > 0.5, // 随机决定是否翻转
+        });
+        
+        // 添加到已使用位置
+        usedPositions.push({
+          left: left - 2,
+          top: top - 2,
+          right: left + size + 2,
+          bottom: top + size + 2,
+        });
+      }
+      attempts++;
+    }
+    
+    return otherCats; // 只返回其他猫咪，主猫咪单独渲染
+  };
+
+  const cats = generateCats();
+
+  // 如果显示排名界面，返回排名组件
+  if (showRanking) {
+    return <LeaderboardRankingScreen onBack={() => setShowRanking(false)} />;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className={`${isSuccess ? 'bg-gradient-to-r from-green-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-orange-600'} text-white p-6`}>
-          <div className="text-center">
-            <div className="text-4xl mb-2">{isSuccess ? '🎉' : '😿'}</div>
-            <h2 className="text-3xl font-bold">
-              {isSuccess ? 'Game Complete!' : 'Game Over'}
-            </h2>
-            <p className={`${isSuccess ? 'text-green-100' : 'text-red-100'} mt-1`}>
-              {selectedContinent ? 'Continental Leaderboard' : 'Global Player Distribution'}
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+      <div className="w-[724px] h-[584px] bg-[#2f2f2f] overflow-hidden relative">
+        {/* 简化的游戏主界面背景 */}
+        <div className="absolute inset-0">
+          {/* 背景图像 */}
+          <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+
+          {/* 舒适度进度条 */}
+          <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
+            <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656] opacity-60">
+              <div className="h-full bg-[#5ff367] w-[75%]" />
+            </div>
+          </div>
+
+          {/* 温度进度条系统 */}
+          <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px] opacity-60">
+            <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+              <div className="absolute top-0 h-full bg-[#ff9500] opacity-60 left-[40%] w-[20%]" />
+              <div className="h-full bg-[#728cff] w-[50%]" />
+            </div>
+            <div className="absolute w-[16px] h-[40px] bg-[#f8cb56] border-[#3a3656] border-[5px] left-[306px] top-0" />
+          </div>
+
+          {/* 控制按钮 */}
+          <div className="absolute left-[84px] top-[460px] w-[56px] h-[56px] opacity-60">
+            <img className="w-full h-full object-cover" src="/button-temp-minus.png" />
+          </div>
+          <div className="absolute left-[584px] top-[460px] w-[56px] h-[56px] opacity-60">
+            <img className="w-full h-full object-cover" src="/button-temp-plus.png" />
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {loading && !selectedContinent && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-600">Loading global statistics...</p>
-            </div>
-          )}
+        <div className="relative h-[639px] top-[-53px]">
 
-          {error && (
-            <div className="text-center py-8">
-              <div className="text-red-500 text-lg">❌ {error}</div>
-              <button
-                onClick={() => {
-                  setError(null);
-                  if (selectedContinent) {
-                    fetchContinentLeaderboard(selectedContinent);
-                  } else {
-                    fetchContinentStats();
-                  }
+          {/* 半透明遮罩 */}
+          <div className="absolute w-[724px] h-[584px] top-[53px] left-0 bg-[#545454] opacity-50" />
+
+          {/* 主游戏卡片 */}
+          <Card className="absolute w-[394px] h-[521px] top-[90px] left-[165px] border-0 overflow-visible">
+            <CardContent className="p-0">
+              <img
+                className="w-full h-full object-cover"
+                alt="Card background"
+                src="/card-bg-1.png"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.background = '#f0f0f0';
                 }}
-                className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-              >
-                Try Again
-              </button>
-            </div>
-          )}
+              />
 
-          {/* 洲际统计视图 (默认视图) */}
-          {!selectedContinent && !loading && !error && (
-            <div>
-              {/* 玩家信息和游戏统计 */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl">{playerInfo.catAvatarId}</div>
-                    <div>
-                      <h3 className="font-bold text-gray-800 text-lg">{playerInfo.playerName}</h3>
-                      <p className="text-gray-600">From {playerInfo.continentId}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Your Performance</div>
-                    <div className="font-bold text-blue-600">
-                      {gameStats.roundsCompleted} rounds • {formatTime(gameStats.totalTime)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 全球洲际分布 */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                  🌍 Global Player Distribution
-                </h3>
-                
-                {topContinent && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                    <div className="text-center">
-                      <span className="text-yellow-800 font-medium">
-                        🏆 Most Active Continent: {topContinent.flag} {topContinent.continentName} 
-                        ({topContinent.playerCount.toLocaleString()} players)
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {continentStats.map((continent) => (
-                    <button
-                      key={continent.continentId}
-                      onClick={() => handleContinentSelect(continent.continentId)}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg ${
-                        continent.continentId === topContinent?.continentId
-                          ? 'border-yellow-400 bg-yellow-50 shadow-lg'
-                          : 'border-gray-200 hover:border-blue-300 bg-white'
-                      }`}
+              {/* 主猫咪和玩家姓名标签组合 */}
+              <div className="absolute flex flex-col items-center top-[48px] left-1/2 transform -translate-x-1/2 animate-float">
+                {/* 玩家姓名标签 */}
+                <div className="w-[105px] h-[66px] mb-0">
+                  <div className="relative w-[103px] h-[66px] bg-[url(/nametag.png)] bg-[100%_100%]">
+                    <div 
+                      className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center" 
+                      style={{ 
+                        fontFamily: 'lores-12', 
+                        fontSize: `${Math.max(12, 30 - playerInfo.playerName.length * 2)}px`,
+                        top: `${26 - (Math.max(12, 30 - playerInfo.playerName.length * 2) - 20) * 0.2}px` // 根据字体大小调整居中位置
+                      }}
                     >
-                      <div className="text-3xl mb-2">{continent.flag}</div>
-                      <div className="font-semibold text-gray-800">{continent.continentName}</div>
-                      <div className="text-lg font-bold text-blue-600 mt-1">
-                        {continent.playerCount.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500">players</div>
-                      {continent.continentId === topContinent?.continentId && (
-                        <div className="text-xs text-yellow-600 font-bold mt-1">👑 Most Active</div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="text-center mt-4">
-                  <p className="text-gray-600 text-sm">
-                    Click on any continent to view its leaderboard
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 洲际排行榜视图 */}
-          {selectedContinent && (
-            <div>
-              {/* 返回按钮和标题 */}
-              <div className="flex items-center justify-between mb-6">
-                <button
-                  onClick={handleBackToContinents}
-                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  ← Back to Continents
-                </button>
-                <h3 className="text-xl font-bold text-gray-800">
-                  {continentStats.find(c => c.continentId === selectedContinent)?.flag} {' '}
-                  {continentStats.find(c => c.continentId === selectedContinent)?.continentName} Leaderboard
-                </h3>
-                <div></div>
-              </div>
-
-              {loading && (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  <p className="mt-2 text-gray-600">Loading continent leaderboard...</p>
-                </div>
-              )}
-
-              {leaderboardData && !loading && (
-                <div>
-                  {/* 排行榜统计 */}
-                  <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                    <div className="text-center">
-                      <div className="text-blue-800 font-bold text-lg">
-                        {leaderboardData.totalPlayers.toLocaleString()} Total Players
-                      </div>
-                      <div className="text-blue-600 text-sm mt-1">
-                        Ranked by completion time (longest first)
-                      </div>
+                      {playerInfo.playerName.slice(0, 8)}
                     </div>
                   </div>
+                </div>
+                
+                {/* 主猫咪 */}
+                <img
+                  className="object-cover"
+                  style={{
+                    width: '120px',
+                    height: '120px',
+                  }}
+                  alt="Main Cat"
+                  src="/Cat_1.png"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/Cat_1.png";
+                  }}
+                />
+              </div>
 
-                  {/* 排行榜列表 */}
-                  {leaderboardData.entries.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <div className="text-4xl mb-4">🐱</div>
-                      <div>No players yet from this continent. Be the first to play!</div>
+              {/* 其他猫咪动画 */}
+              {cats.map((cat, index) => (
+                <img
+                  key={`cat-${index}`}
+                  className={`absolute object-cover ${cat.flipped ? 'scale-x-[-1]' : ''}`}
+                  style={{
+                    width: `${cat.size}px`,
+                    height: `${cat.size}px`,
+                    top: `${cat.top}px`,
+                    left: `${cat.left}px`,
+                  }}
+                  alt="Cat"
+                  src={cat.src}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/Cat_1.png";
+                  }}
+                />
+              ))}
+
+              {/* 排名状态卡片 */}
+              <div className="absolute w-[350px] h-[63px] top-[316px] left-[16px] bg-[#e6f9ff] rounded-[15px]">
+                                 <div className="h-[34px] top-[11px] leading-[normal] absolute w-[291px] left-[59px] font-normal text-transparent text-2xl tracking-[0]" style={{ fontFamily: 'lores-12' }}>
+                   <span className="text-black">{getContinentName(playerInfo.continentId)} is </span>
+                   <span className="text-[#fab817] font-bold text-[28px]">#1</span>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {leaderboardData.entries.map((entry, index) => (
-                        <div
-                          key={entry.playerId}
-                          className={`flex items-center justify-between p-4 rounded-lg border ${
-                            index < 3 
-                              ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200' 
-                              : 'bg-gray-50 border-gray-200'
-                          }`}
-                        >
-                          {/* 排名和玩家信息 */}
-                          <div className="flex items-center gap-4">
-                            <div className="text-center min-w-[50px]">
-                              {index === 0 && <div className="text-3xl">🥇</div>}
-                              {index === 1 && <div className="text-3xl">🥈</div>}
-                              {index === 2 && <div className="text-3xl">🥉</div>}
-                              {index >= 3 && (
-                                <div className="text-xl font-bold text-gray-600">#{entry.rank}</div>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="text-3xl">{entry.catAvatarId}</div>
-                              <div>
-                                <div className="font-bold text-gray-800 text-lg">
-                                  {entry.playerName}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  {formatDate(entry.completedAt)}
-                                </div>
+
+                <img
+                  className="absolute w-9 h-9 top-3 left-3.5 object-cover"
+                  alt="Ranking badge"
+                  src="/rankingbadge--1.png"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                  </div>
+
+              {/* 成绩状态卡片 */}
+              <div className="absolute w-[350px] h-[72px] top-[391px] left-[16px] bg-[#e6f9ff] rounded-[15px]">
+                                 <div className="top-[9px] leading-6 absolute w-[291px] left-[59px] font-normal text-transparent text-2xl tracking-[0]" style={{ fontFamily: 'lores-12' }}>
+                   <span className="text-black">
+                     Scrubbed for {formatTime(gameStats.totalTime)}, out-soaked{" "}
+                   </span>
+                   <span className="text-[#ffc106] font-bold text-[28px]">
+                     {getPerformancePercentage()}%
+                   </span>
+                   <span className="text-black"> of players!</span>
+                </div>
+
+                <img
+                  className="absolute w-9 h-9 top-[15px] left-3.5 object-cover"
+                  alt="Victory hand"
+                  src="/icon-victoryhand.png"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="absolute flex gap-4 justify-center w-full bottom-[-10px]">
+                <Button
+                  variant="ghost"
+                  className="w-14 h-14 p-0 rounded-md"
+                  onClick={onPlayAgain}
+                >
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="Restart"
+                    src="/icon-restart.png"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.alt = "🔄";
+                    }}
+                  />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-14 h-14 p-0 rounded-md"
+                  onClick={() => {
+                    // 分享功能
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'Cat Comfort Game',
+                        text: `I scored ${getPerformancePercentage()}% in Cat Comfort Game!`,
+                        url: window.location.href
+                      });
+                    }
+                  }}
+                >
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="Share"
+                    src="/icon-share.png"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.alt = "📤";
+                    }}
+                  />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-[59px] h-[59px] p-0 rounded-md"
+                  onClick={() => setShowRanking(true)}
+                >
+                  <img
+                    className="w-full h-full object-cover"
+                    alt="Ranking"
+                    src="/icon-ranking.png"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.alt = "🏆";
+                    }}
+                  />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 标题横幅 */}
+          <div className="w-[363px] h-[206px] left-[180.5px] absolute top-0">
+            <div className="relative w-[361px] h-[153px] top-[53px] -left-1">
+              <img
+                className="w-[309px] h-[153px] left-[26px] object-cover absolute top-0"
+                alt="Banner"
+                src="/banner-succ.png"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+
+                             {/* 洲际文字 */}
+               <div 
+                 className="absolute w-[120px] h-[25px] top-[29px] left-[119px] flex items-center justify-center silkscreen-text"
+                 style={{
+                   color: '#F0BC08',
+                   fontSize: '24px',
+                 }}
+               >
+                 {getContinentName(playerInfo.continentId)}
                               </div>
                             </div>
                           </div>
 
-                          {/* 成绩信息 */}
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-green-600">
-                              ⏱️ {formatTime(entry.completionTime)}
-                            </div>
-                            <div className="text-sm text-blue-600">
-                              🎮 {entry.roundsCompleted} rounds
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Total: {formatTime(entry.totalTime)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              🏆 Ranking: Completion time (longest first)
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={onPlayAgain}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium"
-              >
-                🎮 Play Again
-              </button>
-              <button
-                onClick={onBackToStart}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium"
-              >
-                🏠 Back to Start
-              </button>
-            </div>
-          </div>
+          {/* 下载按钮 */}
+          <Button
+            variant="ghost"
+            className="absolute w-14 h-14 top-[108px] left-[570px] p-0 rounded-md"
+            onClick={() => {
+              // 下载功能（可以保存截图或成绩）
+              window.print();
+            }}
+          >
+            <img
+              className="w-full h-full object-cover"
+              alt="Download"
+              src="/icon-download.png"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.alt = "💾";
+              }}
+            />
+          </Button>
         </div>
       </div>
     </div>

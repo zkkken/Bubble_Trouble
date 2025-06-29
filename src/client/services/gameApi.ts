@@ -1,13 +1,11 @@
 /**
  * 游戏API服务
- * 处理与后端的数据交互，支持测试模式
+ * 处理与后端的数据交互
  * 
  * @author 开发者C - 服务端API负责人
  */
 
 import { GameState } from '../types/GameTypes';
-import { isTestMode, debugLog } from '../config/testMode';
-import { mockGameApiService } from './mockGameApi';
 
 interface ApiResponse<T> {
   status: 'success' | 'error';
@@ -24,20 +22,9 @@ class GameApiService {
   private baseUrl = '/api';
 
   /**
-   * 选择使用真实API还是模拟API
+   * 通用的API调用方法
    */
-  private getApiService() {
-    if (isTestMode()) {
-      debugLog('Using mock API service');
-      return mockGameApiService;
-    }
-    return this; // 使用真实的API方法
-  }
-
-  /**
-   * 真实的API调用方法
-   */
-  private async realApiCall<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, options);
       return await response.json();
@@ -53,36 +40,21 @@ class GameApiService {
    * 初始化游戏
    */
   async initGame(): Promise<ApiResponse<{ postId: string }>> {
-    const service = this.getApiService();
-    if (service !== this) {
-      return service.initGame();
-    }
-
-    return this.realApiCall('/init');
+    return this.apiCall('/init');
   }
 
   /**
    * 获取游戏数据
    */
   async getGameData(): Promise<ApiResponse<GameDataResponse>> {
-    const service = this.getApiService();
-    if (service !== this) {
-      return service.getGameData();
-    }
-
-    return this.realApiCall('/game-data');
+    return this.apiCall('/game-data');
   }
 
   /**
    * 更新游戏状态
    */
   async updateGame(deltaTime: number): Promise<ApiResponse<{ gameState: GameState }>> {
-    const service = this.getApiService();
-    if (service !== this) {
-      return service.updateGame(deltaTime);
-    }
-
-    return this.realApiCall('/update-game', {
+    return this.apiCall('/update-game', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,12 +70,7 @@ class GameApiService {
     buttonType: 'plus' | 'minus' | 'center',
     isPressed: boolean
   ): Promise<ApiResponse<{ gameState: GameState }>> {
-    const service = this.getApiService();
-    if (service !== this) {
-      return service.handleButtonPress(buttonType, isPressed);
-    }
-
-    return this.realApiCall('/button-press', {
+    return this.apiCall('/button-press', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,12 +83,7 @@ class GameApiService {
    * 重置游戏
    */
   async resetGame(newRound?: number): Promise<ApiResponse<GameDataResponse>> {
-    const service = this.getApiService();
-    if (service !== this) {
-      return service.resetGame(newRound);
-    }
-
-    return this.realApiCall('/reset-game', {
+    return this.apiCall('/reset-game', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -132,6 +94,3 @@ class GameApiService {
 }
 
 export const gameApiService = new GameApiService();
-
-// 导出模拟服务，供测试模式使用
-export { mockGameApiService };
