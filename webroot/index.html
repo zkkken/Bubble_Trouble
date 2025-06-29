@@ -146,48 +146,45 @@
         margin: 0 auto;
       }
       
-      /* 隐藏控制台错误相关的样式 */
+      /* 排行榜容器样式修复 */
       
-      .devvit-error-suppression {
+      .leaderboard-container {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: black;
+      }
+      
+      .leaderboard-main {
+        width: 724px;
+        height: 584px;
+        background-color: #2f2f2f;
+        overflow: hidden;
+        position: relative;
+      }
+      
+      /* 确保滚动容器正确显示 */
+      
+      .scrollable-content {
+        position: absolute;
+        width: 414px;
+        height: 584px;
+        top: 29px;
+        left: 50%;
+        transform: translateX(-50%);
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      
+      .scrollable-content::-webkit-scrollbar {
         display: none;
       }
     </style>
-    
-    <!-- 添加错误抑制脚本 -->
-    <script>
-      // 抑制 Devvit 内部错误
-      window.addEventListener('error', function(event) {
-        if (event.message && (
-          event.message.includes('AsyncLocalStorage') ||
-          event.message.includes('beforeinstallprompt') ||
-          (event.filename && (
-            event.filename.includes('devvit-runtime') ||
-            event.filename.includes('dist-') ||
-            event.filename.includes('shell-') ||
-            event.filename.includes('icon-')
-          ))
-        )) {
-          event.preventDefault();
-          return false;
-        }
-      });
-      
-      // 抑制未处理的 Promise 拒绝
-      window.addEventListener('unhandledrejection', function(event) {
-        if (event.reason && event.reason.message && 
-            event.reason.message.includes('AsyncLocalStorage')) {
-          event.preventDefault();
-          return false;
-        }
-      });
-      
-      // 禁用 PWA 安装提示
-      window.addEventListener('beforeinstallprompt', function(e) {
-        e.preventDefault();
-        return false;
-      });
-    </script>
-    <script type="module" crossorigin src="/assets/index-DTH6Q0y0.js"></script>
+    <script type="module" crossorigin src="/assets/index-GFuMK5KM.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-B7qJ7wAz.css">
   </head>
   <body>

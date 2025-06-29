@@ -282,8 +282,8 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="w-[724px] h-[584px] bg-[#2f2f2f] overflow-hidden relative">
+    <div className="leaderboard-container">
+      <div className="leaderboard-main">
         {/* GameCompletionScreen样式的背景 */}
         <div className="absolute inset-0">
           {/* 背景图片 */}
@@ -343,24 +343,19 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
         {/* 主内容容器 - 可滚动区域 居中 */}
         <div 
           ref={scrollContainerRef}
-          className="absolute w-[414px] h-[584px] top-[29px] left-1/2 transform -translate-x-1/2 overflow-y-auto"
+          className="scrollable-content"
           onScroll={handleScroll}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
         >
-          <style>
-            {`
-              .scrollbar-hide::-webkit-scrollbar {
-                display: none;
-              }
-            `}
-          </style>
-          
-          <div className="scrollbar-hide relative w-full" style={{ height: `${rankings.length * 249 + (rankings.length - 1) * 32}px` }}>
+          <div className="relative w-full" style={{ height: `${rankings.length * 249 + (rankings.length - 1) * 32}px` }}>
+            {/* 加载状态 */}
+            {loading && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-white text-xl">Loading continent rankings...</div>
+              </div>
+            )}
+
             {/* 遍历排名创建卡片 */}
-            {rankings.map((ranking, index) => (
+            {!loading && rankings.map((ranking, index) => (
               <div
                 key={`ranking-${ranking.continentId}`}
                 className="absolute w-[414px] h-[249px] cursor-pointer hover:scale-[1.02] transition-transform duration-200"
