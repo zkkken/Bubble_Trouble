@@ -557,7 +557,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
           <img
             className="w-full h-full pointer-events-none"
             alt="Close button"
-            src="/Close button.png"
+            src="/Close_button.png"
           />
         </Button>
 
