@@ -2,9 +2,10 @@
 
 /* 基础字体配置 */
 * {
-  font-family: "lores-12", sans-serif;
+  font-family: "Pixelify Sans", sans-serif;
   font-weight: 400;
   font-style: normal;
+  line-height: normal;
 }
 
 /* 去除按钮的 ring-shadow 效果 */
@@ -59,6 +60,20 @@ a:focus,
 /* 强制去除任何可能的 padding */
 .card-content {
   padding: 0 !important;
+}
+
+/* 猫咪浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 /* 猫咪浮动动画 */

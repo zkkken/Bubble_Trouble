@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "./ui/card";
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface Player {
   rank: number;
@@ -27,6 +28,10 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   const [isDragging, setIsDragging] = React.useState(false);
   const [scrollBarTop, setScrollBarTop] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
 
   // 获取洲际排行榜数据
   React.useEffect(() => {
@@ -64,11 +69,11 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
     const container = scrollContainerRef.current;
     const containerRect = container.getBoundingClientRect();
     const maxScrollTop = container.scrollHeight - container.clientHeight;
-    const maxScrollBarTop = 433 - 124; // 容器高度 - 滚动条高度
+    const maxScrollBarTop = scale(433) - scale(124); // 响应式滚动条高度
     
     // 计算鼠标相对于容器顶部的位置
     const mouseY = e.clientY - containerRect.top;
-    const newScrollBarTop = Math.max(0, Math.min(maxScrollBarTop, mouseY - 62)); // 62是滚动条高度的一半
+    const newScrollBarTop = Math.max(0, Math.min(maxScrollBarTop, mouseY - scale(62))); // 62是滚动条高度的一半响应式
     
     // 根据滚动条位置计算内容滚动位置
     const scrollRatio = newScrollBarTop / maxScrollBarTop;
@@ -76,7 +81,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
     
     setScrollBarTop(newScrollBarTop);
     container.scrollTop = newScrollTop;
-  }, [isDragging]);
+  }, [isDragging, scale]);
 
   const handleMouseUp = React.useCallback(() => {
     setIsDragging(false);
@@ -100,7 +105,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
     
     const container = scrollContainerRef.current;
     const maxScrollTop = container.scrollHeight - container.clientHeight;
-    const maxScrollBarTop = 433 - 124; // 容器高度 - 滚动条高度
+    const maxScrollBarTop = scale(433) - scale(124); // 响应式滚动条高度
     
     if (maxScrollTop > 0) {
       const scrollRatio = container.scrollTop / maxScrollTop;
@@ -110,74 +115,175 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="w-[724px] h-[584px] bg-[#2f2f2f] relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div 
+        className="bg-[#2f2f2f] relative"
+        style={{
+          width: `${scale(724)}px`,
+          height: `${scale(584)}px`,
+          ...cssVars
+        }}
+      >
         {/* 游戏背景 - 来自GameCompletionScreen */}
         <div className="absolute inset-0">
           {/* 背景图像 */}
           <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
 
           {/* 舒适度进度条 */}
-          <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
-            <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656] opacity-60">
+          <div 
+            className="absolute"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(108)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(24)}px`
+            }}
+          >
+            <div 
+              className="w-full h-full bg-[#d9d9d9] opacity-60"
+              style={{
+                border: `${scale(4)}px solid #3a3656`
+              }}
+            >
               <div className="h-full bg-[#5ff367] w-[75%]" />
             </div>
           </div>
 
           {/* 温度进度条系统 */}
-          <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px] opacity-60">
-            <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(136)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(78)}px`
+            }}
+          >
+            <div 
+              className="absolute bg-[#d9d9d9]"
+              style={{
+                top: `${scale(9)}px`,
+                width: `${scale(628)}px`,
+                height: `${scale(24)}px`,
+                border: `${scale(4)}px solid #3a3656`
+              }}
+            >
               <div className="absolute top-0 h-full bg-[#ff9500] opacity-60 left-[40%] w-[20%]" />
               <div className="h-full bg-[#728cff] w-[50%]" />
             </div>
-            <div className="absolute w-[16px] h-[40px] bg-[#f8cb56] border-[#3a3656] border-[5px] left-[306px] top-0" />
+            <div 
+              className="absolute bg-[#f8cb56]"
+              style={{
+                width: `${scale(16)}px`,
+                height: `${scale(40)}px`,
+                border: `${scale(5)}px solid #3a3656`,
+                left: `${scale(306)}px`,
+                top: 0
+              }}
+            />
           </div>
 
           {/* 控制按钮 */}
-          <div className="absolute left-[84px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(84)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-minus.png" />
           </div>
-          <div className="absolute left-[584px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(584)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-plus.png" />
           </div>
         </div>
 
-        <div className="relative h-[637px] top-[-53px]">
+        <div 
+          className="relative"
+          style={{
+            height: `${scale(637)}px`,
+            top: `${scale(-53)}px`
+          }}
+        >
           {/* Overlay */}
-          <div className="absolute w-[724px] h-[584px] top-[53px] left-0 bg-[#545454] opacity-50" />
+          <div 
+            className="absolute bg-[#545454] opacity-50"
+            style={{
+              width: `${scale(724)}px`,
+              height: `${scale(584)}px`,
+              top: `${scale(53)}px`,
+              left: 0
+            }}
+          />
 
           {/* Card background */}
           <img
-            className="absolute w-[394px] h-[521px] top-[90px] left-[165px] object-cover"
+            className="absolute object-cover"
+            style={{
+              width: `${scale(394)}px`,
+              height: `${scale(521)}px`,
+              top: `${scale(90)}px`,
+              left: `${scale(165)}px`
+            }}
             alt="Card bg"
             src="/card-bg-1.png"
           />
 
           {/* Leaderboard card - centered relative to card background */}
-          <Card className="absolute w-[333px] h-[433px] top-[155px] left-[196px] border-none bg-transparent shadow-none">
+          <Card 
+            className="absolute border-none bg-transparent shadow-none"
+            style={{
+              width: `${scale(333)}px`,
+              height: `${scale(433)}px`,
+              top: `${scale(155)}px`,
+              left: `${scale(196)}px`
+            }}
+          >
             <CardContent className="p-0">
               {/* 自定义滑动条 */}
               <div 
                 className="absolute z-10 cursor-pointer hover:bg-[#7dd8f0] transition-colors"
                 style={{
-                  width: '9px',
-                  height: '124px',
+                  width: `${scale(9)}px`,
+                  height: `${scale(124)}px`,
                   background: '#8CE4FD',
-                  left: '335px',
+                  left: `${scale(335)}px`,
                   top: `${scrollBarTop}px`,
                   flexShrink: 0,
-                  borderRadius: '4px'
+                  borderRadius: `${scale(4)}px`
                 }}
                 onMouseDown={handleMouseDown}
               />
               <div 
                 ref={scrollContainerRef}
-                className="flex flex-col w-[333px] h-[433px] items-start gap-3 relative overflow-y-auto max-h-[433px] pr-2 overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="flex flex-col items-start overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                style={{
+                  width: `${scale(333)}px`,
+                  height: `${scale(433)}px`,
+                  gap: `${scale(12)}px`,
+                  maxHeight: `${scale(433)}px`,
+                  paddingRight: `${scale(8)}px`
+                }}
                 onScroll={handleScroll}
               >
                 {loading ? (
                   <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-black text-lg font-bold">
+                    <div 
+                      className="text-black font-bold"
+                      style={{
+                        fontSize: `${scale(18)}px`
+                      }}
+                    >
                       加载{continentName}排行榜中...
                     </div>
                   </div>
@@ -185,16 +291,30 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                   players.map((player, index) => (
                     <div
                       key={index}
-                      className="flex-shrink-0 w-[333px] h-[50px] flex flex-row items-start"
-                      style={{ gap: '55px' }}
+                      className="flex-shrink-0 flex flex-row items-start"
+                      style={{ 
+                        width: `${scale(333)}px`,
+                        height: `${scale(50)}px`,
+                        gap: `${scale(55)}px`
+                      }}
                     >
                       {/* Frame 86 - 左侧区域 (徽章 + 名字) */}
                       <div 
-                        className="w-[174px] h-[50px] flex flex-row items-start"
-                        style={{ gap: '4px' }}
+                        className="flex flex-row items-start"
+                        style={{
+                          width: `${scale(174)}px`,
+                          height: `${scale(50)}px`,
+                          gap: `${scale(4)}px`
+                        }}
                       >
                         {/* RankingBadge - 50x50px */}
-                        <div className="w-[50px] h-[50px] flex-shrink-0">
+                        <div 
+                          className="flex-shrink-0"
+                          style={{
+                            width: `${scale(50)}px`,
+                            height: `${scale(50)}px`
+                          }}
+                        >
                           {player.hasBadge ? (
                             <img
                               className="w-full h-full object-cover"

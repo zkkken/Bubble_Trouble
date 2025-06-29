@@ -1,6 +1,8 @@
 /**
  * 游戏结算界面组件 - 全新UI设计
  * 基于新的卡片式设计，展示游戏结果和统计数据
+ * 游戏结算界面组件 - 全新UI设计
+ * 基于新的卡片式设计，展示游戏结果和统计数据
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -9,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
@@ -32,6 +35,10 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   playerInfo,
 }) => {
   const [showRanking, setShowRanking] = useState(false);
+  
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
   // 格式化时间显示
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -39,6 +46,25 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // 获取洲际名称
+  const getContinentName = (continentId: string): string => {
+    const continentNames: { [key: string]: string } = {
+      'AS': 'Asia',
+      'EU': 'Europe', 
+      'NA': 'North America',
+      'SA': 'South America',
+      'AF': 'Africa',
+      'OC': 'Oceania'
+    };
+    return continentNames[continentId] || continentId;
+  };
+
+  // 计算表现百分比（基于时间和轮数）
+  const getPerformancePercentage = (): number => {
+    // 简单的性能计算：基于完成轮数和时间
+    const baseScore = gameStats.roundsCompleted * 20;
+    const timeBonus = Math.max(0, 60 - gameStats.totalTime) * 2;
+    return Math.min(99, Math.max(1, baseScore + timeBonus));
   // 获取洲际名称
   const getContinentName = (continentId: string): string => {
     const continentNames: { [key: string]: string } = {
@@ -66,7 +92,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     const leaderboardCount = Math.floor(Math.random() * 100) + 10; // 10-110人
     const catCount = Math.max(8, Math.min(20, Math.floor(leaderboardCount / 5))); // 最少8个，最多20个
     
-    const catImages = ["/Cat_1.png", "/Cat_2.png", "/Cat_3.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png", "/Cat_2-1.png"];
+    const catImages = ["/Cat_1.png", "/Cat_2.png", "/Cat_3.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png", "/Cat_4.png"];
     
     // 主猫咪和玩家姓名标签组合位置（居中）
     const centerX = 394 / 2; // 卡片宽度的一半
@@ -169,45 +195,126 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="w-[724px] h-[584px] bg-[#2f2f2f] overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div 
+        className="bg-[#2f2f2f] overflow-hidden relative"
+        style={{
+          width: `${scale(724)}px`,
+          height: `${scale(584)}px`,
+          ...cssVars
+        }}
+      >
         {/* 简化的游戏主界面背景 */}
         <div className="absolute inset-0">
           {/* 背景图像 */}
           <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
 
           {/* 舒适度进度条 */}
-          <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
-            <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656] opacity-60">
+          <div 
+            className="absolute"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(108)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(24)}px`
+            }}
+          >
+            <div 
+              className="w-full h-full bg-[#d9d9d9] border-[#3a3656] opacity-60"
+              style={{ borderWidth: `${scale(4)}px` }}
+            >
               <div className="h-full bg-[#5ff367] w-[75%]" />
             </div>
           </div>
 
           {/* 温度进度条系统 */}
-          <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px] opacity-60">
-            <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(136)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(78)}px`
+            }}
+          >
+            <div 
+              className="absolute bg-[#d9d9d9] border-[#3a3656]"
+              style={{
+                top: `${scale(9)}px`,
+                width: `${scale(628)}px`,
+                height: `${scale(24)}px`,
+                borderWidth: `${scale(4)}px`
+              }}
+            >
               <div className="absolute top-0 h-full bg-[#ff9500] opacity-60 left-[40%] w-[20%]" />
               <div className="h-full bg-[#728cff] w-[50%]" />
             </div>
-            <div className="absolute w-[16px] h-[40px] bg-[#f8cb56] border-[#3a3656] border-[5px] left-[306px] top-0" />
+            <div 
+              className="absolute bg-[#f8cb56] border-[#3a3656]"
+              style={{
+                width: `${scale(16)}px`,
+                height: `${scale(40)}px`,
+                borderWidth: `${scale(5)}px`,
+                left: `${scale(306)}px`,
+                top: '0'
+              }}
+            />
           </div>
 
           {/* 控制按钮 */}
-          <div className="absolute left-[84px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(84)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-minus.png" />
           </div>
-          <div className="absolute left-[584px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(584)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-plus.png" />
           </div>
         </div>
 
-        <div className="relative h-[639px] top-[-53px]">
+        <div 
+          className="relative"
+          style={{
+            height: `${scale(639)}px`,
+            top: `${scale(-53)}px`
+          }}
+        >
 
           {/* 半透明遮罩 */}
-          <div className="absolute w-[724px] h-[584px] top-[53px] left-0 bg-[#545454] opacity-50" />
+          <div 
+            className="absolute bg-[#545454] opacity-50"
+            style={{
+              width: `${scale(724)}px`,
+              height: `${scale(584)}px`,
+              top: `${scale(53)}px`,
+              left: '0'
+            }}
+          />
 
           {/* 主游戏卡片 */}
-          <Card className="absolute w-[394px] h-[521px] top-[90px] left-[165px] border-0 overflow-visible">
+          <Card 
+            className="absolute border-0 overflow-visible"
+            style={{
+              width: `${scale(394)}px`,
+              height: `${scale(521)}px`,
+              top: `${scale(90)}px`,
+              left: `${scale(165)}px`
+            }}
+          >
             <CardContent className="p-0">
               <img
                 className="w-full h-full object-cover"
@@ -220,16 +327,31 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
               />
 
               {/* 主猫咪和玩家姓名标签组合 */}
-              <div className="absolute flex flex-col items-center top-[48px] left-1/2 transform -translate-x-1/2 animate-float">
+              <div 
+                className="absolute flex flex-col items-center left-1/2 transform -translate-x-1/2 animate-float"
+                style={{ top: `${scale(48)}px` }}
+              >
                 {/* 玩家姓名标签 */}
-                <div className="w-[105px] h-[66px] mb-0">
-                  <div className="relative w-[103px] h-[66px] bg-[url(/nametag.png)] bg-[100%_100%]">
+                <div 
+                  className="mb-0"
+                  style={{
+                    width: `${scale(105)}px`,
+                    height: `${scale(66)}px`
+                  }}
+                >
+                  <div 
+                    className="relative bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
+                    style={{
+                      width: `${scale(103)}px`,
+                      height: `${scale(66)}px`
+                    }}
+                  >
                     <div 
                       className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center" 
                       style={{ 
-                        fontFamily: 'lores-12', 
-                        fontSize: `${Math.max(12, 30 - playerInfo.playerName.length * 2)}px`,
-                        top: `${26 - (Math.max(12, 30 - playerInfo.playerName.length * 2) - 20) * 0.2}px` // 根据字体大小调整居中位置
+                        fontFamily: 'Pixelify Sans', 
+                        fontSize: `${scale(Math.max(12, 30 - playerInfo.playerName.length * 2))}px`,
+                        top: `${scale(26 - (Math.max(12, 30 - playerInfo.playerName.length * 2) - 20) * 0.2)}px` // 根据字体大小调整居中位置
                       }}
                     >
                       {playerInfo.playerName.slice(0, 8)}
@@ -241,8 +363,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                 <img
                   className="object-cover"
                   style={{
-                    width: '120px',
-                    height: '120px',
+                    width: `${scale(120)}px`,
+                    height: `${scale(120)}px`,
                   }}
                   alt="Main Cat"
                   src="/Cat_1.png"
@@ -259,10 +381,10 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                   key={`cat-${index}`}
                   className={`absolute object-cover ${cat.flipped ? 'scale-x-[-1]' : ''}`}
                   style={{
-                    width: `${cat.size}px`,
-                    height: `${cat.size}px`,
-                    top: `${cat.top}px`,
-                    left: `${cat.left}px`,
+                    width: `${scale(cat.size)}px`,
+                    height: `${scale(cat.size)}px`,
+                    top: `${scale(cat.top)}px`,
+                    left: `${scale(cat.left)}px`,
                   }}
                   alt="Cat"
                   src={cat.src}
@@ -274,14 +396,47 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
               ))}
 
               {/* 排名状态卡片 */}
-              <div className="absolute w-[350px] h-[63px] top-[316px] left-[16px] bg-[#e6f9ff] rounded-[15px]">
-                                 <div className="h-[34px] top-[11px] leading-[normal] absolute w-[291px] left-[59px] font-normal text-transparent text-2xl tracking-[0]" style={{ fontFamily: 'lores-12' }}>
-                   <span className="text-black">{getContinentName(playerInfo.continentId)} is </span>
-                   <span className="text-[#fab817] font-bold text-[28px]">#1</span>
-                    </div>
+              <div 
+                className="absolute bg-[#e6f9ff]"
+                style={{
+                  width: `${scale(350)}px`,
+                  height: `${scale(63)}px`,
+                  top: `${scale(316)}px`,
+                  left: `${scale(16)}px`,
+                  borderRadius: `${scale(15)}px`
+                }}
+              >
+                <div 
+                  className="leading-[normal] absolute font-normal text-transparent tracking-[0]" 
+                  style={{ 
+                    fontFamily: 'Pixelify Sans',
+                    fontWeight: 400,
+                    fontStyle: 'normal',
+                    lineHeight: 'normal',
+                    height: `${scale(34)}px`,
+                    top: `${scale(11)}px`,
+                    width: `${scale(291)}px`,
+                    left: `${scale(59)}px`,
+                    fontSize: `${scale(24)}px`
+                  }}
+                >
+                  <span className="text-black">{getContinentName(playerInfo.continentId)} is </span>
+                  <span 
+                    className="text-[#fab817] font-bold"
+                    style={{ fontSize: `${scale(28)}px` }}
+                  >
+                    #1
+                  </span>
+                </div>
 
                 <img
-                  className="absolute w-9 h-9 top-3 left-3.5 object-cover"
+                  className="absolute object-cover"
+                  style={{
+                    width: `${scale(36)}px`,
+                    height: `${scale(36)}px`,
+                    top: `${scale(12)}px`,
+                    left: `${scale(14)}px`
+                  }}
                   alt="Ranking badge"
                   src="/rankingbadge--1.png"
                   onError={(e) => {
@@ -289,22 +444,52 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     target.style.display = 'none';
                   }}
                 />
-                  </div>
+              </div>
 
               {/* 成绩状态卡片 */}
-              <div className="absolute w-[350px] h-[72px] top-[391px] left-[16px] bg-[#e6f9ff] rounded-[15px]">
-                                 <div className="top-[9px] leading-6 absolute w-[291px] left-[59px] font-normal text-transparent text-2xl tracking-[0]" style={{ fontFamily: 'lores-12' }}>
-                   <span className="text-black">
-                     Scrubbed for {formatTime(gameStats.totalTime)}, out-soaked{" "}
-                   </span>
-                   <span className="text-[#ffc106] font-bold text-[28px]">
-                     {getPerformancePercentage()}%
-                   </span>
-                   <span className="text-black"> of players!</span>
+              <div 
+                className="absolute bg-[#e6f9ff]"
+                style={{
+                  width: `${scale(350)}px`,
+                  height: `${scale(72)}px`,
+                  top: `${scale(391)}px`,
+                  left: `${scale(16)}px`,
+                  borderRadius: `${scale(15)}px`
+                }}
+              >
+                <div 
+                  className="absolute font-normal text-transparent tracking-[0]" 
+                  style={{ 
+                    fontFamily: 'Pixelify Sans',
+                    fontWeight: 400,
+                    fontStyle: 'normal',
+                    lineHeight: 'normal',
+                    top: `${scale(9)}px`,
+                    width: `${scale(291)}px`,
+                    left: `${scale(59)}px`,
+                    fontSize: `${scale(24)}px`
+                  }}
+                >
+                  <span className="text-black">
+                    Scrubbed for {formatTime(gameStats.totalTime)}, out-soaked{" "}
+                  </span>
+                  <span 
+                    className="text-[#ffc106] font-bold"
+                    style={{ fontSize: `${scale(28)}px` }}
+                  >
+                    {getPerformancePercentage()}%
+                  </span>
+                  <span className="text-black"> of players!</span>
                 </div>
 
                 <img
-                  className="absolute w-9 h-9 top-[15px] left-3.5 object-cover"
+                  className="absolute object-cover"
+                  style={{
+                    width: `${scale(36)}px`,
+                    height: `${scale(36)}px`,
+                    top: `${scale(15)}px`,
+                    left: `${scale(14)}px`
+                  }}
                   alt="Victory hand"
                   src="/icon-victoryhand.png"
                   onError={(e) => {
@@ -315,10 +500,20 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
               </div>
 
               {/* 操作按钮 */}
-              <div className="absolute flex gap-4 justify-center w-full bottom-[-10px]">
+              <div 
+                className="absolute flex justify-center w-full"
+                style={{ 
+                  gap: `${scale(16)}px`,
+                  bottom: `${scale(-10)}px`
+                }}
+              >
                 <Button
                   variant="ghost"
-                  className="w-14 h-14 p-0 rounded-md"
+                  className="p-0 rounded-md"
+                  style={{
+                    width: `${scale(56)}px`,
+                    height: `${scale(56)}px`
+                  }}
                   onClick={onPlayAgain}
                 >
                   <img
@@ -334,7 +529,11 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
 
                 <Button
                   variant="ghost"
-                  className="w-14 h-14 p-0 rounded-md"
+                  className="p-0 rounded-md"
+                  style={{
+                    width: `${scale(56)}px`,
+                    height: `${scale(56)}px`
+                  }}
                   onClick={() => {
                     // 分享功能
                     if (navigator.share) {
@@ -359,7 +558,11 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
 
                 <Button
                   variant="ghost"
-                  className="w-[59px] h-[59px] p-0 rounded-md"
+                  className="p-0 rounded-md"
+                  style={{
+                    width: `${scale(59)}px`,
+                    height: `${scale(59)}px`
+                  }}
                   onClick={() => setShowRanking(true)}
                 >
                   <img
@@ -377,10 +580,30 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
           </Card>
 
           {/* 标题横幅 */}
-          <div className="w-[363px] h-[206px] left-[180.5px] absolute top-0">
-            <div className="relative w-[361px] h-[153px] top-[53px] -left-1">
+          <div 
+            className="absolute top-0"
+            style={{
+              width: `${scale(363)}px`,
+              height: `${scale(206)}px`,
+              left: `${scale(180.5)}px`
+            }}
+          >
+            <div 
+              className="relative"
+              style={{
+                width: `${scale(361)}px`,
+                height: `${scale(153)}px`,
+                top: `${scale(53)}px`,
+                left: `${scale(-4)}px`
+              }}
+            >
               <img
-                className="w-[309px] h-[153px] left-[26px] object-cover absolute top-0"
+                className="object-cover absolute top-0"
+                style={{
+                  width: `${scale(309)}px`,
+                  height: `${scale(153)}px`,
+                  left: `${scale(26)}px`
+                }}
                 alt="Banner"
                 src="/banner-succ.png"
                 onError={(e) => {
@@ -389,23 +612,33 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                 }}
               />
 
-                             {/* 洲际文字 */}
-               <div 
-                 className="absolute w-[120px] h-[25px] top-[29px] left-[119px] flex items-center justify-center silkscreen-text"
-                 style={{
-                   color: '#F0BC08',
-                   fontSize: '24px',
-                 }}
-               >
-                 {getContinentName(playerInfo.continentId)}
-                              </div>
-                            </div>
-                          </div>
+              {/* 洲际文字 */}
+              <div 
+                className="absolute flex items-center justify-center silkscreen-text"
+                style={{
+                  width: `${scale(120)}px`,
+                  height: `${scale(25)}px`,
+                  top: `${scale(29)}px`,
+                  left: `${scale(119)}px`,
+                  color: '#F0BC08',
+                  fontSize: `${scale(24)}px`,
+                }}
+              >
+                {getContinentName(playerInfo.continentId)}
+              </div>
+            </div>
+          </div>
 
           {/* 下载按钮 */}
           <Button
             variant="ghost"
-            className="absolute w-14 h-14 top-[108px] left-[570px] p-0 rounded-md"
+            className="absolute p-0 rounded-md"
+            style={{
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`,
+              top: `${scale(108)}px`,
+              left: `${scale(570)}px`
+            }}
             onClick={() => {
               // 下载功能（可以保存截图或成绩）
               window.print();

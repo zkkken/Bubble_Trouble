@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { HelpModal } from "./HelpModal";
+import { useResponsiveScale, useResponsiveSize } from "../hooks/useResponsiveScale";
 
 interface GameLaunchScreenProps {
   onStartGame: () => void;
@@ -27,36 +28,40 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   isMusicEnabled = true,
 }) => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
 
-  // Game assets data - 使用与当前项目相同的图片加载方式
+  // Game assets data - 响应式图片尺寸
   const gameAssets: GameAssets = {
     title: {
       src: "/Title_BubbleTrouble.png",
       alt: "Cat Comfort Game Title",
-      className: "w-[259px] h-[259px] mx-auto mt-8",
+      className: "mx-auto",
     },
     tagline: {
       src: "/Are_You_Ready_For_A_Wash.png",
       alt: "Are you ready for a wash?",
-      className: "mt-2 w-auto h-auto",
+      className: "w-auto h-auto",
     },
     buttons: [
       {
         src: "/Button_Start.png",
         alt: "Start Game Button",
-        className: "w-[155px] h-[72px] mx-auto mt-4",
+        className: "mx-auto",
         id: "start"
       },
       {
-        src: isMusicEnabled ? "/Button_Music_On.png" : "/Button_Music_On.png", // 可以后续添加音乐关闭的图片
+        src: isMusicEnabled ? "/Button_Music_On.png" : "/Button_Music_Off.png",
         alt: isMusicEnabled ? "Music On" : "Music Off",
-        className: "w-[124px] h-[53px]",
+        className: "",
         id: "music"
       },
       {
         src: "/Button_Help.png",
         alt: "Help Button",
-        className: "w-[120px] h-[53px] object-cover",
+        className: "object-cover",
         id: "help"
       },
     ],
@@ -86,13 +91,25 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   return (
     <>
       <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-[724px] h-[584px] bg-[#2f2f2f] rounded-none overflow-hidden border-0">
+        <Card 
+          className="bg-[#2f2f2f] rounded-none overflow-hidden border-0"
+          style={{
+            width: `${scale(724)}px`,
+            height: `${scale(584)}px`,
+            ...cssVars
+          }}
+        >
           <CardContent className="p-0 relative h-full bg-[url(/Bg_Main.png)] bg-cover bg-[50%_50%] flex flex-col items-center">
             {/* Game title */}
             <img
               className={gameAssets.title.className}
               alt={gameAssets.title.alt}
               src={gameAssets.title.src}
+              style={{
+                width: `${scale(259)}px`,
+                height: `${scale(259)}px`,
+                marginTop: `${scale(32)}px`
+              }}
             />
 
             {/* Game tagline */}
@@ -100,10 +117,20 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
               className={gameAssets.tagline.className}
               alt={gameAssets.tagline.alt}
               src={gameAssets.tagline.src}
+              style={{
+                marginTop: `${scale(8)}px`
+              }}
             />
 
             {/* Start button */}
-            <div className="mt-4" style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}>
+            <div 
+              style={{ 
+                fontFamily: '"Pixelify Sans", sans-serif', 
+                fontWeight: 400, 
+                fontStyle: 'normal',
+                marginTop: `${scale(16)}px`
+              }}
+            >
               <button
                 onClick={() => handleButtonClick('start')}
                 className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"
@@ -112,12 +139,22 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                   className={gameAssets.buttons[0].className}
                   alt={gameAssets.buttons[0].alt}
                   src={gameAssets.buttons[0].src}
+                  style={{
+                    width: `${scale(155)}px`,
+                    height: `${scale(72)}px`
+                  }}
                 />
               </button>
             </div>
 
             {/* Control buttons container */}
-            <div className="flex gap-10 absolute bottom-10">
+            <div 
+              className="flex absolute"
+              style={{
+                gap: `${scale(40)}px`,
+                bottom: `${scale(40)}px`
+              }}
+            >
               <button
                 onClick={() => handleButtonClick('music')}
                 className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"
@@ -126,6 +163,10 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                   className={gameAssets.buttons[1].className}
                   alt={gameAssets.buttons[1].alt}
                   src={gameAssets.buttons[1].src}
+                  style={{
+                    width: `${scale(124)}px`,
+                    height: `${scale(53)}px`
+                  }}
                 />
               </button>
               <button
@@ -136,6 +177,10 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                   className={gameAssets.buttons[2].className}
                   alt={gameAssets.buttons[2].alt}
                   src={gameAssets.buttons[2].src}
+                  style={{
+                    width: `${scale(120)}px`,
+                    height: `${scale(53)}px`
+                  }}
                 />
               </button>
             </div>

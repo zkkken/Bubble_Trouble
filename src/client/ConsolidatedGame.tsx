@@ -409,7 +409,7 @@ const GameOverlay: React.FC<GameOverlayProps> = ({
   const isSuccess = gameState.gameStatus === 'success';
 
   return (
-    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 text-center shadow-2xl max-w-sm mx-4">
         <div className="text-6xl mb-4">
           {isSuccess ? '🎉' : '😿'}
@@ -813,7 +813,7 @@ export const ConsolidatedCatComfortGame: React.FC = () => {
                   <>
                     <div className="absolute inset-0 bg-yellow-400 bg-opacity-30 rounded-lg animate-ping" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-white font-bold text-lg bg-black bg-opacity-50 px-2 py-1 rounded">
+                      <span className="text-white font-bold text-lg bg-gray-800 bg-opacity-70 px-2 py-1 rounded">
                         CLICK!
                       </span>
                     </div>

@@ -1,12 +1,15 @@
 /**
  * 排行榜模态框组件
  * Leaderboard Modal Component
+ * 排行榜模态框组件
+ * Leaderboard Modal Component
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
 import React, { useState, useEffect } from 'react';
 import { LeaderboardData, LeaderboardEntry } from '../../shared/types/leaderboard';
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -50,6 +53,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string>(''); // 默认显示全球排行榜
+  
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
 
   // 获取排行榜数据
   const fetchLeaderboard = async (countryCode?: string) => {
@@ -57,6 +64,23 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     setError(null);
     
     try {
+      const url = new URL('/api/leaderboard', window.location.origin);
+      if (countryCode) {
+        url.searchParams.set('countryCode', countryCode);
+      }
+      
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setLeaderboardData(result.data);
+      } else {
+        throw new Error(result.message || 'Failed to load leaderboard');
       const url = new URL('/api/leaderboard', window.location.origin);
       if (countryCode) {
         url.searchParams.set('countryCode', countryCode);
@@ -132,31 +156,56 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const selectedCountryInfo = COUNTRIES.find(c => c.code === selectedCountry);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-white rounded-lg shadow-2xl w-full overflow-hidden"
+        style={{
+          maxWidth: `${scale(672)}px`, // max-w-2xl = 672px
+          maxHeight: '80vh',
+          ...cssVars
+        }}
+      >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+        <div 
+          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+          style={{ padding: `${scale(24)}px` }}
+        >
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold">🏆 Cat Comfort Leaderboard</h2>
-              <p className="text-blue-100 mt-1">
+              <h2 
+                className="font-bold"
+                style={{ fontSize: `${scale(24)}px` }}
+              >
+                🏆 Cat Comfort Leaderboard
+              </h2>
+              <p 
+                className="text-blue-100"
+                style={{ marginTop: `${scale(4)}px` }}
+              >
                 {selectedCountryInfo ? selectedCountryInfo.name : 'Global rankings'} - Ranked by endurance time
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 text-2xl font-bold"
+              className="text-white hover:text-gray-200 font-bold"
+              style={{ fontSize: `${scale(24)}px` }}
             >
               ×
             </button>
           </div>
           
           {/* Country selector */}
-          <div className="mt-4">
+          <div style={{ marginTop: `${scale(16)}px` }}>
             <select
               value={selectedCountry}
               onChange={(e) => handleCountryChange(e.target.value)}
-              className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              style={{
+                paddingLeft: `${scale(12)}px`,
+                paddingRight: `${scale(12)}px`,
+                paddingTop: `${scale(8)}px`,
+                paddingBottom: `${scale(8)}px`
+              }}
             >
               {COUNTRIES.map((country) => (
                 <option key={country.code} value={country.code} className="text-black">
@@ -168,16 +217,45 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           
           {/* Current player score */}
           {currentPlayerScore && (
-            <div className="mt-4 bg-white bg-opacity-20 rounded-lg p-3">
+            <div 
+              className="bg-white bg-opacity-20 rounded-lg"
+              style={{
+                marginTop: `${scale(16)}px`,
+                padding: `${scale(12)}px`
+              }}
+            >
               <div className="text-center">
-                <div className="text-lg font-bold">Your Best Score</div>
-                <div className="flex justify-center items-center gap-4 mt-2">
-                  <span className="text-xl">🎯 {currentPlayerScore.score.toLocaleString()}</span>
-                  <span className="text-lg">🎮 {currentPlayerScore.roundsCompleted} rounds</span>
-                  <span className="text-lg">📍 Rank #{currentPlayerScore.rank}</span>
+                <div 
+                  className="font-bold"
+                  style={{ fontSize: `${scale(18)}px` }}
+                >
+                  Your Best Score
+                </div>
+                <div 
+                  className="flex justify-center items-center"
+                  style={{
+                    gap: `${scale(16)}px`,
+                    marginTop: `${scale(8)}px`
+                  }}
+                >
+                  <span style={{ fontSize: `${scale(20)}px` }}>
+                    🎯 {currentPlayerScore.score.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: `${scale(18)}px` }}>
+                    🎮 {currentPlayerScore.roundsCompleted} rounds
+                  </span>
+                  <span style={{ fontSize: `${scale(18)}px` }}>
+                    📍 Rank #{currentPlayerScore.rank}
+                  </span>
                 </div>
                 {currentPlayerScore.compositeScore && (
-                  <div className="text-sm opacity-75 mt-1">
+                  <div 
+                    className="opacity-75"
+                    style={{
+                      fontSize: `${scale(14)}px`,
+                      marginTop: `${scale(4)}px`
+                    }}
+                  >
                     Composite: {currentPlayerScore.compositeScore.toLocaleString()}
                   </div>
                 )}
@@ -187,17 +265,45 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-96">
+        <div 
+          className="overflow-y-auto"
+          style={{
+            padding: `${scale(24)}px`,
+            maxHeight: `${scale(384)}px` // max-h-96
+          }}
+        >
           {loading && (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-2 text-gray-600">Loading leaderboard...</p>
+            <div 
+              className="text-center"
+              style={{ paddingTop: `${scale(32)}px`, paddingBottom: `${scale(32)}px` }}
+            >
+              <div 
+                className="inline-block animate-spin rounded-full border-b-2 border-blue-500"
+                style={{
+                  height: `${scale(32)}px`,
+                  width: `${scale(32)}px`
+                }}
+              ></div>
+              <p 
+                className="text-gray-600"
+                style={{ marginTop: `${scale(8)}px` }}
+              >
+                Loading leaderboard...
+              </p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-8">
-              <div className="text-red-500 text-lg">❌ {error}</div>
+            <div 
+              className="text-center"
+              style={{ paddingTop: `${scale(32)}px`, paddingBottom: `${scale(32)}px` }}
+            >
+              <div 
+                className="text-red-500"
+                style={{ fontSize: `${scale(18)}px` }}
+              >
+                ❌ {error}
+              </div>
               <button
                 onClick={() => fetchLeaderboard(selectedCountry || undefined)}
                 className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
@@ -251,8 +357,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                           <div className="font-bold text-gray-800 flex items-center gap-2">
                             {entry.playerName}
                             <span className="text-sm">{getCountryFlag(entry.countryCode || 'US')}</span>
+                            <span className="text-sm">{getCountryFlag(entry.countryCode || 'US')}</span>
                           </div>
                           <div className="text-sm text-gray-600 flex items-center gap-2">
+                            {entry.difficulty && (
+                              <>
+                                <span>{getDifficultyEmoji(entry.difficulty)}</span>
+                                <span className={getDifficultyColor(entry.difficulty)}>
+                                  {entry.difficulty.toUpperCase()}
+                                </span>
+                                <span>•</span>
+                              </>
+                            )}
                             {entry.difficulty && (
                               <>
                                 <span>{getDifficultyEmoji(entry.difficulty)}</span>
@@ -271,7 +387,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="text-right">
                         <div className="text-lg font-bold text-blue-600">
                           ⏱️ {entry.enduranceDuration}s
+                          ⏱️ {entry.enduranceDuration}s
                         </div>
+                        {entry.roundsCompleted && (
+                          <div className="text-sm font-medium text-green-600">
+                            🎮 {entry.roundsCompleted} rounds
+                          </div>
+                        )}
+                        {entry.totalTime && (
+                          <div className="text-xs text-gray-600">
+                            Total: {formatTime(entry.totalTime)}
                         {entry.roundsCompleted && (
                           <div className="text-sm font-medium text-green-600">
                             🎮 {entry.roundsCompleted} rounds
@@ -295,6 +420,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         <div className="bg-gray-50 px-6 py-4 border-t">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
+              🎮 Ranking: Endurance time (how long you survived)!
               🎮 Ranking: Endurance time (how long you survived)!
             </div>
             <button

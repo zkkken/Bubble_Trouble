@@ -1,0 +1,229 @@
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --card: transparent;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+
+    --card: transparent;
+    --card-foreground: 213 31% 91%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 216 34% 17%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Hand tapping animation - 3 consecutive taps */
+@keyframes handTap {
+  /* First tap: 0% - 33.33% */
+  0% { transform: translateY(0px); }
+  8.33% { transform: translateY(15px); }  /* Down at 100ms */
+  16.66% { transform: translateY(0px); }  /* Up at 200ms */
+  
+  /* Pause between taps */
+  25% { transform: translateY(0px); }     /* Pause at 300ms */
+  
+  /* Second tap: 33.33% - 66.66% */
+  33.33% { transform: translateY(0px); }  /* Start second tap at 400ms */
+  41.66% { transform: translateY(15px); } /* Down at 500ms */
+  50% { transform: translateY(0px); }     /* Up at 600ms */
+  
+  /* Pause between taps */
+  58.33% { transform: translateY(0px); }  /* Pause at 700ms */
+  
+  /* Third tap: 66.66% - 100% */
+  66.66% { transform: translateY(0px); }  /* Start third tap at 800ms */
+  75% { transform: translateY(15px); }    /* Down at 900ms */
+  83.33% { transform: translateY(0px); }  /* Up at 1000ms */
+  
+  /* Final pause and end */
+  100% { transform: translateY(0px); }    /* End at 1200ms */
+}
+
+/* Hand-3 horizontal tapping animation - 3 consecutive horizontal taps (right direction) */
+@keyframes hand3Tap {
+  /* First tap: 0% - 33.33% */
+  0% { transform: translateX(0px); }
+  8.33% { transform: translateX(15px); }  /* Right at 100ms */
+  16.66% { transform: translateX(0px); }  /* Back at 200ms */
+  
+  /* Pause between taps */
+  25% { transform: translateX(0px); }     /* Pause at 300ms */
+  
+  /* Second tap: 33.33% - 66.66% */
+  33.33% { transform: translateX(0px); }  /* Start second tap at 400ms */
+  41.66% { transform: translateX(15px); } /* Right at 500ms */
+  50% { transform: translateX(0px); }     /* Back at 600ms */
+  
+  /* Pause between taps */
+  58.33% { transform: translateX(0px); }  /* Pause at 700ms */
+  
+  /* Third tap: 66.66% - 100% */
+  66.66% { transform: translateX(0px); }  /* Start third tap at 800ms */
+  75% { transform: translateX(15px); }    /* Right at 900ms */
+  83.33% { transform: translateX(0px); }  /* Back at 1000ms */
+  
+  /* Final pause and end */
+  100% { transform: translateX(0px); }    /* End at 1200ms */
+}
+
+/* Hand-4 horizontal tapping animation - 3 consecutive horizontal taps (left direction) */
+@keyframes hand4Tap {
+  /* First tap: 0% - 33.33% */
+  0% { transform: translateX(0px); }
+  8.33% { transform: translateX(-15px); }  /* Left at 100ms */
+  16.66% { transform: translateX(0px); }   /* Back at 200ms */
+  
+  /* Pause between taps */
+  25% { transform: translateX(0px); }      /* Pause at 300ms */
+  
+  /* Second tap: 33.33% - 66.66% */
+  33.33% { transform: translateX(0px); }   /* Start second tap at 400ms */
+  41.66% { transform: translateX(-15px); } /* Left at 500ms */
+  50% { transform: translateX(0px); }      /* Back at 600ms */
+  
+  /* Pause between taps */
+  58.33% { transform: translateX(0px); }   /* Pause at 700ms */
+  
+  /* Third tap: 66.66% - 100% */
+  66.66% { transform: translateX(0px); }   /* Start third tap at 800ms */
+  75% { transform: translateX(-15px); }    /* Left at 900ms */
+  83.33% { transform: translateX(0px); }   /* Back at 1000ms */
+  
+  /* Final pause and end */
+  100% { transform: translateX(0px); }     /* End at 1200ms */
+}
+
+/* Hand-5 horizontal tapping animation - 3 consecutive horizontal taps (right direction) */
+@keyframes hand5Tap {
+  /* First tap: 0% - 33.33% */
+  0% { transform: translateX(0px); }
+  8.33% { transform: translateX(15px); }  /* Right at 100ms */
+  16.66% { transform: translateX(0px); }  /* Back at 200ms */
+  
+  /* Pause between taps */
+  25% { transform: translateX(0px); }     /* Pause at 300ms */
+  
+  /* Second tap: 33.33% - 66.66% */
+  33.33% { transform: translateX(0px); }  /* Start second tap at 400ms */
+  41.66% { transform: translateX(15px); } /* Right at 500ms */
+  50% { transform: translateX(0px); }     /* Back at 600ms */
+  
+  /* Pause between taps */
+  58.33% { transform: translateX(0px); }  /* Pause at 700ms */
+  
+  /* Third tap: 66.66% - 100% */
+  66.66% { transform: translateX(0px); }  /* Start third tap at 800ms */
+  75% { transform: translateX(15px); }    /* Right at 900ms */
+  83.33% { transform: translateX(0px); }  /* Back at 1000ms */
+  
+  /* Final pause and end */
+  100% { transform: translateX(0px); }    /* End at 1200ms */
+}
+
+/* Sparkler burst animation - firework rise and burst effect */
+@keyframes sparklerBurst {
+  0% { 
+    transform: scale(0.3) translateY(20px);
+    opacity: 0;
+  }
+  30% { 
+    transform: scale(0.8) translateY(-10px);
+    opacity: 0.7;
+  }
+  60% { 
+    transform: scale(1.2) translateY(-5px);
+    opacity: 1;
+  }
+  100% { 
+    transform: scale(1) translateY(0px);
+    opacity: 1;
+  }
+}
+
+/* Tap icon rotation animation - smooth rotation */
+@keyframes tapRotate {
+  0% { 
+    transform: rotate(var(--start-rotation, 0deg));
+  }
+  100% { 
+    transform: rotate(var(--end-rotation, 90deg));
+  }
+}
