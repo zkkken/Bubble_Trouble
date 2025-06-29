@@ -1,5 +1,5 @@
 /**
- * Post management system for Cat Comfort Game
+ * Post management system for Bubble_Trouble
  * - Handles initialization and configuration of new game posts
  * - Manages post-specific Redis data
  * 

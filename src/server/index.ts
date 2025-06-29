@@ -36,7 +36,7 @@ router.post('/api/submit-score', async (req, res) => {
 
 /**
  * 获取洲际统计数据 (供 LeaderboardRankingScreen 使用)
- * 兼容客户端期望的数据格式
+ * 返回完整的统计数据，包括平均时间用于排名
  */
 router.get('/api/leaderboard/stats', async (_req, res) => {
   console.log('🔍 [API /leaderboard/stats] 开始处理请求...');
@@ -51,14 +51,17 @@ router.get('/api/leaderboard/stats', async (_req, res) => {
     // 输出服务器端详细统计信息
     console.log('📊 洲际统计数据:');
     rankings.forEach(ranking => {
-      console.log(`   [${ranking.continentId}] ${ranking.continentName}: ${ranking.playerCount}人, 总时长${ranking.totalDuration.toFixed(1)}s`);
+      const averageTime = ranking.playerCount > 0 ? ranking.totalDuration / ranking.playerCount : 0;
+      console.log(`   [${ranking.continentId}] ${ranking.continentName}: ${ranking.playerCount}人, 总时长${ranking.totalDuration.toFixed(1)}s, 平均${averageTime.toFixed(1)}s`);
     });
     
-    // 转换为客户端期望的格式
+    // 返回完整的统计数据，包括用于排名的平均时间
     const stats = rankings.map(ranking => ({
       continentId: ranking.continentId,
       continentName: ranking.continentName,
       playerCount: ranking.playerCount,
+      totalDuration: ranking.totalDuration,
+      averageTime: ranking.playerCount > 0 ? ranking.totalDuration / ranking.playerCount : 0,
       flag: `Map_Cat_${ranking.continentId}.png`, // 生成flag图片名
     }));
     

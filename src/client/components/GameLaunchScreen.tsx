@@ -37,7 +37,7 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   const gameAssets: GameAssets = {
     title: {
       src: "/Title_BubbleTrouble.png",
-      alt: "Cat Comfort Game Title",
+      alt: "Title_BubbleTrouble",
       className: "mx-auto",
     },
     tagline: {

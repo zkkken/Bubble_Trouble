@@ -8,7 +8,7 @@
     />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="no">
-    <title>Cat Comfort Game</title>
+    <title>Bubble Trouble</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@700&display=swap" rel="stylesheet">
@@ -22,16 +22,11 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         font-display: swap;
-        -webkit-text-stroke: 2px #3A368E;
-        text-shadow: 
-          3px 3px 0 #3A368E,
-          -1px 1px 0 #3A368E,
-          1px -1px 0 #3A368E,
-          -1px -1px 0 #3A368E,
-          2px 2px 0 #3A368E,
-          -2px 2px 0 #3A368E,
-          2px -2px 0 #3A368E,
-          -2px -2px 0 #3A368E;
+      }
+      
+      /* 全局修复：让所有文字外框显示在外侧而不是内嵌 */
+      [style*="WebkitTextStroke"] {
+        paint-order: stroke fill;
       }
       
       /* 确保在任何环境中都能正确显示 */

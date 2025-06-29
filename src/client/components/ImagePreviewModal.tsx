@@ -48,7 +48,14 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
           className="bg-[#F0BC08] text-[#2f2f2f] px-4 py-3"
           style={{ height: `${scale(50)}px` }}
         >
-          <h2 className="silkscreen-bold text-lg">游戏截图已生成</h2>
+          <h2 
+            className="silkscreen-bold text-lg"
+            style={{
+              WebkitTextStroke: `${scale(2)}px #000`
+            }}
+          >
+            游戏截图已生成
+          </h2>
         </div>
 
         {/* 图片区域 */}
@@ -69,8 +76,22 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 
           {/* 说明文字 */}
           <div className="mt-4 text-center text-white silkscreen-bold">
-            <p className="text-sm">截图已自动下载到您的设备</p>
-            <p className="text-xs text-gray-400 mt-2">点击右上角关闭按钮或点击空白区域关闭</p>
+            <p 
+              className="text-sm"
+              style={{
+                WebkitTextStroke: `${scale(1.6)}px #000`
+              }}
+            >
+              截图已自动下载到您的设备
+            </p>
+            <p 
+              className="text-xs text-gray-400 mt-2"
+              style={{
+                WebkitTextStroke: `${scale(1.3)}px #000`
+              }}
+            >
+              点击右上角关闭按钮或点击空白区域关闭
+            </p>
           </div>
         </div>
       </div>

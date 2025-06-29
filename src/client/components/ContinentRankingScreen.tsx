@@ -358,7 +358,10 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                             <div className="w-full h-full flex items-center justify-center">
                               <div
                                 className="silkscreen-bold text-black text-center tracking-[0] leading-[38px] whitespace-nowrap"
-                                style={{ fontSize: '1.25rem' }}
+                                style={{ 
+                                  fontSize: '1.25rem',
+                                  WebkitTextStroke: `${scale(2.2)}px #000`
+                                }}
                               >
                                 {player.rank}
                               </div>
@@ -388,14 +391,14 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                           style={index < 3 ? {
                             color: '#F1BA08',
                             textAlign: 'center',
-                            WebkitTextStrokeWidth: '2px',
-                            WebkitTextStrokeColor: '#000',
+                            WebkitTextStroke: `${scale(2.7)}px #000`,
                             fontSize: '1.5rem',
                             lineHeight: '38px'
                           } : {
                             fontSize: '1.25rem',
                             lineHeight: '38px',
-                            color: '#000'
+                            color: '#000',
+                            WebkitTextStroke: `${scale(2.2)}px #000`
                           }}
                         >
                           {player.time}

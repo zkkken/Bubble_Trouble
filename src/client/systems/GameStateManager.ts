@@ -12,13 +12,14 @@ import { InterferenceSystem } from './InterferenceSystem';
 const TEMP_CLICK_CHANGE = 0.05; // 点击按钮温度变化5%
 const TEMP_AUTO_DECREASE_PER_SECOND = 0.05; // 每秒自动下降5%
 const COMFORT_CHANGE_PER_SECOND = 0.1; // 舒适度每秒变化10%
-const COMFORT_ZONE_MIN = 0.4; // 舒适区范围 40%
-const COMFORT_ZONE_MAX = 0.6; // 舒适区范围 60%
+const TARGET_TEMP_CHANGE_INTERVAL = 8; // 目标温度变化间隔（秒）
+const TOLERANCE_WIDTH = 0.1; // 舒适区域宽度（目标温度±10%）
 
 export class GameStateManager {
   private interferenceSystem: InterferenceSystem;
   private config: GameConfig;
   private timeAccumulator: number = 0;
+  private targetTempChangeTimer: number = 0;
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -32,6 +33,7 @@ export class GameStateManager {
 
   createInitialState(): GameState {
     this.timeAccumulator = 0;
+    this.targetTempChangeTimer = TARGET_TEMP_CHANGE_INTERVAL;
     return {
       // 温度和舒适度
       currentTemperature: 0.5, // 初始温度50%
@@ -41,18 +43,26 @@ export class GameStateManager {
       gameTimer: 0, // 正向计时器，记录坚持时间
       gameStatus: 'playing',
 
-      // 移除旧的状态
-      targetTemperature: 0, // 不再使用
-      toleranceWidth: 0, // 不再使用
+      // 动态目标温度系统 - 重新启用
+      targetTemperature: this.generateRandomTargetTemperature(), // 动态目标温度
+      toleranceWidth: TOLERANCE_WIDTH, // 舒适区域宽度
       successHoldTimer: 0,
-      isPlusHeld: false, // 不再使用
-      isMinusHeld: false, // 不再使用
+      isPlusHeld: false, // 保留以兼容现有代码
+      isMinusHeld: false, // 保留以兼容现有代码
 
       // 干扰系统状态
       interferenceEvent: this.interferenceSystem.clearInterferenceEvent(),
       interferenceTimer: this.interferenceSystem.generateRandomInterferenceInterval(),
       isControlsReversed: false,
     };
+  }
+
+  /**
+   * 生成随机目标温度（避免极端值）
+   */
+  private generateRandomTargetTemperature(): number {
+    // 在0.25-0.75范围内生成目标温度，避免过于极端的值
+    return 0.25 + Math.random() * 0.5;
   }
 
   /**
@@ -77,12 +87,23 @@ export class GameStateManager {
       // 2a. 温度每秒自动下降
       newState.currentTemperature -= TEMP_AUTO_DECREASE_PER_SECOND;
 
-      // 2b. 根据温度更新舒适度
-      const isInComfortZone = newState.currentTemperature >= COMFORT_ZONE_MIN && newState.currentTemperature <= COMFORT_ZONE_MAX;
+      // 2b. 根据动态目标温度更新舒适度
+      const comfortZoneMin = newState.targetTemperature - newState.toleranceWidth;
+      const comfortZoneMax = newState.targetTemperature + newState.toleranceWidth;
+      const isInComfortZone = newState.currentTemperature >= comfortZoneMin && newState.currentTemperature <= comfortZoneMax;
+      
       if (isInComfortZone) {
         newState.currentComfort += COMFORT_CHANGE_PER_SECOND;
       } else {
         newState.currentComfort -= COMFORT_CHANGE_PER_SECOND;
+      }
+
+      // 2c. 更新目标温度变化计时器
+      this.targetTempChangeTimer -= 1;
+      if (this.targetTempChangeTimer <= 0) {
+        newState.targetTemperature = this.generateRandomTargetTemperature();
+        this.targetTempChangeTimer = TARGET_TEMP_CHANGE_INTERVAL;
+        console.log(`🎯 目标温度变化为: ${(newState.targetTemperature * 100).toFixed(0)}°`);
       }
     }
     

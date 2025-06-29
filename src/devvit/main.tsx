@@ -12,7 +12,7 @@ import {
 } from './utils';
 
 defineConfig({
-  name: '[Bolt] Cat Comfort Game',
+  name: 'BubbleTrouble',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
@@ -92,7 +92,7 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = (_, context) => {
           {/* 主标题区域 - 完全响应式 */}
           <vstack alignment="center middle" gap={smallSpacing}>
             <text size={titleFontSize} weight="bold" color="white">
-              🐱 Cat Comfort Game 🐱
+              🐱 Bubble Trouble 🐱
             </text>
             <text color="white" size={subtitleFontSize} alignment="center">
               🎮 Keep the cat comfortable! 🎮
@@ -181,7 +181,7 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = (_, context) => {
 };
 
 Devvit.addMenuItem({
-  label: '[Bolt Cat Comfort Game]: New Post',
+  label: 'Bubble_Trouble: New Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (_, context) => {
@@ -193,7 +193,7 @@ Devvit.addMenuItem({
       
       // 使用响应式预览组件
       post = await reddit.submitPost({
-        title: 'Cat Comfort Game - Keep the Cat Happy! 🐱',
+        title: 'Bubble Trouble - Keep the Cat Happy! 🐱',
         subredditName: subreddit.name,
         preview: <CatComfortGameDevvit />,
       });

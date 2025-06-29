@@ -47,19 +47,22 @@ const PixelGameInterface: React.FC<{
   onRightButtonClick: () => void;
   onCenterButtonClick: () => void;
   onBackToStart: () => void;
+  isMusicOn: boolean;
+  onMusicToggle: () => void;
 }> = ({ 
   gameState, 
   playerInfo,
   onLeftButtonClick, 
   onRightButtonClick, 
   onCenterButtonClick,
-  onBackToStart 
+  onBackToStart,
+  isMusicOn,
+  onMusicToggle
 }) => {
   
   const { cssVars } = useResponsiveScale();
   const { scale, scaleFont } = useResponsiveSize();
   const [catFlipped, setCatFlipped] = useState(false);
-  const [isMusicOn, setIsMusicOn] = useState(true);
 
   const formatTime = (totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -78,8 +81,6 @@ const PixelGameInterface: React.FC<{
     const flipInterval = setInterval(() => setCatFlipped(prev => !prev), 3000 + Math.random() * 3000);
     return () => clearInterval(flipInterval);
   }, []);
-
-  const handleMusicToggle = () => setIsMusicOn(prev => !prev);
 
   // 干扰事件类型到图片文件名的映射
   const getInterferenceImageSrc = (interferenceType: string): string => {
@@ -120,7 +121,7 @@ const PixelGameInterface: React.FC<{
         />
       </div>
 
-      {/* Comfort Bar (New Color Logic) */}
+      {/* 舒适度进度条 (显示猫咪当前舒适度) */}
       <div 
         className="absolute bg-[#d9d9d9] border-[#3a3656]"
         style={{
@@ -140,7 +141,7 @@ const PixelGameInterface: React.FC<{
         />
       </div>
 
-      {/* Temperature Bar System (New UI) */}
+      {/* 温度条系统 (Temperature Bar System) */}
       <div 
         className="absolute"
         style={{
@@ -150,7 +151,7 @@ const PixelGameInterface: React.FC<{
           height: `${scale(78)}px`
         }}
       >
-        {/* Temperature Bar Background */}
+        {/* 温度条背景 (Temperature Bar Background) */}
         <div 
           className="absolute bg-[#d9d9d9] border-[#3a3656]"
           style={{
@@ -160,30 +161,34 @@ const PixelGameInterface: React.FC<{
             borderWidth: `${scale(4)}px`
           }}
         >
-          {/* Dynamic Comfort Zone (based on targetTemperature ± toleranceWidth) */}
+          {/* 🔵 动态舒适区域 - 这是用来计算舒适度的核心区域！
+              (Dynamic Comfort Zone - This is the CORE area for comfort calculation!)
+              基于目标温度 ± 容差宽度 (based on targetTemperature ± toleranceWidth) */}
           <div
             className="absolute top-0 flex-shrink-0"
             style={{
-              left: `${scale(48 + gameState.targetTemperature * 628 - 63)}px`,
-              top: `${scale(13)}px`,
+              left: `${(gameState.targetTemperature * 628 - 63)}px`,
+              top: `0px`,
               width: `${scale(126)}px`,
-              height: `${scale(16)}px`,
+              height: '100%',
               backgroundColor: '#728CFF',
+              /* 🎯 当温度指针在此蓝色区域内时，猫咪舒适度提升 
+                 When temperature pointer is within this blue zone, cat comfort increases */
             }}
           />
         </div>
 
-        {/* Target Temperature Display */}
+        {/* 目标温度显示 (Target Temperature Display) - 在动态舒适区域居中正下方 */}
         <div
           className="absolute flex items-center justify-center silkscreen-bold"
           style={{
             width: `${scale(65)}px`,
             height: `${scale(38)}px`,
-            top: `${scale(45)}px`,
-            left: `${scale(48 + gameState.targetTemperature * 628 - 32.5)}px`,
+            top: `${scale(33)}px`, // 温度条底部 + 间距
+            left: `${gameState.targetTemperature * 628 - 32.5}px`, // 动态舒适区域中心
             color: '#F0BC08',
             textAlign: 'center',
-            WebkitTextStroke: `${scale(1)}px #3A368E`,
+            WebkitTextStroke: `${scale(2.1)}px #3A368E`,
             fontFamily: 'Silkscreen',
             fontSize: `${scale(19)}px`,
             fontWeight: 700,
@@ -193,7 +198,7 @@ const PixelGameInterface: React.FC<{
           {(gameState.targetTemperature * 100).toFixed(0)}°
         </div>
 
-        {/* Temperature Pointer */}
+        {/* 🌡️ 温度指针 (Temperature Pointer) - 显示当前实际温度 */}
         <div
           className="absolute transition-all duration-100 ease-linear"
           style={{
@@ -204,11 +209,14 @@ const PixelGameInterface: React.FC<{
             borderColor: '#3a3656',
             backgroundColor: '#f8cb56',
             left: `calc(${gameState.currentTemperature * 100}% - ${scale(8)}px)`,
+            /* 🎮 玩家需要通过左右按钮控制此指针，让它保持在蓝色舒适区域内
+               Players need to control this pointer using left/right buttons to keep it in the blue comfort zone */
           }}
         />
       </div>
 
-      {/* Control Buttons (onClick, new handlers, but keep visual swap) */}
+      {/* 温度控制按钮 (Temperature Control Buttons) */}
+      {/* 左侧按钮 - 降低/增加温度 (根据是否反转控制而定) */}
       <button
         className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
         style={{ left: `${scale(84)}px`, top: `${scale(460)}px`, width: `${scale(56)}px`, height: `${scale(56)}px` }}
@@ -222,6 +230,7 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
+      {/* 右侧按钮 - 增加/降低温度 (根据是否反转控制而定) */}
       <button
         className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
         style={{ left: `${scale(584)}px`, top: `${scale(460)}px`, width: `${scale(56)}px`, height: `${scale(56)}px` }}
@@ -235,7 +244,7 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* Center Button */}
+      {/* 中央按钮 - 泡泡互动 (Center Button - Bubble Interaction) */}
       <button
         className="absolute transition-all duration-200 hover:scale-105 active:scale-95"
         style={{ left: `${scale(322)}px`, top: `${scale(448)}px`, width: `${scale(80)}px`, height: `${scale(80)}px` }}
@@ -249,7 +258,7 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* Timer (displays increasing time) */}
+      {/* 计时器 (Timer) - 显示游戏进行时间 */}
       <div 
         className="absolute flex items-center"
         style={{ left: `${scale(297)}px`, top: `${scale(72)}px`, gap: `${scale(6.2)}px` }}
@@ -266,18 +275,18 @@ const PixelGameInterface: React.FC<{
           style={{
             color: '#FFF',
             fontSize: `${scale(21.778)}px`,
-            WebkitTextStroke: `${scale(2.33)}px #3A368E`,
+            WebkitTextStroke: `${scale(2.4)}px #3A368E`,
           }}
         >
           {formatTime(gameState.gameTimer)}
         </div>
       </div>
 
-      {/* Music Button */}
+      {/* 音乐按钮 (Music Button) */}
       <button 
         className="absolute transition-all duration-200 hover:scale-105"
         style={{ left: `${scale(620)}px`, top: `${scale(24)}px`, width: `${scale(80)}px`, height: `${scale(36)}px` }}
-        onClick={handleMusicToggle}
+        onClick={onMusicToggle}
       >
         <img 
           className="w-full h-full object-cover"
@@ -337,6 +346,7 @@ export const GameInterface: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  const [isMusicOn, setIsMusicOn] = useState(true);
   
   const {
     gameState,
@@ -350,6 +360,8 @@ export const GameInterface: React.FC = () => {
   const [showGameCompletion, setShowGameCompletion] = useState(false);
   const [finalGameTime, setFinalGameTime] = useState<number>(0);
   const [userCountryCode] = useState<string>('US');
+
+  const handleMusicToggle = () => setIsMusicOn(prev => !prev);
 
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     setPlayerInfo(newPlayerInfo);
@@ -374,6 +386,13 @@ export const GameInterface: React.FC = () => {
     resetGame();
   };
 
+  const handleRestartToStartGame = () => {
+    setShowGameCompletion(false);
+    setIsGameStarted(false);
+    setPlayerInfo(null);
+    resetGame();
+  };
+
   useEffect(() => {
     if (gameState.gameStatus === 'failure') {
       const score = Math.floor(gameState.gameTimer);
@@ -391,7 +410,11 @@ export const GameInterface: React.FC = () => {
   }, [gameState.gameStatus, gameState.gameTimer, playerInfo, submitScore, userCountryCode]);
 
   if (showLaunchScreen) {
-    return <GameLaunchScreen onStartGame={handleStartFromLaunch} />;
+    return <GameLaunchScreen 
+      onStartGame={handleStartFromLaunch} 
+      onToggleMusic={handleMusicToggle}
+      isMusicEnabled={isMusicOn}
+    />;
   }
 
   if (showTutorial) {
@@ -409,7 +432,7 @@ export const GameInterface: React.FC = () => {
           setShowGameCompletion(false);
           resetGame();
         }}
-        onBackToStart={handleBackToStart}
+        onBackToStart={handleRestartToStartGame}
         gameStats={{
           enduranceDuration: finalGameTime,
         }}
@@ -419,7 +442,7 @@ export const GameInterface: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-800">
+    <div className="flex items-center justify-center min-h-screen">
       {playerInfo && (
         <PixelGameInterface
           gameState={gameState}
@@ -428,6 +451,8 @@ export const GameInterface: React.FC = () => {
           onRightButtonClick={handleRightButtonClick}
           onCenterButtonClick={handleCenterButtonClick}
           onBackToStart={handleBackToStart}
+          isMusicOn={isMusicOn}
+          onMusicToggle={handleMusicToggle}
         />
       )}
     </div>

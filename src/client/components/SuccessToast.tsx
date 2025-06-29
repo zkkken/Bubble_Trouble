@@ -57,10 +57,22 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
           <div className="text-4xl mb-3">✅</div>
           
           {/* 标题 */}
-          <h2 className="silkscreen-bold text-xl mb-3">操作成功！</h2>
+          <h2 
+            className="silkscreen-bold text-xl mb-3"
+            style={{
+              WebkitTextStroke: `${scale(2.2)}px #000`
+            }}
+          >
+            操作成功！
+          </h2>
           
           {/* 消息内容 */}
-          <p className="silkscreen-bold text-sm leading-relaxed">
+          <p 
+            className="silkscreen-bold text-sm leading-relaxed"
+            style={{
+              WebkitTextStroke: `${scale(1.6)}px #000`
+            }}
+          >
             {message}
           </p>
 

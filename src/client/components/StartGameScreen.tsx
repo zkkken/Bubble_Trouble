@@ -606,7 +606,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
           <h1 
             className="hidden text-[#f0bc08] font-normal text-center tracking-[0] silkscreen-bold"
             style={{ 
-              WebkitTextStroke: `${scale(3)}px #000000`,
+              WebkitTextStroke: `${scale(4.2)}px #000000`,
               fontSize: `${scale(38)}px`,
               lineHeight: `${scale(30)}px`
             }}
