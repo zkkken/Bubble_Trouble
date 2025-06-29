@@ -82,10 +82,8 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     setSelectedContinent(null);
   };
 
-  // 可用的猫咪图片
-  const catImages = ["/Cat_1.png", "/Cat_2.png", 
-    "/Cat_3.png", "/Cat_4.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png"
-  ];
+  // 可用的猫咪图片 - 修复图片路径
+  const catImages = ["/Cat_1.png", "/Cat_2.png", "/Cat_3.png", "/Cat_4.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png"];
 
   // 洲际名称映射
   const continentNames: { [key: string]: string } = {

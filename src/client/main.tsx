@@ -10,6 +10,15 @@ const hostname = window.location.hostname;
 const port = window.location.port;
 console.log('🔍 Environment check:', { hostname, port });
 
+// 禁用 Service Worker 注册以避免 fetch 事件处理器警告
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+
 console.log('🎯 Application starting');
 
 // 渲染应用

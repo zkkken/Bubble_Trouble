@@ -73,7 +73,7 @@ const CONTINENTS = [
     { code: 'OC', name: 'Oceania', flag: 'OC', top: 180, left: 310 },
 ];
 
-  // 猫咪头像选择数据 - 使用 project 中的资源
+  // 猫咪头像选择数据 - 修复图片路径，使用正确的文件名
   const cats = [
     { id: 1, src: "/Map_Cat_1.png", alt: "Cat", width: "w-12", height: "h-12" },
     { id: 2, src: "/Map_Cat_2.png", alt: "Avatar cat", width: "w-12", height: "h-12", objectCover: true },
@@ -457,4 +457,4 @@ const CONTINENTS = [
       )}
     </div>
   );
-}; 
+};

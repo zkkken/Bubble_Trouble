@@ -6,13 +6,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Cat Comfort Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      /* 确保Silkscreen字体正确加载和渲染 */
       @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
-      
+      /* 确保Silkscreen字体正确加载和渲染 */
       /* 强制Silkscreen字体渲染优化，增强粗体效果 */
       .silkscreen-text {
         font-family: 'Silkscreen', monospace !important;
@@ -33,7 +33,6 @@
           2px -2px 0 #3A368E,
           -2px -2px 0 #3A368E;
       }
-      
       /* 确保在任何环境中都能正确显示 */
       body {
         margin: 0;
@@ -43,7 +42,6 @@
         font-weight: 400;
         font-style: normal;
       }
-      
       #root {
         display: flex;
         justify-content: center;
@@ -52,14 +50,12 @@
         /* 与启动页面一致的蓝到绿的渐变背景 */
         background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 50%, #34d399 100%);
       }
-      
       /* 响应式优化 */
       @media (max-width: 500px) {
         #root {
           padding: 10px;
         }
       }
-      
       /* 加载动画 */
       .loading {
         display: flex;
@@ -68,7 +64,6 @@
         color: white;
         font-size: 18px;
       }
-      
       .loading-spinner {
         width: 40px;
         height: 40px;
@@ -78,12 +73,10 @@
         animation: spin 1s linear infinite;
         margin-bottom: 20px;
       }
-      
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
-      
       /* 泡泡飘入动画 */
       @keyframes bubble-float-0 {
         0% {
@@ -98,7 +91,6 @@
           opacity: 0.6;
         }
       }
-      
       @keyframes bubble-float-1 {
         0% {
           transform: translateX(-80px) translateY(80px) scale(0.3);
@@ -112,7 +104,6 @@
           opacity: 0.6;
         }
       }
-      
       @keyframes bubble-float-2 {
         0% {
           transform: translateX(80px) translateY(120px) scale(0.3);
@@ -126,18 +117,20 @@
           opacity: 0.6;
         }
       }
-      
       /* 强制去除所有可能的 padding */
       .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
         padding: 0 !important;
       }
-      
       /* 确保游戏在任何环境下都能正确显示 */
       .game-container {
         position: relative;
         width: 390px;
         height: 844px;
         margin: 0 auto;
+      }
+      /* 禁用 Service Worker 相关功能 */
+      .no-service-worker {
+        display: none;
       }
     </style>
   </head>
