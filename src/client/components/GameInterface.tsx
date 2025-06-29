@@ -1,6 +1,8 @@
 /**
  * 主游戏界面组件 (基于Figma设计图重构)
  * 724x584像素的像素艺术风格游戏界面
+ * 主游戏界面组件 (基于Figma设计图重构)
+ * 724x584像素的像素艺术风格游戏界面
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -13,6 +15,7 @@ import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveSca
 import { LeaderboardModal } from './LeaderboardModal';
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
+import { GameLaunchScreen } from './GameLaunchScreen';
 import { GameLaunchScreen } from './GameLaunchScreen';
 
 // 游戏配置
@@ -499,8 +502,11 @@ const PixelGameInterface: React.FC<{
 export const GameInterface: React.FC = () => {
   // 界面控制状态 - 添加启动页面状态
   const [showLaunchScreen, setShowLaunchScreen] = useState(true);
+  // 界面控制状态 - 添加启动页面状态
+  const [showLaunchScreen, setShowLaunchScreen] = useState(true);
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  
   
   // 游戏状态
   const {
@@ -535,7 +541,14 @@ export const GameInterface: React.FC = () => {
     setPlayerInfo(newPlayerInfo);
     setIsGameStarted(true);
     setShowGameCompletion(false); // 确保重置游戏完成状态
+    setShowGameCompletion(false); // 确保重置游戏完成状态
     setGameStartTime(Date.now());
+    resetGame(); // 重置游戏状态
+  };
+
+  // 处理从启动页面进入游戏设置
+  const handleStartFromLaunch = () => {
+    setShowLaunchScreen(false);
     resetGame(); // 重置游戏状态
   };
 
@@ -546,6 +559,7 @@ export const GameInterface: React.FC = () => {
 
   // 处理返回开始界面
   const handleBackToStart = () => {
+    setShowLaunchScreen(true);
     setShowLaunchScreen(true);
     setIsGameStarted(false);
     setPlayerInfo(null);
@@ -574,7 +588,10 @@ export const GameInterface: React.FC = () => {
 
       // 延迟一小段时间显示游戏结算界面，避免立即跳转
       setTimeout(() => {
+      // 延迟一小段时间显示游戏结算界面，避免立即跳转
+      setTimeout(() => {
       setShowGameCompletion(true);
+      }, 1000);
       }, 1000);
     }
   }, [gameState.gameStatus, gameStartTime, currentRound, playerInfo]);
@@ -582,6 +599,7 @@ export const GameInterface: React.FC = () => {
   // 初始化时获取玩家最佳成绩
   useEffect(() => {
     if (isGameStarted) {
+    fetchPlayerBest();
     fetchPlayerBest();
     }
   }, [fetchPlayerBest, isGameStarted]);
@@ -593,12 +611,20 @@ export const GameInterface: React.FC = () => {
     try {
       // 获取坚持时长（从gameTimer获取）
       const enduranceDuration = Math.floor(gameState.gameTimer);
+      // 获取坚持时长（从gameTimer获取）
+      const enduranceDuration = Math.floor(gameState.gameTimer);
       
       const result = await submitScore(
         playerInfo.playerName, 
         enduranceDuration, // 坚持时长
+        enduranceDuration, // 坚持时长
         playerInfo.catAvatarId,
         playerInfo.continentId,
+        // 可选参数
+        0, // roundsCompleted
+        totalTime || 0, // totalTime
+        'medium', // difficulty
+        userCountryCode || 'US' // countryCode
         // 可选参数
         0, // roundsCompleted
         totalTime || 0, // totalTime
@@ -619,9 +645,14 @@ export const GameInterface: React.FC = () => {
   if (showLaunchScreen) {
     return <GameLaunchScreen onStartGame={handleStartFromLaunch} />;
   }
+  // 如果显示启动页面，显示游戏启动界面
+  if (showLaunchScreen) {
+    return <GameLaunchScreen onStartGame={handleStartFromLaunch} />;
+  }
 
   // 如果游戏未开始，显示开始游戏界面
   if (!isGameStarted) {
+    return <StartGameScreen onStartGame={handleStartGame} onBackToLaunch={handleBackToStart} />;
     return <StartGameScreen onStartGame={handleStartGame} onBackToLaunch={handleBackToStart} />;
   }
 
@@ -647,7 +678,21 @@ export const GameInterface: React.FC = () => {
   return (
     <div className="flex items-center justify-center min-h-screen">
       {/* 像素艺术风格游戏界面 */}
+    <div className="flex items-center justify-center min-h-screen">
+      {/* 像素艺术风格游戏界面 */}
       {playerInfo && (
+        <PixelGameInterface
+          gameState={gameState}
+          currentRound={currentRound}
+          playerInfo={playerInfo}
+          onPlusPress={handlePlusPress}
+          onPlusRelease={handlePlusRelease}
+          onMinusPress={handleMinusPress}
+          onMinusRelease={handleMinusRelease}
+          onCenterButtonClick={handleCenterButtonClick}
+          onBackToStart={handleBackToStart}
+        />
+      )}
         <PixelGameInterface
           gameState={gameState}
           currentRound={currentRound}
@@ -663,17 +708,23 @@ export const GameInterface: React.FC = () => {
 
       {/* 排行榜模态框 */}
        {showLeaderboard && playerBest && (
+       {showLeaderboard && playerBest && (
       <LeaderboardModal
         isOpen={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
            currentPlayerScore={{
              score: playerBest.totalTime,
              rank: 0,
+           currentPlayerScore={{
+             score: playerBest.totalTime,
+             rank: 0,
           roundsCompleted: playerBest.roundsCompleted,
           compositeScore: playerBest.compositeScore
            }}
+           }}
         userCountryCode={userCountryCode}
       />
+       )}
        )}
     </div>
   );

@@ -1,6 +1,8 @@
 /**
  * 排行榜模态框组件
  * Leaderboard Modal Component
+ * 排行榜模态框组件
+ * Leaderboard Modal Component
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -62,6 +64,23 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     setError(null);
     
     try {
+      const url = new URL('/api/leaderboard', window.location.origin);
+      if (countryCode) {
+        url.searchParams.set('countryCode', countryCode);
+      }
+      
+      const response = await fetch(url.toString());
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setLeaderboardData(result.data);
+      } else {
+        throw new Error(result.message || 'Failed to load leaderboard');
       const url = new URL('/api/leaderboard', window.location.origin);
       if (countryCode) {
         url.searchParams.set('countryCode', countryCode);
@@ -338,8 +357,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                           <div className="font-bold text-gray-800 flex items-center gap-2">
                             {entry.playerName}
                             <span className="text-sm">{getCountryFlag(entry.countryCode || 'US')}</span>
+                            <span className="text-sm">{getCountryFlag(entry.countryCode || 'US')}</span>
                           </div>
                           <div className="text-sm text-gray-600 flex items-center gap-2">
+                            {entry.difficulty && (
+                              <>
+                                <span>{getDifficultyEmoji(entry.difficulty)}</span>
+                                <span className={getDifficultyColor(entry.difficulty)}>
+                                  {entry.difficulty.toUpperCase()}
+                                </span>
+                                <span>•</span>
+                              </>
+                            )}
                             {entry.difficulty && (
                               <>
                                 <span>{getDifficultyEmoji(entry.difficulty)}</span>
@@ -358,7 +387,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="text-right">
                         <div className="text-lg font-bold text-blue-600">
                           ⏱️ {entry.enduranceDuration}s
+                          ⏱️ {entry.enduranceDuration}s
                         </div>
+                        {entry.roundsCompleted && (
+                          <div className="text-sm font-medium text-green-600">
+                            🎮 {entry.roundsCompleted} rounds
+                          </div>
+                        )}
+                        {entry.totalTime && (
+                          <div className="text-xs text-gray-600">
+                            Total: {formatTime(entry.totalTime)}
                         {entry.roundsCompleted && (
                           <div className="text-sm font-medium text-green-600">
                             🎮 {entry.roundsCompleted} rounds
@@ -382,6 +420,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         <div className="bg-gray-50 px-6 py-4 border-t">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
+              🎮 Ranking: Endurance time (how long you survived)!
               🎮 Ranking: Endurance time (how long you survived)!
             </div>
             <button

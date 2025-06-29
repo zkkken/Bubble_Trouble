@@ -2,6 +2,8 @@
  * 开始游戏界面组件
  * 基于 project 设计稿的精确像素级实现
  * 支持拖拽猫咪选择大洲和拖拽方式选择猫咪
+ * 基于 project 设计稿的精确像素级实现
+ * 支持拖拽猫咪选择大洲和拖拽方式选择猫咪
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -90,6 +92,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     { id: 6, src: "/Cat_5.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
   ];
 
+  // 生成随机猫咪名字
   // 生成随机猫咪名字
   const generateRandomName = () => {
     const randomIndex = Math.floor(Math.random() * catNames.length);
@@ -277,13 +280,50 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     }
     
     // 调用回调函数开始游戏
+  // 处理开始按钮点击
+  const handleStartClick = () => {
+    if (!inputText.trim()) {
+      setShowError(true);
+      setIsShaking(true);
+      
+      setTimeout(() => {
+        setIsShaking(false);
+      }, 500);
+      
+      return;
+    }
+
+    if (!selectedCat) {
+      setShowError(true);
+      setIsShaking(true);
+      
+      setTimeout(() => {
+        setIsShaking(false);
+      }, 500);
+      
+      return;
+    }
+    
+    // 调用回调函数开始游戏
     onStartGame({
+      playerName: inputText.trim(),
+      continentId: continentId || 'AS', // 默认亚洲
+      catAvatarId: selectedCat.id.toString(),
       playerName: inputText.trim(),
       continentId: continentId || 'AS', // 默认亚洲
       catAvatarId: selectedCat.id.toString(),
     });
   };
 
+  // 处理关闭按钮点击
+  const handleCloseClick = () => {
+    console.log("Close button clicked!");
+    if (onBackToLaunch) {
+      onBackToLaunch();
+    }
+  };
+
+  // 获取选中大洲的信息
   // 处理关闭按钮点击
   const handleCloseClick = () => {
     console.log("Close button clicked!");
@@ -536,6 +576,8 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
             </div>
           </CardContent>
         </Card>
+          </CardContent>
+        </Card>
 
         {/* 关闭按钮 - 响应式位置 */}
         <Button 
@@ -634,4 +676,5 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
       )}
     </div>
   );
+};
 };

@@ -212,6 +212,11 @@ Devvit.addMenuItem({
         } catch (removeError) {
           console.error('Error removing post after creation failure:', removeError);
         }
+        try {
+          await post.remove(false);
+        } catch (removeError) {
+          console.error('Error removing post after creation failure:', removeError);
+        }
       }
       if (error instanceof Error) {
         ui.showToast({ text: `❌ Error creating post: ${error.message}` });

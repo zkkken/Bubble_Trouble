@@ -1,6 +1,8 @@
 /**
  * 游戏结算界面组件 - 全新UI设计
  * 基于新的卡片式设计，展示游戏结果和统计数据
+ * 游戏结算界面组件 - 全新UI设计
+ * 基于新的卡片式设计，展示游戏结果和统计数据
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
@@ -44,6 +46,25 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // 获取洲际名称
+  const getContinentName = (continentId: string): string => {
+    const continentNames: { [key: string]: string } = {
+      'AS': 'Asia',
+      'EU': 'Europe', 
+      'NA': 'North America',
+      'SA': 'South America',
+      'AF': 'Africa',
+      'OC': 'Oceania'
+    };
+    return continentNames[continentId] || continentId;
+  };
+
+  // 计算表现百分比（基于时间和轮数）
+  const getPerformancePercentage = (): number => {
+    // 简单的性能计算：基于完成轮数和时间
+    const baseScore = gameStats.roundsCompleted * 20;
+    const timeBonus = Math.max(0, 60 - gameStats.totalTime) * 2;
+    return Math.min(99, Math.max(1, baseScore + timeBonus));
   // 获取洲际名称
   const getContinentName = (continentId: string): string => {
     const continentNames: { [key: string]: string } = {
