@@ -23,6 +23,20 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
 
   const getInterferenceContent = () => {
     switch (interferenceEvent.type) {
+      case 'bubble_time':
+        return {
+          icon: '🫧',
+          title: 'Bubble Time!',
+          description: 'Bubbles are everywhere!',
+          bgColor: 'bg-blue-500',
+        };
+      case 'cold_wind':
+        return {
+          icon: '🌨️',
+          title: 'Cold Wind Incoming!',
+          description: 'A cold wind is affecting the temperature!',
+          bgColor: 'bg-cyan-500',
+        };
       case 'controls_reversed':
         return {
           icon: '🔄',
@@ -30,19 +44,19 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
           description: 'The + and - buttons are swapped!',
           bgColor: 'bg-purple-500',
         };
-      case 'temperature_shock':
+      case 'electric_leakage':
         return {
           icon: '⚡',
-          title: 'Temperature Shock!',
-          description: 'The target temperature has shifted!',
-          bgColor: 'bg-orange-500',
+          title: 'Electric Leakage!',
+          description: 'Warning! Electric leakage detected!',
+          bgColor: 'bg-yellow-500',
         };
-      case 'bubble_obstruction':
+      case 'surprise_drop':
         return {
-          icon: '🫧',
-          title: 'Bubble Trouble!',
-          description: 'Bubbles are blocking your view!',
-          bgColor: 'bg-blue-500',
+          icon: '🎁',
+          title: 'Surprise Drop!',
+          description: 'Something unexpected has happened!',
+          bgColor: 'bg-pink-500',
         };
       default:
         return {
@@ -80,8 +94,8 @@ export const InterferenceOverlay: React.FC<InterferenceOverlayProps> = ({
         </div>
       </div>
 
-      {/* Enhanced Bubble obstruction effect */}
-      {interferenceEvent.type === 'bubble_obstruction' && (
+      {/* Enhanced Bubble time effect */}
+      {interferenceEvent.type === 'bubble_time' && (
         <div className="absolute inset-0 z-30 pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-24 h-24 bg-white bg-opacity-85 rounded-full animate-bounce shadow-lg" />
           <div className="absolute top-1/3 right-1/4 w-20 h-20 bg-white bg-opacity-80 rounded-full animate-pulse shadow-lg" />

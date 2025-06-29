@@ -290,8 +290,8 @@ class GameStateManager {
 
     // 处理干扰事件
     if (this.interferenceSystem.shouldTriggerInterference(newState.interferenceTimer, newState.interferenceEvent.isActive)) {
-      const interferenceType = this.interferenceSystem.getRandomInterferenceType();
-      newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
+      const interferenceType: InterferenceType = this.interferenceSystem.getRandomInterferenceType();
+      newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType as InterferenceType);
 
       switch (interferenceType) {
         case 'controls_reversed':

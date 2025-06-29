@@ -9,20 +9,19 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="no">
     <title>Cat Comfort Game</title>
-    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
-      
-      /* 确保Silkscreen字体正确加载和渲染 */
-      
-      .silkscreen-text {
-        font-family: 'Silkscreen', monospace !important;
+      .silkscreen-bold {
+        font-family: "Silkscreen", sans-serif;
+        font-weight: 700;
+        font-style: normal;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         font-display: swap;
-        font-weight: 700 !important;
         -webkit-text-stroke: 2px #3A368E;
         text-shadow: 
           3px 3px 0 #3A368E,
@@ -36,14 +35,14 @@
       }
       
       /* 确保在任何环境中都能正确显示 */
-      
       body {
         margin: 0;
         padding: 0;
         overflow: hidden;
-        font-family: "lores-12", sans-serif;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 400;
         font-style: normal;
+        line-height: normal;
       }
       
       #root {
@@ -55,7 +54,6 @@
       }
       
       /* 响应式优化 */
-      
       @media (max-width: 500px) {
         #root {
           padding: 10px;
@@ -63,7 +61,6 @@
       }
       
       /* 加载动画 */
-      
       .loading {
         display: flex;
         flex-direction: column;
@@ -88,7 +85,6 @@
       }
       
       /* 泡泡飘入动画 */
-      
       @keyframes bubble-float-0 {
         0% {
           transform: translateY(100px) scale(0.3);
@@ -131,67 +127,29 @@
         }
       }
       
-      /* 强制去除所有可能的 padding */
-      
-      .p-6, .pt-0, [class*="p-6"], [class*="pt-0"] {
-        padding: 0 !important;
+      /* 泡泡慢速飘动 */
+      @keyframes bubble-slow-float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
       }
       
-      /* 确保游戏在任何环境下都能正确显示 */
-      
-      .game-container {
-        position: relative;
-        width: 390px;
-        height: 844px;
-        margin: 0 auto;
-      }
-      
-      /* 排行榜容器样式修复 */
-      
-      .leaderboard-container {
-        position: fixed;
-        inset: 0;
-        z-index: 50;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: black;
-      }
-      
-      .leaderboard-main {
-        width: 724px;
-        height: 584px;
-        background-color: #2f2f2f;
-        overflow: hidden;
-        position: relative;
-      }
-      
-      /* 确保滚动容器正确显示 */
-      
-      .scrollable-content {
-        position: absolute;
-        width: 414px;
-        height: 584px;
-        top: 29px;
-        left: 50%;
-        transform: translateX(-50%);
-        overflow-y: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-      
-      .scrollable-content::-webkit-scrollbar {
-        display: none;
+      /* 应用泡泡动画 */
+      .bubble-floating {
+        animation: bubble-slow-float 3s ease-in-out infinite;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-GFuMK5KM.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-B7qJ7wAz.css">
+    <script type="module" crossorigin src="/assets/index-Dh-sg14d.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DRaj_UVz.css">
   </head>
   <body>
     <div id="root">
       <div class="loading">
         <div class="loading-spinner"></div>
-        <div>🐱 Cat Comfort Game Loading...</div>
+        Loading Cat Comfort Game...
       </div>
     </div>
 

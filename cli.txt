@@ -1,0 +1,94 @@
+运行的consle 报错
+Uncaught (in promise) Error: Invalid locale code
+    at Zn (dist-d0e759a2.js:1:16905)
+    at cD.willUpdate (dist-d0e759a2.js:4623:6152)
+    at cD.performUpdate (icon-dc058de3.js:1:6043)
+    at cD.scheduleUpdate (icon-dc058de3.js:1:5827)
+    at cD._$Ej (icon-dc058de3.js:1:5735)了解此错误
+sentry-bc0d3b33.js:1 Uncaught (in promise) TypeError: t.update is not a function
+    at t.captureSession (sentry-bc0d3b33.js:1:35507)
+    at fm._sendSessionUpdate (dist-d0e759a2.js:326:43839)
+    at fm.captureSession (dist-d0e759a2.js:326:43174)
+    at sentry-bc0d3b33.js:1:69830
+    at t.init (sentry-bc0d3b33.js:1:70085)
+    at i.then.then.o.init (VM16661:2:807)
+    at Array.<anonymous> (VM16661:2:3192)了解此错误
+/r/tboubleTesting/:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">了解此警告
+/r/tboubleTesting/:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+/r/tboubleTesting/:1 Access to fetch at 'https://error-tracking.reddit.com/o418887/api/5810803/envelope/?sentry_key=9f057df6115a4bb488c08ea12a835e6e&sentry_version=7' from origin 'https://www.reddit.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.了解此错误
+error-tracking.reddit.com/o418887/api/5810803/envelope/?sentry_key=9f057df6115a4bb488c08ea12a835e6e&sentry_version=7:1 
+            
+            
+           Failed to load resource: net::ERR_FAILED了解此错误
+2dist-d0e759a2.js:326 TypeError: cannot read property 'AsyncLocalStorage' of undefined
+    at <eval> (eval.js:16149)
+Host: TypeError: cannot read property 'AsyncLocalStorage' of undefined
+    at Qe.unwrapResult (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:732367)
+    at ce.onUnwrap (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:733263)
+    at ce.unwrap (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:716053)
+    at lA.$e (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:3755949)
+    at lA.loadBundle (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:3751063)
+    at cA (https://www.reddit.com/shreddit/zh-CN/devvit-runtime-a1acce92.js:1:3754409)
+（匿名） @ dist-d0e759a2.js:326了解此错误
+main.tsx:7 🚀 Main.tsx: Starting application initialization
+main.tsx:12 🔍 Environment check: Object
+main.tsx:65 🎯 Application starting
+main.tsx:81 Application rendered successfully
+GameLaunchScreen.tsx:74 Start game clicked!
+StartGameScreen.tsx:234 Selected continent: Europe at position (213.5, 87)
+useLeaderboard.ts:117 🚀 提交分数数据: Object
+et2bbv--0af028f9-3d0f-41ce-9877-a6071f62921e-0-0-27-1-webview.devvit.net/api/submit-score:1 
+            
+            
+           Failed to load resource: the server responded with a status of 500 ()了解此错误
+useLeaderboard.ts:128 Uncaught (in promise) Error: HTTP 500: 
+    at useLeaderboard.ts:128:13了解此错误
+LeaderboardRankingScreen.tsx:214 🚫 [NA] NORTH AMERICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [SA] SOUTH AMERICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [EU] EUROPE: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [AS] ASIA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [AF] AFRICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [OC] OCEANIA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:221 🌍 各洲完整排名数据 (全部6个洲都显示): Array(6)
+LeaderboardRankingScreen.tsx:214 🚫 [NA] NORTH AMERICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [SA] SOUTH AMERICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [EU] EUROPE: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [AS] ASIA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [AF] AFRICA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:214 🚫 [OC] OCEANIA: 无玩家数据，不生成猫咪（card依旧显示）
+LeaderboardRankingScreen.tsx:221 🌍 各洲完整排名数据 (全部6个洲都显示): Array(6)
+以及重构 CatShower 游戏后端，专注于以下核心功能：
+
+
+   1. 简化数据模型:
+       * 保留玩家核心数据：playerId, playerName, catAvatarId, continentId, enduranceDuration。
+       * 移除所有与“游戏成功/失败”状态、分数、金钱或非核心统计相关的数据字段。游戏的核心是“坚持的时长”。
+
+
+   2. 重构排行榜逻辑 (`leaderboard.ts`):
+       * submitScore: 只记录玩家的 enduranceDuration。移除所有其他计算（如分数、百分比等）。
+       * getContinentLeaderboard: 返回指定大洲的玩家排名列表，仅包含 playerName 和 enduranceDuration。
+       * getContinentRankings: 返回各大洲的统计信息，包括 continentId, continentName, playerCount (总玩家数),
+         和 totalDuration (总游戏时长)。
+       * 移除所有不再需要的辅助函数。
+
+
+   3. 精简 API 端点 (`index.ts`):
+       * 保留 /api/submit-score 用于提交玩家时长。
+       * 保留 /api/leaderboard/continents 用于获取各大洲的统计数据。
+       * 保留 /api/leaderboard/:continentId 用于获取特定大洲的玩家排名。
+       * 移除所有其他 API 端点，例如 /api/player-best 等。
+
+
+   4. 确保 Devvit 兼容性:
+       * 所有后端更改必须与 Devvit 环境完全兼容。
+       * 移除 @devvit/server 的依赖，如果它不是在 Devvit 环境中运行所必需的。
+
+
+   5. 前端适配:
+       * GameCompletionScreen: 更新以显示 enduranceDuration 和全球排名百分比（需要后端计算）。
+       * LeaderboardRankingScreen: 使用 /api/leaderboard/continents 的数据来展示各大洲的排名。
+       * ContinentRankingScreen: 使用 /api/leaderboard/:continentId 的数据来展示特定大洲的玩家排名。
+
+
+  请根据以上提示词，开始进行代码重构。

@@ -84,12 +84,13 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
 
   // 猫咪头像选择数据 - 修复图片路径，使用正确的文件名
   const cats = [
-    { id: 1, src: "/Map_Cat_1.png", alt: "Cat", width: "w-12", height: "h-12" },
-    { id: 2, src: "/Map_Cat_2.png", alt: "Avatar cat", width: "w-12", height: "h-12", objectCover: true },
-    { id: 3, src: "/Map_Cat_3.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
-    { id: 4, src: "/Map_Cat_4.png", alt: "Cat", width: "w-[45px]", height: "h-[55px]" },
-    { id: 5, src: "/Map_Cat_5.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
-    { id: 6, src: "/Cat_5.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 1, src: "/Cat_1.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 2, src: "/Cat_2.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 3, src: "/Cat_3.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 4, src: "/Cat_4.png", alt: "Cat", width: "w-[45px]", height: "h-[55px]" },
+    { id: 5, src: "/Cat_5.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 6, src: "/Cat_6.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
+    { id: 7, src: "/Cat_7.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
   ];
 
   // 生成随机猫咪名字
@@ -280,35 +281,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     }
     
     // 调用回调函数开始游戏
-  // 处理开始按钮点击
-  const handleStartClick = () => {
-    if (!inputText.trim()) {
-      setShowError(true);
-      setIsShaking(true);
-      
-      setTimeout(() => {
-        setIsShaking(false);
-      }, 500);
-      
-      return;
-    }
-
-    if (!selectedCat) {
-      setShowError(true);
-      setIsShaking(true);
-      
-      setTimeout(() => {
-        setIsShaking(false);
-      }, 500);
-      
-      return;
-    }
-    
-    // 调用回调函数开始游戏
     onStartGame({
-      playerName: inputText.trim(),
-      continentId: continentId || 'AS', // 默认亚洲
-      catAvatarId: selectedCat.id.toString(),
       playerName: inputText.trim(),
       continentId: continentId || 'AS', // 默认亚洲
       catAvatarId: selectedCat.id.toString(),
@@ -323,14 +296,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     }
   };
 
-  // 获取选中大洲的信息
-  // 处理关闭按钮点击
-  const handleCloseClick = () => {
-    console.log("Close button clicked!");
-    if (onBackToLaunch) {
-      onBackToLaunch();
-    }
-  };
+
 
   // 获取选中大洲的信息
   const selectedContinent = CONTINENTS.find(c => c.code === continentId);
@@ -576,8 +542,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
             </div>
           </CardContent>
         </Card>
-          </CardContent>
-        </Card>
 
         {/* 关闭按钮 - 响应式位置 */}
         <Button 
@@ -640,9 +604,8 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
           />
           {/* 备用文字标题 */}
           <h1 
-            className="hidden text-[#f0bc08] font-normal text-center tracking-[0]"
+            className="hidden text-[#f0bc08] font-normal text-center tracking-[0] silkscreen-bold"
             style={{ 
-              fontFamily: "'Silkscreen', Helvetica, monospace",
               WebkitTextStroke: `${scale(3)}px #000000`,
               fontSize: `${scale(38)}px`,
               lineHeight: `${scale(30)}px`
@@ -676,5 +639,4 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
       )}
     </div>
   );
-};
 };

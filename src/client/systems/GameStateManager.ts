@@ -1,54 +1,54 @@
 /**
- * 游戏状态管理器 - 协调所有游戏系统并管理整体游戏状态
- * Game State Manager - Coordinates all game systems and manages overall game state
+ * 游戏状态管理器 - 协调所有游戏系统并管理整体游戏状态 (V2 - 新机制)
+ * Game State Manager - Coordinates all game systems and manages overall game state (V2 - New Mechanics)
  * 
- * @author 开发者A - 游戏核心逻辑负责人
+ * @author 开发者A - 游戏核心逻辑负责人 & Gemini
  */
 
 import { GameState, GameConfig } from '../types/GameTypes';
-import { TemperatureSystem } from './TemperatureSystem';
-import { ComfortSystem } from './ComfortSystem';
 import { InterferenceSystem } from './InterferenceSystem';
-import { TimerSystem } from './TimerSystem';
+
+// 定义新机制的常量
+const TEMP_CLICK_CHANGE = 0.05; // 点击按钮温度变化5%
+const TEMP_AUTO_DECREASE_PER_SECOND = 0.05; // 每秒自动下降5%
+const COMFORT_CHANGE_PER_SECOND = 0.1; // 舒适度每秒变化10%
+const COMFORT_ZONE_MIN = 0.4; // 舒适区范围 40%
+const COMFORT_ZONE_MAX = 0.6; // 舒适区范围 60%
 
 export class GameStateManager {
-  private temperatureSystem: TemperatureSystem;
-  private comfortSystem: ComfortSystem;
   private interferenceSystem: InterferenceSystem;
-  private timerSystem: TimerSystem;
   private config: GameConfig;
+  private timeAccumulator: number = 0;
 
   constructor(config: GameConfig) {
     this.config = config;
-    this.temperatureSystem = new TemperatureSystem(config);
-    this.comfortSystem = new ComfortSystem(config);
     this.interferenceSystem = new InterferenceSystem(config);
-    this.timerSystem = new TimerSystem(config);
   }
 
-  /**
-   * Update game configuration
-   */
   updateConfig(newConfig: GameConfig): void {
     this.config = newConfig;
-    this.timerSystem = new TimerSystem(newConfig);
+    // If systems depended on config, they would be updated here
   }
 
-  /**
-   * 创建初始游戏状态
-   * Create initial game state
-   */
   createInitialState(): GameState {
+    this.timeAccumulator = 0;
     return {
-      currentTemperature: this.config.INITIAL_TEMPERATURE,
-      targetTemperature: this.temperatureSystem.generateRandomTargetTemperature(),
-      toleranceWidth: this.config.TOLERANCE_WIDTH,
-      currentComfort: 0.5,
-      gameTimer: 0, // 现在从0开始计时（坚持时长）
-      successHoldTimer: 0,
-      isPlusHeld: false,
-      isMinusHeld: false,
+      // 温度和舒适度
+      currentTemperature: 0.5, // 初始温度50%
+      currentComfort: 0.5, // 初始舒适度50%
+      
+      // 游戏状态
+      gameTimer: 0, // 正向计时器，记录坚持时间
       gameStatus: 'playing',
+
+      // 移除旧的状态
+      targetTemperature: 0, // 不再使用
+      toleranceWidth: 0, // 不再使用
+      successHoldTimer: 0,
+      isPlusHeld: false, // 不再使用
+      isMinusHeld: false, // 不再使用
+
+      // 干扰系统状态
       interferenceEvent: this.interferenceSystem.clearInterferenceEvent(),
       interferenceTimer: this.interferenceSystem.generateRandomInterferenceInterval(),
       isControlsReversed: false,
@@ -56,8 +56,7 @@ export class GameStateManager {
   }
 
   /**
-   * 更新游戏状态 - 主要的游戏循环逻辑
-   * Update game state - Main game loop logic
+   * 更新游戏状态 - 主要的游戏循环逻辑 (新机制)
    */
   updateGameState(currentState: GameState, deltaTime: number): GameState {
     if (currentState.gameStatus !== 'playing') {
@@ -65,103 +64,87 @@ export class GameStateManager {
     }
 
     let newState = { ...currentState };
+    this.timeAccumulator += deltaTime;
 
-    // 1. 更新计时器（现在是正计时，记录坚持时长）
-    newState.gameTimer = this.timerSystem.updateGameTimer(newState.gameTimer, deltaTime);
-    newState.interferenceTimer = this.timerSystem.updateInterferenceTimer(newState.interferenceTimer, deltaTime);
+    // 1. 更新正向计时器
+    newState.gameTimer += deltaTime;
+    newState.interferenceTimer -= deltaTime; // 干扰计时器倒计时
 
-    // 2. 检查舒适度失败条件 - 舒适度过低时游戏结束
-    if (this.timerSystem.isComfortFailure(newState.currentComfort)) {
+    // 2. 每秒更新一次的逻辑
+    if (this.timeAccumulator >= 1) {
+      this.timeAccumulator -= 1;
+
+      // 2a. 温度每秒自动下降
+      newState.currentTemperature -= TEMP_AUTO_DECREASE_PER_SECOND;
+
+      // 2b. 根据温度更新舒适度
+      const isInComfortZone = newState.currentTemperature >= COMFORT_ZONE_MIN && newState.currentTemperature <= COMFORT_ZONE_MAX;
+      if (isInComfortZone) {
+        newState.currentComfort += COMFORT_CHANGE_PER_SECOND;
+      } else {
+        newState.currentComfort -= COMFORT_CHANGE_PER_SECOND;
+      }
+    }
+    
+    // 3. 确保温度和舒适度在 0-1 范围内 (自动回弹)
+    newState.currentTemperature = Math.max(0, Math.min(1, newState.currentTemperature));
+    newState.currentComfort = Math.max(0, Math.min(1, newState.currentComfort));
+
+    // 4. 检查游戏失败条件
+    if (newState.currentComfort <= 0) {
       newState.gameStatus = 'failure';
       return newState;
     }
 
-    // 3. 更新活跃干扰事件的剩余时间
+    // 5. 更新和触发干扰事件
     if (newState.interferenceEvent.isActive) {
-      newState.interferenceEvent = {
-        ...newState.interferenceEvent,
-        remainingTime: newState.interferenceEvent.remainingTime - deltaTime
-      };
-
-      // 如果干扰时间耗尽，自动清除干扰
+      newState.interferenceEvent.remainingTime -= deltaTime;
       if (newState.interferenceEvent.remainingTime <= 0) {
         newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
-        newState.isControlsReversed = false;
+        newState.isControlsReversed = false; // 确保反转状态被重置
         newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();
       }
+    } else if (newState.interferenceTimer <= 0) {
+        const interferenceType = this.interferenceSystem.getRandomInterferenceType();
+        newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
+        
+        if (interferenceType === 'controls_reversed') {
+            newState.isControlsReversed = true;
+        }
+        // 其他干扰类型目前只产生视觉效果或已在新逻辑中失效
     }
-
-    // 4. 处理新的干扰事件触发
-    if (this.interferenceSystem.shouldTriggerInterference(newState.interferenceTimer, newState.interferenceEvent.isActive)) {
-      const interferenceType = this.interferenceSystem.getRandomInterferenceType();
-      newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
-
-      // 应用干扰效果
-      switch (interferenceType) {
-        case 'controls_reversed':
-          newState.isControlsReversed = true;
-          break;
-        case 'temperature_shock':
-          newState.targetTemperature = this.interferenceSystem.applyTemperatureShock();
-          break;
-        case 'bubble_obstruction':
-          // 视觉干扰在UI层处理
-          break;
-      }
-    }
-
-    // 5. 更新温度
-    newState.currentTemperature = this.temperatureSystem.updateTemperature(
-      newState.currentTemperature,
-      newState.isPlusHeld,
-      newState.isMinusHeld,
-      newState.isControlsReversed,
-      deltaTime
-    );
-
-    // 6. 更新舒适度
-    const isInToleranceRange = this.temperatureSystem.isTemperatureInRange(
-      newState.currentTemperature,
-      newState.targetTemperature,
-      newState.toleranceWidth
-    );
-    
-    newState.currentComfort = this.comfortSystem.updateComfort(
-      newState.currentComfort,
-      isInToleranceRange,
-      deltaTime
-    );
-
-    // 7. Comfort can go to 0 but game doesn't end - only when time runs out
-
-    // 8. 更新成功保持计时器（仅用于UI显示，不触发游戏结束）
-    const isMaxComfort = this.comfortSystem.isMaxComfort(newState.currentComfort);
-    newState.successHoldTimer = this.timerSystem.updateSuccessHoldTimer(
-      newState.successHoldTimer,
-      isMaxComfort,
-      deltaTime
-    );
-
-    // 注意：移除了成功条件检查，游戏只会因为舒适度过低而失败
-    // 玩家需要尽可能长时间地维持猫咪的舒适度
 
     return newState;
   }
 
   /**
+   * 处理温度增加按钮点击
+   */
+  handleTempIncrease(currentState: GameState): GameState {
+    let newTemp = currentState.currentTemperature + TEMP_CLICK_CHANGE;
+    newTemp = Math.min(1, newTemp); 
+    return { ...currentState, currentTemperature: newTemp };
+  }
+
+  /**
+   * 处理温度减少按钮点击
+   */
+  handleTempDecrease(currentState: GameState): GameState {
+    let newTemp = currentState.currentTemperature - TEMP_CLICK_CHANGE;
+    newTemp = Math.max(0, newTemp);
+    return { ...currentState, currentTemperature: newTemp };
+  }
+  
+  /**
    * 处理中心按钮点击（清除干扰）
-   * Handle center button click (clear interference)
    */
   handleCenterButtonClick(currentState: GameState): GameState {
     if (!currentState.interferenceEvent.isActive) {
       return currentState;
     }
-
-    // Controls reversed cannot be cleared by clicking
     if (!this.interferenceSystem.canBeClearedByClick(currentState.interferenceEvent.type)) {
       return currentState;
     }
-
     return {
       ...currentState,
       interferenceEvent: this.interferenceSystem.clearInterferenceEvent(),
@@ -172,26 +155,12 @@ export class GameStateManager {
 
   /**
    * 重置游戏状态
-   * Reset game state
    */
   resetGameState(): GameState {
     return this.createInitialState();
   }
 
-  // 获取各个系统的实例，供UI组件使用
-  getTemperatureSystem(): TemperatureSystem {
-    return this.temperatureSystem;
-  }
-
-  getComfortSystem(): ComfortSystem {
-    return this.comfortSystem;
-  }
-
   getInterferenceSystem(): InterferenceSystem {
     return this.interferenceSystem;
-  }
-
-  getTimerSystem(): TimerSystem {
-    return this.timerSystem;
   }
 }

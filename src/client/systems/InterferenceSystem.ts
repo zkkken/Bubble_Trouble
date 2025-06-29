@@ -30,9 +30,11 @@ export class InterferenceSystem {
    */
   getRandomInterferenceType(): InterferenceType {
     const types: InterferenceType[] = [
+      'bubble_time',
+      'cold_wind', 
       'controls_reversed', 
-      'temperature_shock', 
-      'bubble_obstruction'
+      'electric_leakage',
+      'surprise_drop'
     ];
     const randomIndex = Math.floor(Math.random() * types.length);
     const selectedType = types[randomIndex] || 'controls_reversed'; // Fallback to ensure valid type
@@ -90,6 +92,20 @@ export class InterferenceSystem {
    */
   getInterferenceContent(type: InterferenceType) {
     switch (type) {
+      case 'bubble_time':
+        return {
+          icon: '🫧',
+          title: 'Bubble Time!',
+          description: 'Bubbles are everywhere!',
+          bgColor: 'bg-blue-500',
+        };
+      case 'cold_wind':
+        return {
+          icon: '🌨️',
+          title: 'Cold Wind Incoming!',
+          description: 'A cold wind is affecting the temperature!',
+          bgColor: 'bg-cyan-500',
+        };
       case 'controls_reversed':
         return {
           icon: '🔄',
@@ -97,19 +113,19 @@ export class InterferenceSystem {
           description: 'The + and - buttons are swapped!',
           bgColor: 'bg-purple-500',
         };
-      case 'temperature_shock':
+      case 'electric_leakage':
         return {
           icon: '⚡',
-          title: 'Temperature Shock!',
-          description: 'The target temperature has shifted!',
-          bgColor: 'bg-orange-500',
+          title: 'Electric Leakage!',
+          description: 'Warning! Electric leakage detected!',
+          bgColor: 'bg-yellow-500',
         };
-      case 'bubble_obstruction':
+      case 'surprise_drop':
         return {
-          icon: '🫧',
-          title: 'Bubble Trouble!',
-          description: 'Bubbles are blocking your view!',
-          bgColor: 'bg-blue-500',
+          icon: '🎁',
+          title: 'Surprise Drop!',
+          description: 'Something unexpected has happened!',
+          bgColor: 'bg-pink-500',
         };
       default:
         return {

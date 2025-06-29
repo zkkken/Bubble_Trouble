@@ -1,417 +1,176 @@
+/**
+ * Post management system for Cat Comfort Game
+ * - Handles initialization and configuration of new game posts
+ * - Manages post-specific Redis data
+ * 
+ * @author Assistant
+ */
+
 import { Context } from '@devvit/public-api';
 import { RedisClient } from '@devvit/redis';
-import { GameState, GameConfig, PostConfig, InterferenceType } from '../../shared/types/game';
 
-const getPostConfigKey = (postId: string) => `post_config:${postId}` as const;
+// ==================== Redis 键名常量 ====================
+const getPostConfigKey = (postId: string) => `post_config:${postId}`;
+const getPostStatsKey = (postId: string) => `post_stats:${postId}`;
 
-const GAME_CONFIG: GameConfig = {
-  TEMPERATURE_CHANGE_RATE: 0.5,
-  TEMPERATURE_COOLING_RATE: 0.3,
-  COMFORT_CHANGE_RATE: 0.2,
-  GAME_DURATION: 30,
-  SUCCESS_HOLD_TIME: 5,
-  INITIAL_TEMPERATURE: 0.5,
-  TARGET_TEMPERATURE_MIN: 0.3,
-  TARGET_TEMPERATURE_MAX: 0.7,
-  TOLERANCE_WIDTH: 0.1,
-  INTERFERENCE_MIN_INTERVAL: 3,
-  INTERFERENCE_MAX_INTERVAL: 5,
-  INTERFERENCE_DURATION: 8,
-};
+// ==================== 数据结构定义 ====================
 
-class TemperatureSystem {
-  private config: GameConfig;
-
-  constructor(config: GameConfig) {
-    this.config = config;
-  }
-
-  updateTemperature(
-    currentTemperature: number,
-    isPlusHeld: boolean,
-    isMinusHeld: boolean,
-    isControlsReversed: boolean,
-    deltaTime: number
-  ): number {
-    const effectivePlusHeld = isControlsReversed ? isMinusHeld : isPlusHeld;
-    const effectiveMinusHeld = isControlsReversed ? isPlusHeld : isMinusHeld;
-
-    let newTemperature = currentTemperature;
-
-    if (effectivePlusHeld) {
-      newTemperature += this.config.TEMPERATURE_CHANGE_RATE * deltaTime;
-    } else if (effectiveMinusHeld) {
-      newTemperature -= this.config.TEMPERATURE_CHANGE_RATE * deltaTime;
-    } else {
-      newTemperature -= this.config.TEMPERATURE_COOLING_RATE * deltaTime;
-    }
-
-    return Math.max(0, Math.min(1, newTemperature));
-  }
-
-  generateRandomTargetTemperature(): number {
-    return Math.random() * 
-      (this.config.TARGET_TEMPERATURE_MAX - this.config.TARGET_TEMPERATURE_MIN) + 
-      this.config.TARGET_TEMPERATURE_MIN;
-  }
-
-  isTemperatureInRange(
-    currentTemperature: number,
-    targetTemperature: number,
-    toleranceWidth: number
-  ): boolean {
-    const temperatureDifference = Math.abs(currentTemperature - targetTemperature);
-    return temperatureDifference <= toleranceWidth;
-  }
+export interface PostConfig {
+  postId: string;
+  createdAt: number;
+  gameType: string;
+  isActive: boolean;
 }
 
-class ComfortSystem {
-  private config: GameConfig;
-
-  constructor(config: GameConfig) {
-    this.config = config;
-  }
-
-  updateComfort(
-    currentComfort: number,
-    isInToleranceRange: boolean,
-    deltaTime: number
-  ): number {
-    let newComfort = currentComfort;
-
-    if (isInToleranceRange) {
-      newComfort += this.config.COMFORT_CHANGE_RATE * deltaTime;
-    } else {
-      newComfort -= this.config.COMFORT_CHANGE_RATE * deltaTime;
-    }
-
-    return Math.max(0, Math.min(1, newComfort));
-  }
+export interface PostStats {
+  totalPlays: number;
+  uniquePlayers: number;
+  lastPlayedAt: number;
 }
 
-class InterferenceSystem {
-  private config: GameConfig;
+// ==================== 核心功能 ====================
 
-  constructor(config: GameConfig) {
-    this.config = config;
-  }
-
-  generateRandomInterferenceInterval(): number {
-    return Math.random() * 
-      (this.config.INTERFERENCE_MAX_INTERVAL - this.config.INTERFERENCE_MIN_INTERVAL) + 
-      this.config.INTERFERENCE_MIN_INTERVAL;
-  }
-
-  getRandomInterferenceType(): InterferenceType {
-    const types: InterferenceType[] = ['controls_reversed', 'temperature_shock', 'bubble_obstruction'];
-    const randomIndex = Math.floor(Math.random() * types.length);
-    return types[randomIndex] || 'controls_reversed'; // Fallback to ensure valid type
-  }
-
-  applyTemperatureShock(): number {
-    return Math.random() > 0.5 ? 0.9 : 0.1;
-  }
-}
-
-class GameStateManager {
-  private temperatureSystem: TemperatureSystem;
-  private comfortSystem: ComfortSystem;
-  private interferenceSystem: InterferenceSystem;
-  private config: GameConfig;
-
-  constructor(config: GameConfig) {
-    this.config = config;
-    this.temperatureSystem = new TemperatureSystem(config);
-    this.comfortSystem = new ComfortSystem(config);
-    this.interferenceSystem = new InterferenceSystem(config);
-  }
-
-  updateConfig(newConfig: GameConfig): void {
-    this.config = newConfig;
-  }
-
-  createInitialState(): GameState {
-    return {
-      currentTemperature: this.config.INITIAL_TEMPERATURE,
-      targetTemperature: this.temperatureSystem.generateRandomTargetTemperature(),
-      toleranceWidth: this.config.TOLERANCE_WIDTH,
-      currentComfort: 0.5,
-      gameTimer: this.config.GAME_DURATION,
-      successHoldTimer: 0,
-      isPlusHeld: false,
-      isMinusHeld: false,
-      gameStatus: 'playing',
-      interferenceEvent: {
-        type: 'none',
-        isActive: false,
-        duration: 0,
-        remainingTime: 0,
-      },
-      interferenceTimer: this.interferenceSystem.generateRandomInterferenceInterval(),
-      isControlsReversed: false,
-    };
-  }
-
-  updateGameState(currentState: GameState, deltaTime: number): GameState {
-    if (currentState.gameStatus !== 'playing') {
-      return currentState;
-    }
-
-    let newState = { ...currentState };
-
-    // Update timers
-    newState.gameTimer = Math.max(0, newState.gameTimer - deltaTime);
-    newState.interferenceTimer = Math.max(0, newState.interferenceTimer - deltaTime);
-
-    // Check time failure condition
-    if (newState.gameTimer <= 0) {
-      if (newState.currentComfort >= 0.8) {
-        newState.gameStatus = 'success';
-      } else {
-        newState.gameStatus = 'failure';
-      }
-      return newState;
-    }
-
-    // Handle interference events
-    if (newState.interferenceTimer <= 0 && !newState.interferenceEvent.isActive) {
-      const interferenceType = this.interferenceSystem.getRandomInterferenceType();
-      newState.interferenceEvent = {
-        type: interferenceType,
-        isActive: true,
-        duration: this.config.INTERFERENCE_DURATION,
-        remainingTime: this.config.INTERFERENCE_DURATION,
-      };
-
-      switch (interferenceType) {
-        case 'controls_reversed':
-          newState.isControlsReversed = true;
-          break;
-        case 'temperature_shock':
-          newState.targetTemperature = this.interferenceSystem.applyTemperatureShock();
-          break;
-        case 'bubble_obstruction':
-          break;
-      }
-    }
-
-    // Update temperature
-    newState.currentTemperature = this.temperatureSystem.updateTemperature(
-      newState.currentTemperature,
-      newState.isPlusHeld,
-      newState.isMinusHeld,
-      newState.isControlsReversed,
-      deltaTime
-    );
-
-    // Update comfort
-    const isInToleranceRange = this.temperatureSystem.isTemperatureInRange(
-      newState.currentTemperature,
-      newState.targetTemperature,
-      newState.toleranceWidth
-    );
-    
-    newState.currentComfort = this.comfortSystem.updateComfort(
-      newState.currentComfort,
-      isInToleranceRange,
-      deltaTime
-    );
-
-    return newState;
-  }
-
-  handleCenterButtonClick(currentState: GameState): GameState {
-    if (!currentState.interferenceEvent.isActive) {
-      return currentState;
-    }
-
-    return {
-      ...currentState,
-      interferenceEvent: {
-        type: 'none',
-        isActive: false,
-        duration: 0,
-        remainingTime: 0,
-      },
-      isControlsReversed: false,
-      interferenceTimer: this.interferenceSystem.generateRandomInterferenceInterval(),
-    };
-  }
-}
-
-// Create a single instance to avoid state issues
-let gameStateManager: GameStateManager;
-
-function getGameStateManager(): GameStateManager {
-  if (!gameStateManager) {
-    gameStateManager = new GameStateManager(GAME_CONFIG);
-  }
-  return gameStateManager;
-}
-
-export const postConfigMaybeGet = async ({
+/**
+ * 初始化新创建的游戏帖子配置
+ * - 设置帖子的基本配置信息
+ * - 初始化统计数据
+ * - 标记帖子为活跃状态
+ */
+export async function postConfigNew({
   redis,
   postId,
 }: {
   redis: Context['redis'] | RedisClient;
   postId: string;
-}): Promise<PostConfig | undefined> => {
-  try {
-    const config = await redis.get(getPostConfigKey(postId));
-    return config ? JSON.parse(config) : undefined;
-  } catch (error) {
-    console.error('Error getting post config:', error);
-    return undefined;
+}): Promise<void> {
+  if (!postId) {
+    throw new Error('Post ID is required for post configuration.');
   }
-};
 
-export const postConfigGet = async ({
-  redis,
-  postId,
-}: {
-  redis: Context['redis'] | RedisClient;
-  postId: string;
-}): Promise<PostConfig> => {
-  const config = await postConfigMaybeGet({ redis, postId });
-  if (!config) throw new Error('Post config not found');
-  return config;
-};
+  const configKey = getPostConfigKey(postId);
+  const statsKey = getPostStatsKey(postId);
 
-export const postConfigSet = async ({
-  redis,
-  postId,
-  config,
-}: {
-  redis: Context['redis'];
-  postId: string;
-  config: Partial<PostConfig>;
-}): Promise<void> => {
-  try {
-    const existingConfig = await postConfigMaybeGet({ redis, postId });
-    const newConfig = { ...existingConfig, ...config };
-    await redis.set(getPostConfigKey(postId), JSON.stringify(newConfig));
-  } catch (error) {
-    console.error('Error setting post config:', error);
-    throw error;
-  }
-};
-
-export const postConfigNew = async ({
-  redis,
-  postId,
-}: {
-  redis: Context['redis'] | RedisClient;
-  postId: string;
-}): Promise<void> => {
-  try {
-    const manager = getGameStateManager();
-    const config: PostConfig = {
-      gameState: manager.createInitialState(),
-      currentRound: 1,
-      lastUpdated: Date.now(),
-    };
-
-    await redis.set(getPostConfigKey(postId), JSON.stringify(config));
-  } catch (error) {
-    console.error('Error creating new post config:', error);
-    throw error;
-  }
-};
-
-export const updateGameState = async ({
-  redis,
-  postId,
-  gameState,
-}: {
-  redis: Context['redis'];
-  postId: string;
-  gameState: GameState;
-}): Promise<GameState> => {
-  await postConfigSet({
-    redis,
+  // 1. 设置帖子配置
+  const postConfig: PostConfig = {
     postId,
-    config: { 
-      gameState,
-      lastUpdated: Date.now()
-    },
-  });
-  
-  return gameState;
-};
+    createdAt: Date.now(),
+    gameType: 'cat_comfort_game',
+    isActive: true,
+  };
 
-export const handleButtonPress = async ({
+  await redis.hset(configKey, {
+    postId,
+    createdAt: postConfig.createdAt.toString(),
+    gameType: postConfig.gameType,
+    isActive: postConfig.isActive.toString(),
+  });
+
+  // 2. 初始化统计数据
+  const initialStats: PostStats = {
+    totalPlays: 0,
+    uniquePlayers: 0,
+    lastPlayedAt: 0,
+  };
+
+  await redis.hset(statsKey, {
+    totalPlays: initialStats.totalPlays.toString(),
+    uniquePlayers: initialStats.uniquePlayers.toString(),
+    lastPlayedAt: initialStats.lastPlayedAt.toString(),
+  });
+
+  console.log(`✅ Post configuration initialized for post: ${postId}`);
+}
+
+/**
+ * 获取帖子配置信息
+ */
+export async function getPostConfig({
   redis,
   postId,
-  buttonType,
-  isPressed,
 }: {
-  redis: Context['redis'];
+  redis: Context['redis'] | RedisClient;
   postId: string;
-  buttonType: 'plus' | 'minus' | 'center';
-  isPressed: boolean;
-}): Promise<GameState> => {
-  const config = await postConfigGet({ redis, postId });
-  let newState = { ...config.gameState };
+}): Promise<PostConfig | null> {
+  const configKey = getPostConfigKey(postId);
+  const configData = await redis.hgetall(configKey);
 
-  const manager = getGameStateManager();
-
-  if (buttonType === 'center') {
-    newState = manager.handleCenterButtonClick(newState);
-  } else if (buttonType === 'plus') {
-    newState.isPlusHeld = isPressed;
-  } else if (buttonType === 'minus') {
-    newState.isMinusHeld = isPressed;
+  if (!configData || Object.keys(configData).length === 0 || !configData.postId) {
+    return null;
   }
 
-  await updateGameState({ redis, postId, gameState: newState });
-  return newState;
-};
+  return {
+    postId: configData.postId,
+    createdAt: parseInt(configData.createdAt || '0'),
+    gameType: configData.gameType || 'cat_comfort_game',
+    isActive: (configData.isActive || 'false') === 'true',
+  };
+}
 
-export const resetGame = async ({
+/**
+ * 更新帖子统计数据
+ */
+export async function updatePostStats({
   redis,
   postId,
-  newRound,
+  playerId,
 }: {
-  redis: Context['redis'];
+  redis: Context['redis'] | RedisClient;
   postId: string;
-  newRound?: number;
-}): Promise<{ gameState: GameState; currentRound: number }> => {
-  const currentRound = newRound || 1;
-  const newDuration = Math.max(10, 30 - ((currentRound - 1) * 10));
-  
-  // Update config for new round
-  const newConfig = { ...GAME_CONFIG, GAME_DURATION: newDuration };
-  const manager = getGameStateManager();
-  manager.updateConfig(newConfig);
-  
-  const gameState = manager.createInitialState();
-  
-  await postConfigSet({
-    redis,
-    postId,
-    config: { 
-      gameState,
-      currentRound,
-      lastUpdated: Date.now()
-    },
-  });
-  
-  return { gameState, currentRound };
-};
+  playerId: string;
+}): Promise<void> {
+  const statsKey = getPostStatsKey(postId);
+  const playerHashKey = `post_players:${postId}`;
 
-export const processGameUpdate = async ({
+  // 增加总游戏次数
+  await redis.hincrby(statsKey, 'totalPlays', 1);
+
+  // 检查是否是新玩家 (使用 hget 检查是否存在)
+  const existingPlayer = await redis.hget(playerHashKey, playerId);
+  if (!existingPlayer) {
+    // 新玩家，记录并增加计数
+    await redis.hset(playerHashKey, { [playerId]: Date.now().toString() });
+    await redis.hincrby(statsKey, 'uniquePlayers', 1);
+  }
+
+  // 更新最后游戏时间
+  await redis.hset(statsKey, { lastPlayedAt: Date.now().toString() });
+}
+
+/**
+ * 获取帖子统计数据
+ */
+export async function getPostStats({
   redis,
   postId,
-  deltaTime,
 }: {
-  redis: Context['redis'];
+  redis: Context['redis'] | RedisClient;
   postId: string;
-  deltaTime: number;
-}): Promise<GameState> => {
-  const config = await postConfigGet({ redis, postId });
-  const manager = getGameStateManager();
-  const updatedGameState = manager.updateGameState(config.gameState, deltaTime);
-  
-  await updateGameState({ redis, postId, gameState: updatedGameState });
-  return updatedGameState;
-};
+}): Promise<PostStats | null> {
+  const statsKey = getPostStatsKey(postId);
+  const statsData = await redis.hgetall(statsKey);
+
+  if (!statsData || Object.keys(statsData).length === 0) {
+    return null;
+  }
+
+  return {
+    totalPlays: parseInt(statsData.totalPlays || '0') || 0,
+    uniquePlayers: parseInt(statsData.uniquePlayers || '0') || 0,
+    lastPlayedAt: parseInt(statsData.lastPlayedAt || '0') || 0,
+  };
+}
+
+/**
+ * 禁用帖子 (标记为非活跃状态)
+ */
+export async function deactivatePost({
+  redis,
+  postId,
+}: {
+  redis: Context['redis'] | RedisClient;
+  postId: string;
+}): Promise<void> {
+  const configKey = getPostConfigKey(postId);
+  await redis.hset(configKey, { isActive: 'false' });
+  console.log(`🔒 Post deactivated: ${postId}`);
+} 

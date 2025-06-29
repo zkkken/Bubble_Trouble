@@ -37,14 +37,47 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   React.useEffect(() => {
     const fetchContinentLeaderboard = async () => {
       try {
-        const response = await fetch(`/api/leaderboard/continent/${continentId}?limit=20`);
+        const response = await fetch(`/api/leaderboard/${continentId}?limit=20`);
         const data = await response.json();
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        setPlayers(data.players || data);
+        // 详细日志输出
+        console.log(`🏆 [${continentId}] ${continentName} 排行榜数据:`, data);
+        
+        if (data.stats) {
+          const { playerCount, totalTime, averageTime } = data.stats;
+          console.log(`📊 [${continentId}] 洲际统计:`, {
+            洲名: continentName,
+            总玩家数: playerCount,
+            洲总用时: `${totalTime.toFixed(1)}秒`,
+            平均用时: `${averageTime.toFixed(1)}秒`,
+            显示条目: data.data?.length || 0
+          });
+        }
+        
+        const playersData = data.data || data;
+        
+        // Transform API data to match Player interface
+        const transformedPlayers: Player[] = playersData.map((item: any, index: number) => ({
+          rank: item.rank || (index + 1),
+          name: item.playerName || item.name || 'Unknown',
+          time: typeof item.enduranceDuration === 'number' 
+            ? `${Math.floor(item.enduranceDuration / 60)}:${(item.enduranceDuration % 60).toFixed(0).padStart(2, '0')}`
+            : item.time || '0:00',
+          hasBadge: (item.rank || (index + 1)) <= 3,
+          badgeSrc: (item.rank || (index + 1)) <= 3 ? `/rankingbadge--${item.rank || (index + 1)}.png` : undefined
+        }));
+        
+        console.log('🔧 Transformed players data:', transformedPlayers.slice(0, 3));
+        setPlayers(transformedPlayers);
+        
+        // 检查猫咪生成数量
+        if (data.stats && data.stats.playerCount) {
+          console.log(`🐱 [${continentId}] 猫咪检查: 应生成${data.stats.playerCount}只猫，实际排行榜显示${playersData.length}条记录`);
+        }
       } catch (error) {
         console.error(`获取${continentName}排行榜时出错:`, error);
         // 出错时返回空数据
@@ -324,7 +357,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <div
-                                className="[font-family:'Silkscreen',Helvetica] font-normal text-black text-center tracking-[0] leading-[38px] whitespace-nowrap"
+                                className="silkscreen-bold text-black text-center tracking-[0] leading-[38px] whitespace-nowrap"
                                 style={{ fontSize: '1.25rem' }}
                               >
                                 {player.rank}
@@ -351,22 +384,16 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                         className="w-[90px] h-[38px] flex items-center justify-center mt-[6px]"
                       >
                         <div
-                          className="text-center whitespace-nowrap tracking-[0] leading-[38px]"
+                          className={`text-center whitespace-nowrap tracking-[0] leading-[38px] silkscreen-bold`}
                           style={index < 3 ? {
                             color: '#F1BA08',
                             textAlign: 'center',
                             WebkitTextStrokeWidth: '2px',
                             WebkitTextStrokeColor: '#000',
-                            fontFamily: 'Silkscreen',
                             fontSize: '1.5rem',
-                            fontStyle: 'normal',
-                            fontWeight: 700,
                             lineHeight: '38px'
                           } : {
-                            fontFamily: 'Silkscreen',
                             fontSize: '1.25rem',
-                            fontStyle: 'normal',
-                            fontWeight: 'normal',
                             lineHeight: '38px',
                             color: '#000'
                           }}

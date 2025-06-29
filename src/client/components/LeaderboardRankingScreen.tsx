@@ -193,14 +193,32 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           
           // 按玩家人数排序洲际（降序）并生成排名
           const sortedStats = [...data.data].sort((a, b) => b.playerCount - a.playerCount);
-          const generatedRankings: ContinentRanking[] = sortedStats.map((stat, index) => ({
+          const generatedRankings: ContinentRanking[] = sortedStats.map((stat, index) => {
+            const cats = generateCatsForContinent(stat.playerCount, stat.continentId);
+            const ranking = {
             name: continentNames[stat.continentId] || stat.continentName?.toUpperCase() || 'UNKNOWN',
             continentId: stat.continentId,
             rank: index + 1,
             playerCount: stat.playerCount,
             rankImage: index < 3 ? `/rankingbadge--${index + 1}.png` : "/rankingbadge-normal-2.png",
-            cats: generateCatsForContinent(stat.playerCount, stat.continentId)
-          }));
+              cats
+            };
+            
+            // 检查猫咪生成数量
+            console.log(`🐱 [${stat.continentId}] ${ranking.name}: 玩家数${stat.playerCount}, 生成猫咪${cats.length}只`);
+            
+            return ranking;
+          });
+
+          // 输出完整排名数据
+          console.log('🌍 各洲完整排名数据:', generatedRankings.map(r => ({
+            排名: r.rank,
+            洲名: r.name,
+            洲ID: r.continentId,
+            玩家总数: r.playerCount,
+            生成猫咪数: r.cats.length,
+            徽章: r.rankImage
+          })));
 
           setRankings(generatedRankings); // 只显示有数据的洲际
         } else {
@@ -410,11 +428,11 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           ref={scrollContainerRef}
           className="absolute overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           style={{
-            top: `${scale(289)}px`,
+            top: `${scale(0)}px`,
             left: '50%',
             marginLeft: `${scale(-207)}px`, // 负的内容区域一半宽度进行居中
             width: `${scale(414)}px`,
-            height: `${scale(124)}px`
+            height: `100%`
           }}
           onScroll={handleScroll}
         >
@@ -503,13 +521,12 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                     
                     {/* PassedCat_Text - 玩家数量 */}
                     <div 
-                      className="relative text-center text-[#161616] font-bold"
+                      className="relative text-center text-[#161616] font-bold silkscreen-bold"
                       style={{
                         width: `${scale(165)}px`,
                         height: `${scale(27)}px`,
                         left: 0,
-                        fontSize: `${scale(10)}px`,
-                        fontFamily: 'Silkscreen, monospace'
+                        fontSize: `${scale(10)}px`
                       }}
                     >
                       {ranking.playerCount} meow clears!
@@ -556,14 +573,13 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                   {/* 显示第4名以后的排名数字 */}
                   {ranking.rank > 3 && (
                     <div 
-                      className="absolute flex items-center justify-center text-white font-bold"
+                      className="absolute flex items-center justify-center text-white font-bold silkscreen-bold"
                       style={{
                         width: `${scale(50)}px`,
                         height: `${scale(50)}px`,
                         top: `${scale(87)}px`,
                         left: 0,
-                        fontSize: `${scale(18)}px`,
-                        fontFamily: 'Silkscreen, monospace'
+                        fontSize: `${scale(18)}px`
                       }}
                     >
                       {ranking.rank}
