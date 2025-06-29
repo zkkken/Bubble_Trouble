@@ -1,5 +1,47 @@
 @import 'tailwindcss';
 
+/* 基础字体配置 */
+* {
+  font-family: "lores-12", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* 去除按钮的 ring-shadow 效果 */
+button:focus,
+button:focus-visible,
+.focus\:ring-2:focus,
+.focus\:ring-offset-2:focus,
+*:focus {
+  --tw-ring-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-opacity: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+/* 强制去除所有可能的focus样式 */
+button,
+input,
+select,
+textarea,
+a,
+[tabindex] {
+  outline: none !important;
+}
+
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+a:focus,
+[tabindex]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: none !important;
+}
+
 /* 强制去除所有 padding，特别是 Card 组件的 padding */
 .p-6 {
   padding: 0 !important;
@@ -17,4 +59,18 @@
 /* 强制去除任何可能的 padding */
 .card-content {
   padding: 0 !important;
+}
+
+/* 猫咪浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
