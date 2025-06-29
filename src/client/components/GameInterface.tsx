@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { GameConfig } from '../types/GameTypes';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 import { LeaderboardModal } from './LeaderboardModal';
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
@@ -37,7 +38,7 @@ interface PlayerInfo {
   catAvatarId: string;
 }
 
-// 像素艺术风格的游戏主界面组件
+// 响应式像素艺术风格的游戏主界面组件
 const PixelGameInterface: React.FC<{ 
   gameState: any; 
   currentRound: number;
@@ -59,6 +60,10 @@ const PixelGameInterface: React.FC<{
   onCenterButtonClick,
   onBackToStart 
 }) => {
+  
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale, scaleFont } = useResponsiveSize();
   
   // 猫咪翻转状态
   const [catFlipped, setCatFlipped] = useState(false);
@@ -89,12 +94,27 @@ const PixelGameInterface: React.FC<{
   };
 
   return (
-    <div className="w-[724px] h-[584px] bg-[#2f2f2f] relative">
+    <div 
+      className="bg-[#2f2f2f] relative"
+      style={{
+        width: `${scale(724)}px`,
+        height: `${scale(584)}px`,
+        ...cssVars
+      }}
+    >
       {/* 背景图像 - 像素艺术天空 */}
       <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
       
       {/* 中央角色 - 洗澡猫咪 (120x120px, 居中偏下) */}
-      <div className="absolute w-[120px] h-[120px] left-[302px] top-[232px]">
+      <div 
+        className="absolute"
+        style={{
+          width: `${scale(120)}px`,
+          height: `${scale(120)}px`,
+          left: `${scale(302)}px`,
+          top: `${scale(232)}px`
+        }}
+      >
         <img
           className={`w-full h-full object-cover ${catFlipped ? 'scale-x-[-1]' : ''}`}
           alt="Cat in shower"
@@ -112,19 +132,42 @@ const PixelGameInterface: React.FC<{
       </div>
 
       {/* 舒适度进度条 (顶部, 628x24px) */}
-      <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
-        <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656]">
-          <div 
-            className="h-full bg-[#5ff367] transition-all duration-200"
-            style={{ width: `${Math.max(0, Math.min(100, gameState.currentComfort * 100))}%` }}
-          />
-        </div>
+      <div 
+        className="absolute bg-[#d9d9d9] border-[#3a3656]"
+        style={{
+          left: `${scale(48)}px`,
+          top: `${scale(108)}px`,
+          width: `${scale(628)}px`,
+          height: `${scale(24)}px`,
+          borderWidth: `${scale(4)}px`
+        }}
+      >
+        <div 
+          className="h-full bg-[#5ff367] transition-all duration-200"
+          style={{ width: `${Math.max(0, Math.min(100, gameState.currentComfort * 100))}%` }}
+        />
       </div>
 
       {/* 温度进度条系统 (628x78px) */}
-      <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px]">
+      <div 
+        className="absolute"
+        style={{
+          left: `${scale(48)}px`,
+          top: `${scale(136)}px`,
+          width: `${scale(628)}px`,
+          height: `${scale(78)}px`
+        }}
+      >
         {/* 温度条背景 */}
-        <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+        <div 
+          className="absolute bg-[#d9d9d9] border-[#3a3656]"
+          style={{
+            top: `${scale(9)}px`,
+            width: `${scale(628)}px`,
+            height: `${scale(24)}px`,
+            borderWidth: `${scale(4)}px`
+          }}
+        >
           {/* 温度容忍带 (橙色区域) - 可以覆盖全宽度 */}
           <div
             className="absolute top-0 h-full bg-[#ff9500] opacity-60"
@@ -143,22 +186,26 @@ const PixelGameInterface: React.FC<{
 
         {/* 温度指针 (16x40px) - 可以移动到整个温度条 */}
         <div
-          className="absolute w-[16px] h-[40px] bg-[#f8cb56] border-[#3a3656] border-[5px] transition-all duration-100"
+          className="absolute bg-[#f8cb56] border-[#3a3656] transition-all duration-100"
           style={{
-            left: `${(gameState.currentTemperature * 612) - 8}px`, // 612 = 628 - 16 (指针宽度)
+            width: `${scale(16)}px`,
+            height: `${scale(40)}px`,
+            borderWidth: `${scale(5)}px`,
+            left: `${(gameState.currentTemperature * scale(612)) - scale(8)}px`, // 612 = 628 - 16 (指针宽度)
             top: '0px',
           }}
         />
 
         {/* 目标温度显示 - 跟随温度容忍带中心位置 */}
         <div 
-          className="absolute top-[40px] transform -translate-x-1/2 silkscreen-text"
+          className="absolute transform -translate-x-1/2 silkscreen-text"
           style={{
-            left: `${gameState.targetTemperature * 628}px`, // 跟随目标温度位置，覆盖全宽度
+            top: `${scale(40)}px`,
+            left: `${gameState.targetTemperature * scale(628)}px`, // 跟随目标温度位置，覆盖全宽度
             color: '#F0BC08',
             textAlign: 'center',
             fontFamily: 'Silkscreen, monospace',
-            fontSize: '18px',
+            fontSize: scaleFont(18),
             fontStyle: 'normal',
             fontWeight: '700',
             lineHeight: '1',
@@ -177,7 +224,13 @@ const PixelGameInterface: React.FC<{
 
       {/* 控制按钮 - 左侧按钮 (56x56px) - 根据controls_reversed切换功能和图片 */}
       <button
-        className="absolute left-[84px] top-[460px] w-[56px] h-[56px] transition-all duration-100 hover:scale-105 active:scale-95"
+        className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
+        style={{
+          left: `${scale(84)}px`,
+          top: `${scale(460)}px`,
+          width: `${scale(56)}px`,
+          height: `${scale(56)}px`
+        }}
         onMouseDown={gameState.controlsReversed ? onPlusPress : onMinusPress}
         onMouseUp={gameState.controlsReversed ? onPlusRelease : onMinusRelease}
         onMouseLeave={gameState.controlsReversed ? onPlusRelease : onMinusRelease}
@@ -200,7 +253,13 @@ const PixelGameInterface: React.FC<{
 
       {/* 控制按钮 - 右侧按钮 (56x56px) - 根据controls_reversed切换功能和图片 */}
       <button
-        className="absolute left-[584px] top-[460px] w-[56px] h-[56px] transition-all duration-100 hover:scale-105 active:scale-95"
+        className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
+        style={{
+          left: `${scale(584)}px`,
+          top: `${scale(460)}px`,
+          width: `${scale(56)}px`,
+          height: `${scale(56)}px`
+        }}
         onMouseDown={gameState.controlsReversed ? onMinusPress : onPlusPress}
         onMouseUp={gameState.controlsReversed ? onMinusRelease : onPlusRelease}
         onMouseLeave={gameState.controlsReversed ? onMinusRelease : onPlusRelease}
@@ -223,7 +282,13 @@ const PixelGameInterface: React.FC<{
 
       {/* 中央水龙头按钮 (80x80px) */}
       <button
-        className="absolute left-[322px] top-[448px] w-[80px] h-[80px] transition-all duration-200 hover:scale-105 active:scale-95"
+        className="absolute transition-all duration-200 hover:scale-105 active:scale-95"
+        style={{
+          left: `${scale(322)}px`,
+          top: `${scale(448)}px`,
+          width: `${scale(80)}px`,
+          height: `${scale(80)}px`
+        }}
         onClick={onCenterButtonClick}
         disabled={gameState.gameStatus !== 'playing'}
       >
@@ -243,10 +308,34 @@ const PixelGameInterface: React.FC<{
       </button>
 
       {/* 计时器 (左上角) */}
-      <div className="absolute left-[275px] top-[36px] flex items-center gap-2">
+      <div 
+        className="absolute flex items-center"
+        style={{
+          left: `${scale(275) || 275}px`,
+          top: `${scale(36) || 36}px`,
+          gap: `${scale(8) || 8}px`
+        }}
+      >
         {/* 时钟图标 (32x32px) */}
-        <div className="w-[32px] h-[32px] flex items-center justify-center text-2xl">
-          ⏰
+        <div 
+          style={{
+            width: `${scale(32) || 32}px`,
+            height: `${scale(32) || 32}px`
+          }}
+        >
+          <img
+            className="w-full h-full object-cover"
+            alt="Clock icon"
+            src="/clock-icon.png"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent) {
+                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-2xl">⏰</div>';
+              }
+            }}
+          />
         </div>
         
         {/* 时间文字 */}
@@ -255,7 +344,7 @@ const PixelGameInterface: React.FC<{
           style={{
             color: '#FFF',
             fontFamily: 'Silkscreen, monospace',
-            fontSize: '28px',
+            fontSize: `${scale(28) || 28}px`,
             fontStyle: 'normal',
             fontWeight: '700',
             lineHeight: '1',
@@ -274,7 +363,13 @@ const PixelGameInterface: React.FC<{
 
       {/* 音乐按钮 (右上角, 80x36px) */}
       <button 
-        className="absolute left-[620px] top-[24px] w-[80px] h-[36px] transition-all duration-200 hover:scale-105"
+        className="absolute transition-all duration-200 hover:scale-105"
+        style={{
+          left: `${scale(620) || 620}px`,
+          top: `${scale(24) || 24}px`,
+          width: `${scale(80) || 80}px`,
+          height: `${scale(36) || 36}px`
+        }}
         onClick={handleMusicToggle}
       >
         <img
@@ -293,7 +388,15 @@ const PixelGameInterface: React.FC<{
       </button>
 
       {/* 状态图标 - 左侧失败图标 (28x28px) */}
-      <div className="absolute left-[48px] top-[72px] w-[28px] h-[28px]">
+      <div 
+        className="absolute"
+        style={{
+          left: `${scale(48) || 48}px`,
+          top: `${scale(72) || 72}px`,
+          width: `${scale(28) || 28}px`,
+          height: `${scale(28) || 28}px`
+        }}
+      >
         <img
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort <= 0.2 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort fail"
@@ -310,7 +413,15 @@ const PixelGameInterface: React.FC<{
       </div>
 
       {/* 状态图标 - 右侧成功图标 (28x28px) */}
-      <div className="absolute left-[648px] top-[72px] w-[28px] h-[28px]">
+      <div 
+        className="absolute"
+        style={{
+          left: `${scale(648) || 648}px`,
+          top: `${scale(72) || 72}px`,
+          width: `${scale(28) || 28}px`,
+          height: `${scale(28) || 28}px`
+        }}
+      >
         <img
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort >= 0.8 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort success"

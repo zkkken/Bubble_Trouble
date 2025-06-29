@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ContinentRankingScreen } from "./ContinentRankingScreen";
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface LeaderboardRankingScreenProps {
   onBack: () => void;
@@ -64,6 +65,10 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     continentImage: string;
   } | null>(null);
   const playerInfo = getPlayerInfo();
+
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
 
   // 处理点击州卡片进入洲内排行榜
   const handleContinentClick = (continentId: string) => {
@@ -136,7 +141,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
 
     const isPositionValid = (x: number, y: number, size: number): boolean => {
       // 检查边界（在卡片区域内，考虑猫咪框架）
-      if (x < 0 || x + size > 313 || y < 0 || y + size > 143) return false;
+      if (x < 0 || x + size > scale(313) || y < 0 || y + size > scale(143)) return false;
       
       // 检查与现有猫咪的碰撞
       for (const pos of usedPositions) {
@@ -144,16 +149,16 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           Math.pow(x + size/2 - (pos.x + pos.size/2), 2) + 
           Math.pow(y + size/2 - (pos.y + pos.size/2), 2)
         );
-        if (distance < (size + pos.size) / 2 + 10) return false; // 10px间距
+        if (distance < (size + pos.size) / 2 + scale(10)) return false; // 响应式间距
       }
       return true;
     };
 
     let attempts = 0;
     while (cats.length < numCats - 1 && attempts < 100) {
-      const size = Math.floor(Math.random() * 21) + 40; // 调整为40-60px
-      const x = Math.floor(Math.random() * (313 - size));
-      const y = Math.floor(Math.random() * (143 - size));
+      const size = Math.floor(Math.random() * 21) + scale(40); // 响应式大小40-60px
+      const x = Math.floor(Math.random() * (scale(313) - size));
+      const y = Math.floor(Math.random() * (scale(143) - size));
 
       if (isPositionValid(x, y, size)) {
         cats.push({
@@ -221,7 +226,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     if (!isDragging || !scrollContainerRef.current) return;
     
     const scrollContainer = scrollContainerRef.current;
-    const scrollbarTrack = 124; // 滚动条轨道高度
+    const scrollbarTrack = scale(124); // 响应式滚动条轨道高度
     const containerHeight = scrollContainer.clientHeight;
     const contentHeight = scrollContainer.scrollHeight;
     
@@ -229,7 +234,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     
     const rect = scrollContainer.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
-    const scrollRatio = Math.max(0, Math.min(1, (relativeY - 289) / scrollbarTrack));
+    const scrollRatio = Math.max(0, Math.min(1, (relativeY - scale(289)) / scrollbarTrack));
     const newScrollTop = scrollRatio * (contentHeight - containerHeight);
     
     scrollContainer.scrollTop = newScrollTop;
@@ -282,32 +287,84 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
   }
 
   return (
-    <div className="leaderboard-container">
-      <div className="leaderboard-main">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div 
+        className="bg-[#2f2f2f] relative"
+        style={{
+          width: `${scale(724)}px`,
+          height: `${scale(584)}px`,
+          ...cssVars
+        }}
+      >
         {/* GameCompletionScreen样式的背景 */}
         <div className="absolute inset-0">
           {/* 背景图片 */}
           <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
           
           {/* 舒适度进度条 */}
-          <div className="absolute left-[48px] top-[108px] w-[628px] h-[24px]">
-            <div className="w-full h-full bg-[#d9d9d9] border-4 border-[#3a3656] opacity-60">
+          <div 
+            className="absolute"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(108)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(24)}px`
+            }}
+          >
+            <div 
+              className="w-full h-full bg-[#d9d9d9] opacity-60"
+              style={{
+                border: `${scale(4)}px solid #3a3656`
+              }}
+            >
               <div className="h-full bg-[#5ff367] w-[75%]" />
             </div>
           </div>
 
           {/* 温度进度条 */}
-          <div className="absolute left-[48px] top-[136px] w-[628px] h-[78px] opacity-60">
-            <div className="absolute top-[9px] w-[628px] h-[24px] bg-[#d9d9d9] border-4 border-[#3a3656]">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(48)}px`,
+              top: `${scale(136)}px`,
+              width: `${scale(628)}px`,
+              height: `${scale(78)}px`
+            }}
+          >
+            <div 
+              className="absolute bg-[#d9d9d9]"
+              style={{
+                top: `${scale(9)}px`,
+                width: `${scale(628)}px`,
+                height: `${scale(24)}px`,
+                border: `${scale(4)}px solid #3a3656`
+              }}
+            >
               <div className="absolute top-0 h-full bg-[#ff9500] opacity-60 left-[40%] w-[20%]" />
               <div className="h-full bg-[#728cff] w-[50%]" />
             </div>
           </div>
           {/* 控制按钮 */}
-          <div className="absolute left-[84px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(84)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-minus.png" />
           </div>
-          <div className="absolute left-[584px] top-[460px] w-[56px] h-[56px] opacity-60">
+          <div 
+            className="absolute opacity-60"
+            style={{
+              left: `${scale(584)}px`,
+              top: `${scale(460)}px`,
+              width: `${scale(56)}px`,
+              height: `${scale(56)}px`
+            }}
+          >
             <img className="w-full h-full object-cover" src="/button-temp-plus.png" />
           </div>
         </div>
@@ -317,7 +374,13 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
 
         {/* 返回按钮 */}
         <button
-          className="absolute w-[50px] h-[47px] top-[48px] left-[110px] cursor-pointer hover:scale-105 transition-transform z-30"
+          className="absolute cursor-pointer hover:scale-105 transition-transform z-30"
+          style={{
+            width: `${scale(50)}px`,
+            height: `${scale(47)}px`,
+            top: `${scale(48)}px`,
+            left: `${scale(110)}px`
+          }}
           onClick={onBack}
         >
           <img
@@ -329,12 +392,14 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
 
         {/* 滚动条 */}
         <div 
-          className="absolute w-[9px] top-[289px] bg-[#F0BC08] rounded cursor-pointer z-20"
+          className="absolute bg-[#F0BC08] rounded cursor-pointer z-20"
           style={{ 
+            width: `${scale(9)}px`,
+            top: `${scale(289)}px`,
             left: '50%',
-            marginLeft: '217px', // 内容区域一半宽度(207px) + 间距(10px)
-            height: '124px',
-            transform: `translateY(${scrollPosition * (124 - 20)}px)`,
+            marginLeft: `${scale(217)}px`, // 响应式内容区域一半宽度 + 间距
+            height: `${scale(124)}px`,
+            transform: `translateY(${scrollPosition * (scale(124) - scale(20))}px)`,
             transition: isDragging ? 'none' : 'transform 0.1s ease'
           }}
           onMouseDown={handleScrollbarMouseDown}
@@ -343,14 +408,33 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
         {/* 主内容容器 - 可滚动区域 居中 */}
         <div 
           ref={scrollContainerRef}
-          className="scrollable-content"
+          className="absolute overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          style={{
+            top: `${scale(289)}px`,
+            left: '50%',
+            marginLeft: `${scale(-207)}px`, // 负的内容区域一半宽度进行居中
+            width: `${scale(414)}px`,
+            height: `${scale(124)}px`
+          }}
           onScroll={handleScroll}
         >
-          <div className="relative w-full" style={{ height: `${rankings.length * 249 + (rankings.length - 1) * 32}px` }}>
+          <div 
+            className="relative w-full" 
+            style={{ 
+              height: `${rankings.length * scale(249) + (rankings.length - 1) * scale(32)}px` 
+            }}
+          >
             {/* 加载状态 */}
             {loading && (
               <div className="flex items-center justify-center h-full">
-                <div className="text-white text-xl">Loading continent rankings...</div>
+                <div 
+                  className="text-white font-bold"
+                  style={{
+                    fontSize: `${scale(20)}px`
+                  }}
+                >
+                  Loading continent rankings...
+                </div>
               </div>
             )}
 
@@ -358,23 +442,54 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
             {!loading && rankings.map((ranking, index) => (
               <div
                 key={`ranking-${ranking.continentId}`}
-                className="absolute w-[414px] h-[249px] cursor-pointer hover:scale-[1.02] transition-transform duration-200"
-                style={{ top: `${index * (249 + 32)}px` }}
+                className="absolute cursor-pointer hover:scale-[1.02] transition-transform duration-200"
+                style={{ 
+                  width: `${scale(414)}px`,
+                  height: `${scale(249)}px`,
+                  top: `${index * (scale(249) + scale(32))}px` 
+                }}
                 onClick={() => handleContinentClick(ranking.continentId)}
               >
                 {/* 横幅区域 - 按Figma设计 Frame 84 */}
-                <div className="absolute w-[309px] h-[94px] top-[-3px] left-[63px] z-10">
+                <div 
+                  className="absolute z-10"
+                  style={{
+                    width: `${scale(309)}px`,
+                    height: `${scale(94)}px`,
+                    top: `${scale(-3)}px`,
+                    left: `${scale(63)}px`
+                  }}
+                >
                   {/* Banner_Succ - 横幅背景图片 */}
                   <img
-                    className="absolute w-[309px] h-[94px] top-0 left-0 object-cover"
+                    className="absolute top-0 left-0 object-cover"
+                    style={{
+                      width: `${scale(309)}px`,
+                      height: `${scale(94)}px`
+                    }}
                     alt="横幅背景"
                     src="/banner-succ-5.png"
                   />
                   
                   {/* Frame 71 - 垂直布局容器 */}
-                  <div className="absolute w-[165px] h-[51px] top-[14px] left-[72px] flex flex-col">
+                  <div 
+                    className="absolute flex flex-col"
+                    style={{
+                      width: `${scale(165)}px`,
+                      height: `${scale(51)}px`,
+                      top: `${scale(14)}px`,
+                      left: `${scale(72)}px`
+                    }}
+                  >
                     {/* Region_Image - 地区图片 */}
-                    <div className="w-[154px] h-[38px] relative left-[5.5px] flex items-center justify-center">
+                    <div 
+                      className="relative flex items-center justify-center"
+                      style={{
+                        width: `${scale(154)}px`,
+                        height: `${scale(38)}px`,
+                        left: `${scale(5.5)}px`
+                      }}
+                    >
                       <img
                         className="max-w-full max-h-full object-contain"
                         alt={ranking.name}
@@ -388,9 +503,12 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                     
                     {/* PassedCat_Text - 玩家数量 */}
                     <div 
-                      className="w-[165px] h-[27px] relative left-0 text-center text-[#161616] font-bold"
+                      className="relative text-center text-[#161616] font-bold"
                       style={{
-                        fontSize: '10px',
+                        width: `${scale(165)}px`,
+                        height: `${scale(27)}px`,
+                        left: 0,
+                        fontSize: `${scale(10)}px`,
                         fontFamily: 'Silkscreen, monospace'
                       }}
                     >
@@ -400,17 +518,37 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                 </div>
 
                 {/* 卡片背景框架 */}
-                <div className="absolute w-[414px] h-[217px] top-[32px] left-0">
+                <div 
+                  className="absolute"
+                  style={{
+                    width: `${scale(414)}px`,
+                    height: `${scale(217)}px`,
+                    top: `${scale(32)}px`,
+                    left: 0
+                  }}
+                >
                   {/* 卡片背景 */}
                   <img
-                    className="absolute w-[394px] h-[217px] top-0 left-[20px] object-cover"
+                    className="absolute object-cover"
+                    style={{
+                      width: `${scale(394)}px`,
+                      height: `${scale(217)}px`,
+                      top: 0,
+                      left: `${scale(20)}px`
+                    }}
                     alt={`${ranking.name}卡片背景`}
                     src="/card-bg-s-5.png"
                   />
 
                   {/* 排名徽章 */}
                   <img
-                    className="absolute w-[50px] h-[50px] top-[87px] left-0 object-cover"
+                    className="absolute object-cover"
+                    style={{
+                      width: `${scale(50)}px`,
+                      height: `${scale(50)}px`,
+                      top: `${scale(87)}px`,
+                      left: 0
+                    }}
                     alt={`第${ranking.rank}名`}
                     src={ranking.rankImage}
                   />
@@ -418,9 +556,13 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                   {/* 显示第4名以后的排名数字 */}
                   {ranking.rank > 3 && (
                     <div 
-                      className="absolute w-[50px] h-[50px] top-[87px] left-0 flex items-center justify-center text-white font-bold"
+                      className="absolute flex items-center justify-center text-white font-bold"
                       style={{
-                        fontSize: '18px',
+                        width: `${scale(50)}px`,
+                        height: `${scale(50)}px`,
+                        top: `${scale(87)}px`,
+                        left: 0,
+                        fontSize: `${scale(18)}px`,
                         fontFamily: 'Silkscreen, monospace'
                       }}
                     >
@@ -430,7 +572,15 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                 </div>
 
                 {/* 猫咪框架 - 定位在卡片内 */}
-                <div className="absolute w-[313px] h-[143px] top-[84px] left-[40px]">
+                <div 
+                  className="absolute"
+                  style={{
+                    width: `${scale(313)}px`,
+                    height: `${scale(143)}px`,
+                    top: `${scale(84)}px`,
+                    left: `${scale(40)}px`
+                  }}
+                >
                   {/* 生成的猫咪 */}
                   {ranking.cats.map((cat, catIndex) => (
                     <img
@@ -451,22 +601,36 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                   {/* 只在玩家所在的洲显示主猫咪和名牌 */}
                   {ranking.continentId === getPlayerContinent() && (
                     /* 玩家主猫咪和名牌（类似GameCompletionScreen） */
-                    <div className="absolute w-[106px] h-[130px] top-0 left-0">
+                    <div 
+                      className="absolute"
+                      style={{
+                        width: `${scale(106)}px`,
+                        height: `${scale(130)}px`,
+                        top: 0,
+                        left: 0
+                      }}
+                    >
                       {/* 玩家名牌 */}
-                      <div className="absolute w-[103px] h-[66px] top-0 left-0">
-                        <img
-                          className="w-full h-full object-cover"
-                          alt="玩家名牌背景"
-                          src="/nametag.png"
+                      <div 
+                        className="absolute"
+                        style={{
+                          width: `${scale(103)}px`,
+                          height: `${scale(66)}px`,
+                          top: 0,
+                          left: 0
+                        }}
+                      >
+                        <div 
+                          className="w-full h-full bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
                         />
                         
                         {/* 玩家名字文字 */}
                         <div 
                           className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center"
                           style={{
-                            fontFamily: 'lores-12', 
-                            fontSize: `${Math.max(8, 20 - playerInfo.playerName.length * 1.5)}px`,
-                            top: `${26 - (Math.max(8, 20 - playerInfo.playerName.length * 1.5) - 16) * 0.2}px` // 根据字体大小调整居中位置
+                            fontFamily: 'Pixelify Sans', 
+                            fontSize: `${scale(Math.max(8, 20 - playerInfo.playerName.length * 1.5))}px`,
+                            top: `${scale(26 - (Math.max(8, 20 - playerInfo.playerName.length * 1.5) - 16) * 0.2)}px` // 根据字体大小调整居中位置
                           }}
                         >
                           {playerInfo.playerName.slice(0, 8)}
@@ -475,7 +639,13 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                       
                       {/* 玩家主猫咪 */}
                       <img
-                        className="absolute w-[97px] h-[97px] top-[33px] left-[9px] object-cover"
+                        className="absolute object-cover"
+                        style={{
+                          width: `${scale(97)}px`,
+                          height: `${scale(97)}px`,
+                          top: `${scale(33)}px`,
+                          left: `${scale(9)}px`
+                        }}
                         alt="玩家的猫咪"
                         src={playerInfo.selectedCat}
                         onError={(e) => {

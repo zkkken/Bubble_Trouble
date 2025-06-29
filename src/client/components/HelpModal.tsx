@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -7,6 +8,10 @@ interface HelpModalProps {
 
 export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
 
   useEffect(() => {
     if (isOpen) {
@@ -52,13 +57,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
   // Cat images data for mapping - 使用与项目相同的图片加载方式
   const cats = [
-    { src: "/Cat_1.png", width: "w-12", height: "h-12" },
-    { src: "/Cat_2.png", width: "w-[41px]", height: "h-[41px]" },
-    { src: "/Cat_2-1.png", width: "w-[43px]", height: "h-[43px]" },
-    { src: "/Cat_3.png", width: "w-9", height: "h-[50px]" },
-    { src: "/Cat_5.png", width: "w-[38px]", height: "h-[38px]" },
-    { src: "/Cat_6.png", width: "w-11", height: "h-12" },
-    { src: "/Cat_7.png", width: "w-[38px]", height: "h-[43px]" },
+    { src: "/Cat_1.png", width: 48, height: 48 },
+    { src: "/Cat_2.png", width: 41, height: 41 },
+    { src: "/Cat_4.png", width: 43, height: 43 },
+    { src: "/Cat_3.png", width: 36, height: 50 },
+    { src: "/Cat_5.png", width: 38, height: 38 },
+    { src: "/Cat_6.png", width: 44, height: 48 },
+    { src: "/Cat_7.png", width: 38, height: 43 },
   ];
 
   return (
@@ -71,19 +76,63 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               ? 'scale-100 opacity-100 translate-y-0 rotate-0'
               : 'scale-75 opacity-0 translate-y-8 rotate-3'
         }`}
-        style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}
+        style={{ 
+          fontFamily: '"Pixelify Sans", sans-serif', 
+          fontWeight: 400, 
+          fontStyle: 'normal',
+          lineHeight: 'normal',
+          ...cssVars
+        }}
       >
-        {/* 主容器使用help页面的背景图片 */}
-        <div className="w-[724px] h-[584px] bg-[url(/bg-main.png)] bg-[100%_100%] relative">
+        {/* 主容器移除背景图片 */}
+        <div 
+          className="relative"
+          style={{
+            width: `${scale(724)}px`,
+            height: `${scale(584)}px`
+          }}
+        >
           {/* 使用原始div而不是Card组件，完全匹配参考HTML */}
-          <div className="text-card-foreground shadow flex flex-col w-[630px] h-[470px] justify-center gap-2.5 px-[33px] py-9 top-[74px] left-[47px] bg-[#d4f5ff] rounded-[49.42px] border-[6px] border-solid border-white items-center absolute">
-            <div className="flex flex-col w-[621px] gap-[9px] items-center p-0">
+          <div 
+            className="text-card-foreground shadow flex flex-col justify-center border-solid border-white items-center absolute"
+            style={{
+              width: `${scale(630)}px`,
+              height: `${scale(470)}px`,
+              gap: `${scale(10)}px`,
+              paddingLeft: `${scale(33)}px`,
+              paddingRight: `${scale(33)}px`,
+              paddingTop: `${scale(36)}px`,
+              paddingBottom: `${scale(36)}px`,
+              top: `${scale(74)}px`,
+              left: `${scale(47)}px`,
+              backgroundColor: '#d4f5ff',
+              borderRadius: `${scale(49.42)}px`,
+              borderWidth: `${scale(6)}px`
+            }}
+          >
+            <div 
+              className="flex flex-col items-center p-0"
+              style={{
+                width: `${scale(621)}px`,
+                gap: `${scale(9)}px`
+              }}
+            >
               {/* 猫咪图片展示 */}
-              <div className="inline-flex gap-2.5 items-center mt-[30px]">
+              <div 
+                className="inline-flex items-center"
+                style={{
+                  gap: `${scale(10)}px`,
+                  marginTop: `${scale(30)}px`
+                }}
+              >
                 {cats.map((cat, index) => (
                   <img
                     key={`cat-${index}`}
-                    className={`relative ${cat.width} ${cat.height} hover:scale-110 transition-transform duration-200`}
+                    className="relative hover:scale-110 transition-transform duration-200"
+                    style={{
+                      width: `${scale(cat.width)}px`,
+                      height: `${scale(cat.height)}px`
+                    }}
                     alt="Cat"
                     src={cat.src}
                   />
@@ -102,12 +151,32 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 }}
               />
 
-              
-
               {/* 第一个说明面板 */}
-              <div className="text-card-foreground shadow flex w-[551px] h-[57px] gap-2.5 px-6 py-[7px] items-center hover:bg-[#ddf4ff] transition-colors duration-200" style={{ borderRadius: '15px', background: '#E7FAFF' }}>
+              <div 
+                className="text-card-foreground shadow flex items-center hover:bg-[#ddf4ff] transition-colors duration-200" 
+                style={{ 
+                  width: `${scale(551)}px`,
+                  height: `${scale(57)}px`,
+                  gap: `${scale(10)}px`,
+                  paddingLeft: `${scale(24)}px`,
+                  paddingRight: `${scale(24)}px`,
+                  paddingTop: `${scale(7)}px`,
+                  paddingBottom: `${scale(7)}px`,
+                  borderRadius: `${scale(15)}px`, 
+                  background: '#E7FAFF' 
+                }}
+              >
                 <div className="p-0">
-                  <div className="relative w-fit text-black text-xl tracking-[0] leading-[normal]" style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}>
+                  <div 
+                    className="relative w-fit text-black tracking-[0] leading-[normal]" 
+                    style={{ 
+                      fontFamily: '"Pixelify Sans", sans-serif', 
+                      fontWeight: 400, 
+                      fontStyle: 'normal',
+                      lineHeight: 'normal',
+                      fontSize: `${scale(20)}px`
+                    }}
+                  >
                     [🌡] Adjust the water temperature using + and –<br />
                     [💖] stay in the orange zone to stay comfortable
                   </div>
@@ -115,9 +184,31 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* 第二个说明面板 */}
-              <div className="text-card-foreground shadow flex w-[551px] h-[150px] gap-2.5 px-6 py-[7px] items-center hover:bg-[#ddf4ff] transition-colors duration-200" style={{ borderRadius: '15px', background: '#E7FAFF' }}>
+              <div 
+                className="text-card-foreground shadow flex items-center hover:bg-[#ddf4ff] transition-colors duration-200" 
+                style={{ 
+                  width: `${scale(551)}px`,
+                  height: `${scale(150)}px`,
+                  gap: `${scale(10)}px`,
+                  paddingLeft: `${scale(24)}px`,
+                  paddingRight: `${scale(24)}px`,
+                  paddingTop: `${scale(7)}px`,
+                  paddingBottom: `${scale(7)}px`,
+                  borderRadius: `${scale(15)}px`, 
+                  background: '#E7FAFF' 
+                }}
+              >
                 <div className="p-0">
-                  <div className="relative w-fit text-black text-xl tracking-[0] leading-[normal]" style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}>
+                  <div 
+                    className="relative w-fit text-black tracking-[0] leading-[normal]" 
+                    style={{ 
+                      fontFamily: '"Pixelify Sans", sans-serif', 
+                      fontWeight: 400, 
+                      fontStyle: 'normal',
+                      lineHeight: 'normal',
+                      fontSize: `${scale(20)}px`
+                    }}
+                  >
                     [⚡] Bar moves unpredictably<br />
                     [🥶] Temperature drops instantly<br />
                     [🤡] Controls are reversed<br />
@@ -128,9 +219,31 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* 第三个说明面板 */}
-              <div className="text-card-foreground shadow flex w-[551px] h-[57px] gap-2.5 px-6 py-[7px] items-center hover:bg-[#ddf4ff] transition-colors duration-200" style={{ borderRadius: '15px', background: '#E7FAFF' }}>
+              <div 
+                className="text-card-foreground shadow flex items-center hover:bg-[#ddf4ff] transition-colors duration-200" 
+                style={{ 
+                  width: `${scale(551)}px`,
+                  height: `${scale(57)}px`,
+                  gap: `${scale(10)}px`,
+                  paddingLeft: `${scale(24)}px`,
+                  paddingRight: `${scale(24)}px`,
+                  paddingTop: `${scale(7)}px`,
+                  paddingBottom: `${scale(7)}px`,
+                  borderRadius: `${scale(15)}px`, 
+                  background: '#E7FAFF' 
+                }}
+              >
                 <div className="p-0">
-                  <div className="relative w-fit text-black text-xl tracking-[0] leading-[normal]" style={{ fontFamily: '"lores-12", sans-serif', fontWeight: 400, fontStyle: 'normal' }}>
+                  <div 
+                    className="relative w-fit text-black tracking-[0] leading-[normal]" 
+                    style={{ 
+                      fontFamily: '"Pixelify Sans", sans-serif', 
+                      fontWeight: 400, 
+                      fontStyle: 'normal',
+                      lineHeight: 'normal',
+                      fontSize: `${scale(20)}px`
+                    }}
+                  >
                     [🥇] Maintain max comfort for 5 seconds<br />
                     [☠] Comfort hits zero or time runs out
                   </div>
@@ -140,7 +253,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
             {/* 说明标题图片 */}
             <img
-              className="absolute w-[119px] h-[94px] -top-14 left-[250px] object-cover"
+              className="absolute object-cover"
+              style={{
+                width: `${scale(119)}px`,
+                height: `${scale(94)}px`,
+                top: `${scale(-56)}px`,
+                left: `${scale(250)}px`
+              }}
               alt="Instructions title"
               src="/instructions-title.png"
             />
@@ -148,7 +267,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             {/* 关闭按钮 */}
             <button
               onClick={handleClose}
-              className="absolute w-[110px] h-[51px] top-[445px] left-[180px] cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg"
+              className="absolute cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg"
+              style={{
+                width: `${scale(110)}px`,
+                height: `${scale(51)}px`,
+                top: `${scale(445)}px`,
+                left: `${scale(180)}px`
+              }}
               aria-label="Close"
             >
               <img
@@ -161,7 +286,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             {/* 开始游戏按钮 */}
             <button
               onClick={handleStartClick}
-              className="absolute w-[110px] h-[51px] top-[445px] left-[320px] cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg"
+              className="absolute cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg"
+              style={{
+                width: `${scale(110)}px`,
+                height: `${scale(51)}px`,
+                top: `${scale(445)}px`,
+                left: `${scale(320)}px`
+              }}
               aria-label="Start game"
             >
               <img

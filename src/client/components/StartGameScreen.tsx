@@ -10,6 +10,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface StartGameScreenProps {
   onStartGame: (playerInfo: {
@@ -42,6 +43,10 @@ export const StartGameScreen: React.FC<StartGameScreenProps> = ({ onStartGame, o
   });
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
+  // 响应式设计hooks
+  const { cssVars } = useResponsiveScale();
+  const { scale } = useResponsiveSize();
+
   const containerRef = useRef<HTMLDivElement>(null);
   // 使用 ref 来避免闭包问题
   const dragStateRef = useRef<DragState>({
@@ -63,15 +68,17 @@ export const StartGameScreen: React.FC<StartGameScreenProps> = ({ onStartGame, o
     "Fluffy", "Fuzzy", "Snuggles", "Cuddles", "Bubbles", "Giggles", "Wiggles", "Nibbles"
 ];
 
-  // 六大洲列表及其在地图上的精确位置 (相对于地图容器)
-const CONTINENTS = [
-    { code: 'NA', name: 'North America', flag: 'NA', top: 68, left: 55 },
-    { code: 'SA', name: 'South America', flag: 'SA', top: 165, left: 108 },
-    { code: 'EU', name: 'Europe', flag: 'EU', top: 70, left: 210 },
-    { code: 'AF', name: 'Africa', flag: 'AF', top: 130, left: 190 },
-    { code: 'AS', name: 'Asia', flag: 'AS', top: 90, left: 290 },
-    { code: 'OC', name: 'Oceania', flag: 'OC', top: 180, left: 310 },
+  // 六大洲列表及其在地图上的精确位置 (相对于地图容器) - 基础位置，将根据缩放调整
+const getContinentsWithScale = (scale: (size: number) => number) => [
+    { code: 'NA', name: 'North America', flag: 'NA', top: scale(68), left: scale(55) },
+    { code: 'SA', name: 'South America', flag: 'SA', top: scale(165), left: scale(108) },
+    { code: 'EU', name: 'Europe', flag: 'EU', top: scale(70), left: scale(210) },
+    { code: 'AF', name: 'Africa', flag: 'AF', top: scale(130), left: scale(190) },
+    { code: 'AS', name: 'Asia', flag: 'AS', top: scale(90), left: scale(290) },
+    { code: 'OC', name: 'Oceania', flag: 'OC', top: scale(180), left: scale(310) },
 ];
+
+const CONTINENTS = getContinentsWithScale((size: number) => size);
 
   // 猫咪头像选择数据 - 修复图片路径，使用正确的文件名
   const cats = [
@@ -106,10 +113,11 @@ const CONTINENTS = [
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
   };
 
-  // 检查是否靠近大洲位置 (相对于地图区域的坐标)
+  // 检查是否靠近大洲位置 (相对于地图区域的坐标) - 使用响应式缩放
   const checkContinentProximity = (x: number, y: number) => {
-    const threshold = 50; // 吸附距离阈值
-    for (const continent of CONTINENTS) {
+    const threshold = scale(50); // 吸附距离阈值
+    const scaledContinents = getContinentsWithScale(scale);
+    for (const continent of scaledContinents) {
       const distance = getDistance(x, y, continent.left, continent.top);
       if (distance <= threshold) {
         return continent;
@@ -153,25 +161,36 @@ const CONTINENTS = [
       setContinentId('');
     }
 
-    // 添加全局鼠标事件监听
+    // 添加全局鼠标和触摸事件监听
     document.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('touchmove', handleGlobalMouseMove as any, { passive: false });
+    document.addEventListener('touchend', handleGlobalMouseUp as any);
   };
 
-  // 全局鼠标移动处理
-  const handleGlobalMouseMove = (e: MouseEvent) => {
+  // 全局鼠标/触摸移动处理
+  const handleGlobalMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!dragStateRef.current.isDragging) return; // 使用 ref 检查状态
-    setMousePosition({ x: e.clientX, y: e.clientY });
+    
+    // 处理触摸和鼠标事件
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    
+    if (clientX === undefined || clientY === undefined) return;
+    
+    setMousePosition({ x: clientX, y: clientY });
 
     // 检查是否悬停在地图区域内的大洲上
     const mapContainer = containerRef.current?.querySelector('.map-container') as HTMLElement;
     if (mapContainer) {
       const mapRect = mapContainer.getBoundingClientRect();
-      const x = e.clientX - mapRect.left;
-      const y = e.clientY - mapRect.top;
+      const x = clientX - mapRect.left;
+      const y = clientY - mapRect.top;
 
-      // 检查是否在地图范围内
-      if (x >= 0 && x <= 364 && y >= 0 && y <= 222) {
+      // 检查是否在地图范围内 - 使用响应式尺寸
+      const mapWidth = scale(364);
+      const mapHeight = scale(222);
+      if (x >= 0 && x <= mapWidth && y >= 0 && y <= mapHeight) {
         const nearestContinent = checkContinentProximity(x, y);
         setHoveredContinentId(nearestContinent?.code || '');
       } else {
@@ -180,8 +199,8 @@ const CONTINENTS = [
     }
   };
 
-  // 全局鼠标释放处理
-  const handleGlobalMouseUp = (e: MouseEvent) => {
+  // 全局鼠标/触摸释放处理
+  const handleGlobalMouseUp = (e: MouseEvent | TouchEvent) => {
     if (!dragStateRef.current.isDragging) return; // 使用 ref 检查状态
 
     // 恢复鼠标样式
@@ -190,19 +209,27 @@ const CONTINENTS = [
       (el as HTMLElement).style.cursor = 'grab';
     });
 
-    // 检查是否释放在地图区域内
-    const mapContainer = containerRef.current?.querySelector('.map-container') as HTMLElement;
-    if (mapContainer) {
-      const mapRect = mapContainer.getBoundingClientRect();
-      const x = e.clientX - mapRect.left;
-      const y = e.clientY - mapRect.top;
+    // 处理触摸和鼠标事件
+    const clientX = 'touches' in e ? e.changedTouches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.changedTouches[0]?.clientY : e.clientY;
+    
+    if (clientX !== undefined && clientY !== undefined) {
+      // 检查是否释放在地图区域内
+      const mapContainer = containerRef.current?.querySelector('.map-container') as HTMLElement;
+      if (mapContainer) {
+        const mapRect = mapContainer.getBoundingClientRect();
+        const x = clientX - mapRect.left;
+        const y = clientY - mapRect.top;
 
-      // 检查是否在地图范围内
-      if (x >= 0 && x <= 364 && y >= 0 && y <= 222) {
-        const nearestContinent = checkContinentProximity(x, y);
-        if (nearestContinent) {
-          setContinentId(nearestContinent.code);
-          console.log(`Selected continent: ${nearestContinent.name} at position (${x}, ${y})`);
+        // 检查是否在地图范围内 - 使用响应式尺寸
+        const mapWidth = scale(364);
+        const mapHeight = scale(222);
+        if (x >= 0 && x <= mapWidth && y >= 0 && y <= mapHeight) {
+          const nearestContinent = checkContinentProximity(x, y);
+          if (nearestContinent) {
+            setContinentId(nearestContinent.code);
+            console.log(`Selected continent: ${nearestContinent.name} at position (${x}, ${y})`);
+          }
         }
       }
     }
@@ -218,9 +245,11 @@ const CONTINENTS = [
     dragStateRef.current = newDragState; // 同步更新 ref
     setHoveredContinentId('');
 
-    // 移除全局事件监听
+    // 移除全局事件监听 - 包括触摸事件
     document.removeEventListener('mousemove', handleGlobalMouseMove);
     document.removeEventListener('mouseup', handleGlobalMouseUp);
+    document.removeEventListener('touchmove', handleGlobalMouseMove as any);
+    document.removeEventListener('touchend', handleGlobalMouseUp as any);
   };
 
   // 处理开始按钮点击
@@ -266,16 +295,59 @@ const CONTINENTS = [
   // 获取选中大洲的信息
   const selectedContinent = CONTINENTS.find(c => c.code === continentId);
 
+  // 获取响应式的大洲位置
+  const scaledContinents = getContinentsWithScale(scale);
+
   return (
-    <div ref={containerRef} className="w-[724px] h-[584px] bg-[#2f2f2f] mx-auto relative">
-      <div className="relative h-[584px] bg-[url('/Bg_Main.png')] bg-cover bg-center bg-no-repeat">
-        <Card className="flex flex-col w-[607px] h-[489px] items-center justify-center gap-[10px] py-[43px] px-5 absolute top-[53px] left-[52px] bg-[#b7efff] rounded-[71.667px] border-[4.095px] border-solid border-white flex-shrink-0">
-          <CardContent className="flex flex-col w-[545px] items-center justify-center gap-4 p-0">
+    <div 
+      ref={containerRef} 
+      className="bg-[#2f2f2f] mx-auto relative"
+      style={{
+        width: `${scale(724)}px`,
+        height: `${scale(584)}px`,
+        ...cssVars
+      }}
+    >
+      <div 
+        className="relative bg-[url('/Bg_Main.png')] bg-cover bg-center bg-no-repeat"
+        style={{
+          height: `${scale(584)}px`
+        }}
+      >
+        <Card 
+          className="flex flex-col items-center justify-center py-5 px-5 absolute bg-[#b7efff] border-solid border-white flex-shrink-0"
+          style={{
+            width: `${scale(607)}px`,
+            height: `${scale(489)}px`,
+            gap: `${scale(10)}px`,
+            paddingTop: `${scale(43)}px`,
+            paddingBottom: `${scale(43)}px`,
+            top: `${scale(53)}px`,
+            left: `${scale(52)}px`,
+            borderRadius: `${scale(71.667)}px`,
+            borderWidth: `${scale(4.095)}px`
+          }}
+        >
+          <CardContent 
+            className="flex flex-col items-center justify-center p-0"
+            style={{
+              width: `${scale(545)}px`,
+              gap: `${scale(16)}px`
+            }}
+          >
 
             {/* 玩家名字输入框 */}
-            <div className={`relative w-[531px] h-[59px] bg-[#f9f2e6] rounded-[24.81px] border-[2.84px] border-solid transition-all duration-200 ${
-              showError ? 'border-[#FA2E2E] animate-shake' : 'border-white'
-            } ${isShaking ? 'animate-shake' : ''}`}>
+            <div 
+              className={`relative bg-[#f9f2e6] border-solid transition-all duration-200 ${
+                showError ? 'border-[#FA2E2E] animate-shake' : 'border-white'
+              } ${isShaking ? 'animate-shake' : ''}`}
+              style={{
+                width: `${scale(531)}px`,
+                height: `${scale(59)}px`,
+                borderRadius: `${scale(24.81)}px`,
+                borderWidth: `${scale(2.84)}px`
+              }}
+            >
               <Input
                 className="h-full w-full bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-center placeholder:text-center font-vt323 !text-2xl placeholder:font-vt323 placeholder:!text-2xl"
                 placeholder="Type your name here"
@@ -283,9 +355,15 @@ const CONTINENTS = [
                 onChange={handleInputChange}
               />
               <Button
-                className="absolute w-[49px] h-[49px] top-px right-[31px] p-0 bg-transparent hover:bg-transparent shadow-none hover:scale-105 transition-transform duration-200"
+                className="absolute p-0 bg-transparent hover:bg-transparent shadow-none hover:scale-105 transition-transform duration-200"
                 type="button"
-              onClick={generateRandomName}
+                style={{
+                  width: `${scale(49)}px`,
+                  height: `${scale(49)}px`,
+                  top: `${scale(1)}px`,
+                  right: `${scale(31)}px`
+                }}
+                onClick={generateRandomName}
               >
                 <img
                   className="w-full h-full object-cover"
@@ -296,37 +374,55 @@ const CONTINENTS = [
         </div>
 
             {/* 地图区域 */}
-            <div className="relative w-[364px] h-[222px] map-container">
+            <div 
+              className="relative map-container"
+              style={{
+                width: `${scale(364)}px`,
+                height: `${scale(222)}px`
+              }}
+            >
               <img
-                className="relative w-[364px] h-[222px] pointer-events-none"
+                className="relative pointer-events-none"
                 alt="Map"
                 src="/map.png"
+                style={{
+                  width: `${scale(364)}px`,
+                  height: `${scale(222)}px`
+                }}
               />
               
               {/* 大洲目标区域 */}
-              {CONTINENTS.map((continent) => {
+              {scaledContinents.map((continent) => {
                 const isSelected = continentId === continent.code;
                 const isHovered = hoveredContinentId === continent.code && dragState.isDragging;
                 
                 return (
                   <div
-                key={continent.code}
-                    className={`absolute w-12 h-12 rounded-full border-2 transition-all duration-300 ${
+                    key={continent.code}
+                    className={`absolute rounded-full transition-all duration-300 ${
                       isSelected
                         ? 'border-[#f0bc08] bg-[#f0bc08] bg-opacity-40 scale-125'
                         : isHovered
                         ? 'border-[#f0bc08] bg-[#f0bc08] bg-opacity-20 scale-110'
                         : 'border-white bg-white bg-opacity-30'
-                }`}
+                    }`}
                     style={{
+                      width: `${scale(48)}px`,
+                      height: `${scale(48)}px`,
+                      borderWidth: `${scale(2)}px`,
                       top: `${continent.top}px`,
                       left: `${continent.left}px`,
                       transform: 'translate(-50%, -50%)',
                     }}
                   >
                     <div className="w-full h-full flex items-center justify-center">
-                      <span className={`text-[1.25rem] font-bold ${isSelected ? 'text-white' : isHovered ? 'text-white' : 'text-[#f0bc08]'}`}>{continent.flag}</span>
-          </div>
+                      <span 
+                        className={`font-bold ${isSelected ? 'text-white' : isHovered ? 'text-white' : 'text-[#f0bc08]'}`}
+                        style={{ fontSize: `${scale(20)}px` }}
+                      >
+                        {continent.flag}
+                      </span>
+                    </div>
         </div>
                 );
               })}
@@ -336,31 +432,73 @@ const CONTINENTS = [
                 <div
                   className="absolute cursor-grab"
                   style={{
-                    top: `${selectedContinent.top - 15}px`, // 稍微偏上一点
-                    left: `${selectedContinent.left + 25}px`, // 在大洲点右边
+                    top: `${selectedContinent.top - scale(15)}px`, // 稍微偏上一点
+                    left: `${selectedContinent.left + scale(25)}px`, // 在大洲点右边
                     transform: 'translate(-50%, -50%)',
                   }}
                   onMouseDown={(e) => handleMouseDown(e, selectedCat, true)}
-              >
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    if (touch) {
+                      const mouseEvent = {
+                        currentTarget: e.currentTarget,
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        preventDefault: () => e.preventDefault()
+                      } as any;
+                      handleMouseDown(mouseEvent, selectedCat, true);
+                    }
+                  }}
+                >
                   <img
-                    className="w-8 h-8 object-cover drop-shadow-lg"
+                    className="object-cover drop-shadow-lg"
                     alt={selectedCat.alt}
                     src={selectedCat.src}
+                    style={{
+                      width: `${scale(32)}px`,
+                      height: `${scale(32)}px`
+                    }}
                     draggable={false}
                   />
-          </div>
-          )}
+                </div>
+              )}
         </div>
 
             {/* 猫咪选择区域 - 拖拽源 */}
-            <div className="flex items-center gap-[13px] relative self-stretch w-full flex-[0_0_auto]">
+            <div 
+              className="flex items-center relative self-stretch w-full flex-[0_0_auto]"
+              style={{ gap: `${scale(13)}px` }}
+            >
               {cats.map((cat, index) => (
                 <Card
                   key={cat.id}
-                  className={`cat-card flex ${index === 2 || index === 3 ? "flex-col" : ""} w-20 h-20 items-center justify-center gap-2.5 p-1 relative bg-[#f9f3e6] rounded-2xl border-2 cursor-grab active:cursor-grabbing transition-all duration-200 hover:scale-105 select-none ${
+                  className={`cat-card flex ${index === 2 || index === 3 ? "flex-col" : ""} items-center justify-center relative bg-[#f9f3e6] cursor-grab active:cursor-grabbing transition-all duration-200 hover:scale-105 select-none ${
                     selectedCat?.id === cat.id ? 'border-[#f0bc08] shadow-lg' : 'border-white'
                   } ${dragState.isDragging && dragState.draggedCat?.id === cat.id ? 'opacity-30' : ''}`}
+                  style={{
+                    width: `${scale(80)}px`,
+                    height: `${scale(80)}px`,
+                    gap: `${scale(10)}px`,
+                    padding: `${scale(4)}px`,
+                    borderRadius: `${scale(16)}px`,
+                    borderWidth: `${scale(2)}px`
+                  }}
                   onMouseDown={(e) => handleMouseDown(e, cat)}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    if (touch) {
+                      // 创建模拟的鼠标事件
+                      const mouseEvent = {
+                        currentTarget: e.currentTarget,
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        preventDefault: () => e.preventDefault()
+                      } as any;
+                      handleMouseDown(mouseEvent, cat);
+                    }
+                  }}
                   onMouseUp={(e) => {
                     const element = e.currentTarget as HTMLDivElement;
                     element.style.cursor = 'grab';
@@ -375,9 +513,23 @@ const CONTINENTS = [
                   
                   {/* 选中指示器 */}
                   {selectedCat?.id === cat.id && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#f0bc08] rounded-full border-2 border-white flex items-center justify-center z-20">
-                      <span className="text-white text-xs font-bold">✓</span>
-              </div>
+                    <div 
+                      className="absolute bg-[#f0bc08] rounded-full border-white flex items-center justify-center z-20"
+                      style={{
+                        top: `${scale(-8)}px`,
+                        right: `${scale(-8)}px`,
+                        width: `${scale(24)}px`,
+                        height: `${scale(24)}px`,
+                        borderWidth: `${scale(2)}px`
+                      }}
+                    >
+                      <span 
+                        className="text-white font-bold"
+                        style={{ fontSize: `${scale(12)}px` }}
+                      >
+                        ✓
+                      </span>
+                    </div>
                   )}
                 </Card>
               ))}
@@ -385,9 +537,15 @@ const CONTINENTS = [
           </CardContent>
         </Card>
 
-        {/* 关闭按钮 - 严格按照 project 位置 */}
+        {/* 关闭按钮 - 响应式位置 */}
         <Button 
-          className="absolute w-[110px] h-[51px] top-[520px] left-[223px] p-0 bg-transparent hover:bg-transparent cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg shadow-none"
+          className="absolute p-0 bg-transparent hover:bg-transparent cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg shadow-none"
+          style={{
+            width: `${scale(110)}px`,
+            height: `${scale(51)}px`,
+            top: `${scale(520)}px`,
+            left: `${scale(223)}px`
+          }}
           onClick={handleCloseClick}
         >
           <img
@@ -397,9 +555,15 @@ const CONTINENTS = [
           />
         </Button>
 
-        {/* 开始按钮 - 严格按照 project 位置 */}
+        {/* 开始按钮 - 响应式位置 */}
         <Button 
-          className="absolute w-[110px] h-[51px] top-[520px] left-[383px] p-0 bg-transparent hover:bg-transparent cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg shadow-none"
+          className="absolute p-0 bg-transparent hover:bg-transparent cursor-pointer transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95 focus:outline-none rounded-lg shadow-none"
+          style={{
+            width: `${scale(110)}px`,
+            height: `${scale(51)}px`,
+            top: `${scale(520)}px`,
+            left: `${scale(383)}px`
+          }}
           onClick={handleStartClick}
         >
           <img
@@ -409,8 +573,15 @@ const CONTINENTS = [
           />
         </Button>
 
-        {/* 标题图片 - 严格按照 project 位置 */}
-        <div className="absolute w-[412px] top-3 left-[135px]">
+        {/* 标题图片 - 响应式位置 */}
+        <div 
+          className="absolute"
+          style={{
+            width: `${scale(412)}px`,
+            top: `${scale(12)}px`,
+            left: `${scale(135)}px`
+          }}
+        >
           <img
             className="w-full h-auto object-contain"
             alt="Drag your cat onto the map"
@@ -427,10 +598,12 @@ const CONTINENTS = [
           />
           {/* 备用文字标题 */}
           <h1 
-            className="hidden text-[#f0bc08] text-[38px] font-normal text-center leading-[30px] tracking-[0]"
+            className="hidden text-[#f0bc08] font-normal text-center tracking-[0]"
             style={{ 
               fontFamily: "'Silkscreen', Helvetica, monospace",
-              WebkitTextStroke: "3px #000000"
+              WebkitTextStroke: `${scale(3)}px #000000`,
+              fontSize: `${scale(38)}px`,
+              lineHeight: `${scale(30)}px`
             }}
           >
             DRAG YOUR CAT ONTO THE MAP
@@ -448,9 +621,13 @@ const CONTINENTS = [
           }}
         >
           <img
-            className="w-12 h-12 object-cover opacity-80 pointer-events-none"
+            className="object-cover opacity-80 pointer-events-none"
             alt={dragState.draggedCat.alt}
             src={dragState.draggedCat.src}
+            style={{
+              width: `${scale(48)}px`,
+              height: `${scale(48)}px`
+            }}
             draggable={false}
           />
         </div>

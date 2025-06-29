@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { CatComfortGame } from './CatComfortGame';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 console.log('🚀 Main.tsx: Starting application initialization');
@@ -71,7 +72,9 @@ if (rootElement) {
   
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <CatComfortGame />
+      <ErrorBoundary>
+        <CatComfortGame />
+      </ErrorBoundary>
     </React.StrictMode>,
   );
   
