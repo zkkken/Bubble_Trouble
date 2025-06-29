@@ -1,407 +1,181 @@
 import express from 'express';
-import { createServer, getContext, getServerPort } from '@devvit/server';
-import { InitResponse, GameDataResponse, UpdateGameResponse, ResetGameResponse } from '../shared/types/game';
-import { postConfigGet, postConfigNew, postConfigMaybeGet, handleButtonPress, resetGame, processGameUpdate } from './core/post';
+import { createServer, getServerPort } from '@devvit/server';
+import { getRedis } from '@devvit/redis';
 import { 
   submitScore, 
-  getLeaderboard, 
-  getPlayerBest, 
-  debugLeaderboard,
-  getContinentStats,
+  getContinentLeaderboard,
+  getContinentRankings,
   PlayerScore,
-  LeaderboardData,
-  ContinentStats
 } from './core/leaderboard';
-import { getRedis } from '@devvit/redis';
 
 const app = express();
-
-// 确保开启 JSON 解析
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.text());
-
 const router = express.Router();
 
-// ==================== 现有的游戏API路由 ====================
-
-router.get('/api/init', async (_req, res): Promise<void> => {
-  try {
-    const { postId } = getContext();
-    const redis = getRedis();
-
-    if (!postId) {
-      res.status(400).json({
-        status: 'error',
-        message: 'postId is required but missing from context',
-      });
-      return;
-    }
-
-    let config = await postConfigMaybeGet({ redis, postId });
-    if (!config) {
-      await postConfigNew({ redis, postId });
-    }
-
-    res.json({
-      status: 'success',
-      postId: postId,
-    });
-  } catch (error) {
-    console.error('API Init Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error during initialization';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
-router.get('/api/game-data', async (_req, res): Promise<void> => {
-  try {
-    const { postId } = getContext();
-    const redis = getRedis();
-
-    if (!postId) {
-      res.status(400).json({ status: 'error', message: 'postId is required' });
-      return;
-    }
-
-    const config = await postConfigGet({ redis, postId });
-    
-    res.json({
-      status: 'success',
-      gameState: config.gameState,
-      currentRound: config.currentRound,
-    });
-  } catch (error) {
-    console.error('API Game Data Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
-router.post('/api/update-game', async (req, res): Promise<void> => {
-  try {
-    const { deltaTime } = req.body;
-    const { postId } = getContext();
-    const redis = getRedis();
-
-    if (!postId) {
-      res.status(400).json({ status: 'error', message: 'postId is required' });
-      return;
-    }
-
-    if (typeof deltaTime !== 'number') {
-      res.status(400).json({ status: 'error', message: 'deltaTime is required' });
-      return;
-    }
-
-    const updatedGameState = await processGameUpdate({ redis, postId, deltaTime });
-    
-    res.json({
-      status: 'success',
-      gameState: updatedGameState,
-    });
-  } catch (error) {
-    console.error('API Update Game Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
-router.post('/api/button-press', async (req, res): Promise<void> => {
-  try {
-    const { buttonType, isPressed } = req.body;
-    const { postId } = getContext();
-    const redis = getRedis();
-
-    if (!postId) {
-      res.status(400).json({ status: 'error', message: 'postId is required' });
-      return;
-    }
-
-    if (!buttonType || typeof isPressed !== 'boolean') {
-      res.status(400).json({ status: 'error', message: 'buttonType and isPressed are required' });
-      return;
-    }
-
-    const gameState = await handleButtonPress({ redis, postId, buttonType, isPressed });
-    
-    res.json({
-      status: 'success',
-      gameState,
-    });
-  } catch (error) {
-    console.error('API Button Press Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
-router.post('/api/reset-game', async (req, res): Promise<void> => {
-  try {
-    const { newRound } = req.body;
-    const { postId } = getContext();
-    const redis = getRedis();
-
-    if (!postId) {
-      res.status(400).json({ status: 'error', message: 'postId is required' });
-      return;
-    }
-
-    const result = await resetGame({ redis, postId, newRound });
-    
-    res.json({
-      status: 'success',
-      gameState: result.gameState,
-      currentRound: result.currentRound,
-    });
-  } catch (error) {
-    console.error('API Reset Game Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ status: 'error', message });
-  }
-});
-
-// ==================== 坚持时长排行榜API路由 ====================
+// ================= 排行榜 API 路由 (V2) =================
 
 /**
- * 提交分数到全球排行榜
- * Submit score to global leaderboard
- * POST /api/submit-score
+ * 提交分数并获取本次游戏的最终统计数据
+ * (供 GameCompletionScreen 使用)
  */
-router.post('/api/submit-score', async (req, res): Promise<void> => {
+router.post('/api/submit-score', async (req, res) => {
   try {
-    console.log('Submit score API called with body:', req.body);
-    
     const playerScore: PlayerScore = req.body;
     const redis = getRedis();
-
-    // 验证必需字段
-    if (!playerScore.playerId || !playerScore.playerName || typeof playerScore.enduranceDuration !== 'number') {
-      const errorMsg = 'Missing required fields: playerId, playerName, or enduranceDuration';
-      console.error('Submit score validation error:', errorMsg);
-      res.status(400).json({ 
-        status: 'error', 
-        message: errorMsg
-      });
-      return;
-    }
-
-    // 验证洲际ID
-    if (!playerScore.continentId) {
-      const errorMsg = 'continentId is required';
-      console.error('Submit score validation error:', errorMsg);
-      res.status(400).json({ 
-        status: 'error', 
-        message: errorMsg
-      });
-      return;
-    }
-
-    console.log(`Processing score submission: ${playerScore.playerName} (${playerScore.playerId})`);
-    console.log(`Endurance duration: ${playerScore.enduranceDuration}s, Continent: ${playerScore.continentId}`);
-
-    // 添加时间戳
-    const playerScoreWithTimestamp: PlayerScore = {
-      ...playerScore,
-      completedAt: Date.now()
-    };
-
-    const result = await submitScore({
-      redis,
-      playerScore: playerScoreWithTimestamp
-    });
-
-    console.log('Score submission result:', result);
-
-    res.status(201).json({
-      status: 'success',
-      data: result,
-      message: result.message
-    });
-  } catch (error) {
-    console.error('API Submit Score Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
-      status: 'error', 
-      message 
-    });
-  }
-});
-
-/**
- * 获取排行榜数据 (支持洲际过滤)
- * Get leaderboard data (supports continent filtering)
- * GET /api/leaderboard?continentId=XX
- */
-router.get('/api/leaderboard', async (req, res): Promise<void> => {
-  try {
-    console.log('Leaderboard API called with query:', req.query);
     
-    const limit = parseInt(req.query.limit as string) || 100;
-    const continentId = req.query.continentId as string;
-    const redis = getRedis();
-
-    console.log(`Getting leaderboard with limit: ${limit}, continentId: ${continentId || 'global'}`);
-
-    // 调试：打印 Redis 中的数据
-    await debugLeaderboard(redis);
-
-    const leaderboardData: LeaderboardData = await getLeaderboard({ 
-      redis, 
-      limit,
-      continentId 
-    });
-
-    console.log('Leaderboard data retrieved:', {
-      entriesCount: leaderboardData.entries.length,
-      totalPlayers: leaderboardData.totalPlayers,
-      continentId: leaderboardData.continentId
-    });
-
-    res.json({
-      status: 'success',
-      data: leaderboardData
-    });
-  } catch (error) {
-    console.error('API Leaderboard Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
-      status: 'error', 
-      message 
-    });
-  }
-});
-
-/**
- * 获取洲际统计数据
- * Get continent statistics
- * GET /api/leaderboard/stats
- */
-router.get('/api/leaderboard/stats', async (_req, res): Promise<void> => {
-  try {
-    console.log('Continent stats API called');
+    // 核心逻辑现在返回详细的统计信息
+    const stats = await submitScore({ redis, playerScore });
     
-    const redis = getRedis();
-    const continentStats: ContinentStats[] = await getContinentStats({ redis });
-
-    console.log('Continent statistics retrieved:', continentStats);
-
-    res.json({
-      status: 'success',
-      data: continentStats
-    });
+    res.status(201).json({ status: 'success', data: stats });
   } catch (error) {
-    console.error('API Continent Stats Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ 
-      status: 'error', 
-      message 
-    });
-  }
-});
-
-/**
- * 获取玩家个人最佳成绩
- * Get player's personal best score
- * GET /api/player-best
- */
-router.get('/api/player-best', async (req, res): Promise<void> => {
-  try {
-    console.log('Player best API called with query:', req.query);
-    
-    const playerId = req.query.playerId as string;
-    const redis = getRedis();
-
-    if (!playerId) {
-      res.status(400).json({ 
-        status: 'error', 
-        message: 'playerId is required' 
-      });
-      return;
-    }
-
-    console.log(`Getting best score for player: ${playerId}`);
-
-    const playerBest = await getPlayerBest({ redis, playerId });
-
-    console.log('Player best score retrieved:', playerBest);
-
-    res.json({
-      status: 'success',
-      data: playerBest
-    });
-  } catch (error) {
-    console.error('API Player Best Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[API /submit-score] Error:', message);
     res.status(500).json({ status: 'error', message });
   }
 });
 
-// ==================== 调试和管理API路由 ====================
+/**
+ * 获取洲际统计数据 (供 LeaderboardRankingScreen 使用)
+ * 返回完整的统计数据，包括平均时间用于排名
+ */
+router.get('/api/leaderboard/stats', async (_req, res) => {
+  console.log('🔍 [API /leaderboard/stats] 开始处理请求...');
+  try {
+    console.log('🔍 [API /leaderboard/stats] 获取Redis连接...');
+    const redis = getRedis();
+    console.log('🔍 [API /leaderboard/stats] Redis连接成功，调用getContinentRankings...');
+    
+    const rankings = await getContinentRankings({ redis });
+    console.log('🔍 [API /leaderboard/stats] getContinentRankings完成，结果数量:', rankings.length);
+    
+    // 输出服务器端详细统计信息
+    console.log('📊 洲际统计数据:');
+    rankings.forEach(ranking => {
+      const averageTime = ranking.playerCount > 0 ? ranking.totalDuration / ranking.playerCount : 0;
+      console.log(`   [${ranking.continentId}] ${ranking.continentName}: ${ranking.playerCount}人, 总时长${ranking.totalDuration.toFixed(1)}s, 平均${averageTime.toFixed(1)}s`);
+    });
+    
+    // 返回完整的统计数据，包括用于排名的平均时间
+    const stats = rankings.map(ranking => ({
+      continentId: ranking.continentId,
+      continentName: ranking.continentName,
+      playerCount: ranking.playerCount,
+      totalDuration: ranking.totalDuration,
+      averageTime: ranking.playerCount > 0 ? ranking.totalDuration / ranking.playerCount : 0,
+      flag: `Map_Cat_${ranking.continentId}.png`, // 生成flag图片名
+    }));
+    
+    console.log('🔍 [API /leaderboard/stats] 数据转换完成，准备返回...');
+    res.json({ status: 'success', data: stats });
+    console.log('🔍 [API /leaderboard/stats] 请求处理完成');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const stack = error instanceof Error ? error.stack : 'No stack trace';
+    console.error('[API /leaderboard/stats] Error:', message);
+    console.error('[API /leaderboard/stats] Stack:', stack);
+    res.status(500).json({ status: 'error', message });
+  }
+});
 
 /**
- * 调试排行榜数据
- * Debug leaderboard data
- * GET /api/debug-leaderboard
+ * 获取按玩家人数排序的所有大洲排名
+ * (供 LeaderboardRankingScreen 使用)
  */
-router.get('/api/debug-leaderboard', async (_req, res): Promise<void> => {
+router.get('/api/leaderboard/continents', async (_req, res) => {
   try {
     const redis = getRedis();
-    await debugLeaderboard(redis);
+    const rankings = await getContinentRankings({ redis });
+    res.json({ status: 'success', data: rankings });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[API /leaderboard/continents] Error:', message);
+    res.status(500).json({ status: 'error', message });
+  }
+});
+
+/**
+ * 获取特定大洲的玩家排行榜 (Top 20)
+ * (供 ContinentRankingScreen 使用)
+ */
+router.get('/api/leaderboard/:continentId', async (req, res) => {
+  try {
+    const { continentId } = req.params;
+    const redis = getRedis();
+
+    if (!continentId) {
+      return res.status(400).json({ status: 'error', message: 'Continent ID is required.' });
+    }
+
+    const continentIdUpper = continentId.toUpperCase();
+    const leaderboard = await getContinentLeaderboard({
+      redis,
+      continentId: continentIdUpper,
+      limit: 20,
+    });
+
+    // 获取该洲的统计信息（使用现有函数）
+    const allRankings = await getContinentRankings({ redis });
+    const continentStats = allRankings.find(r => r.continentId === continentIdUpper);
+    
+    const playerCount = continentStats?.playerCount || 0;
+    const totalTime = continentStats?.totalDuration || 0;
+    const averageTime = playerCount > 0 ? totalTime / playerCount : 0;
+
+    // 输出详细日志
+    console.log(`📊 [${continentIdUpper}] 洲际排行榜统计:`);
+    console.log(`   - 总玩家数: ${playerCount}`);
+    console.log(`   - 洲总用时: ${totalTime.toFixed(1)}s`);
+    console.log(`   - 平均用时: ${averageTime.toFixed(1)}s`);
+    console.log(`   - 排行榜条目: ${leaderboard.length}`);
+    console.log(`   - 前5名:`);
+    leaderboard.slice(0, 5).forEach((player, index) => {
+      console.log(`     ${index + 1}. ${player.playerName}: ${player.enduranceDuration}s`);
+    });
+
     res.json({ 
       status: 'success', 
-      message: 'Endurance leaderboard debug info printed to console' 
+      data: leaderboard,
+      stats: {
+        continentId: continentIdUpper,
+        playerCount,
+        totalTime,
+        averageTime
+      }
     });
   } catch (error) {
-    console.error('Debug API Error:', error);
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'Debug failed' 
-    });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[API /leaderboard/${req.params.continentId}] Error:`, message);
+    res.status(500).json({ status: 'error', message });
   }
 });
 
-/**
- * 健康检查
- * Health check
- * GET /api/health
- */
-router.get('/api/health', async (_req, res): Promise<void> => {
+// Player best functionality removed as it's not available in simplified leaderboard
+
+
+// ==================== 管理 & 调试 API ====================
+
+router.get('/api/health', async (_req, res) => {
   try {
     const redis = getRedis();
-    
-    // 简单的 Redis 连接测试
-    await redis.ping();
-    
-    res.json({
-      status: 'success',
-      message: 'Server and Redis are healthy',
-      timestamp: new Date().toISOString()
-    });
+    // 简单检查Redis连接（通过尝试一个基本操作）
+    await (redis as any).set('health_check', 'ok');
+    res.json({ status: 'success', message: 'Server and Redis are healthy' });
   } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Health check failed',
-      timestamp: new Date().toISOString()
-    });
+    res.status(500).json({ status: 'error', message: 'Redis connection failed' });
   }
 });
 
-// 应用路由
 app.use(router);
 
 const port = getServerPort();
 const server = createServer(app);
-server.on('error', (err) => console.error(`server error; ${err.stack}`));
+
 server.listen(port, () => {
-  console.log(`🚀 Endurance Leaderboard Server running on http://localhost:${port}`);
-  console.log('📊 Available endpoints:');
-  console.log('  POST /api/submit-score - Submit player score to global leaderboard');
-  console.log('  GET  /api/leaderboard - Get global leaderboard data');
-  console.log('  GET  /api/leaderboard?continentId=XX - Get continent-specific leaderboard');
-  console.log('  GET  /api/leaderboard/stats - Get continent statistics');
-  console.log('  GET  /api/player-best - Get player personal best score');
-  console.log('  GET  /api/debug-leaderboard - Debug leaderboard data');
-  console.log('  GET  /api/health - Health check');
+  console.log(`🚀 Leaderboard Server (V2) running on http://localhost:${port}`);
+  console.log('Routes:');
+  console.log('  POST /api/submit-score');
+  console.log('  GET  /api/leaderboard/continents');
+  console.log('  GET  /api/leaderboard/:continentId');
+  console.log('  GET  /api/player-best?playerId=...');
+  console.log('  GET  /api/health');
 });

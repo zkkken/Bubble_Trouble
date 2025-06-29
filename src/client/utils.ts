@@ -128,13 +128,7 @@ export function getScaleFactor(originalWidth: number = BASE_WIDTH): number {
   // 应用最小和最大缩放限制
   const scaleFactor = Math.min(maxAllowedScale, Math.max(MIN_SCALE_FACTOR, rawScaleFactor));
   
-  // 调试信息
-  console.log(`🎯 精准响应式缩放:
-    - 视口: ${viewportWidth}px
-    - 原始缩放: ${rawScaleFactor.toFixed(3)}
-    - 应用缩放: ${scaleFactor.toFixed(3)} (${(scaleFactor * 100).toFixed(1)}%)
-    - 容器尺寸: ${Math.round(originalWidth * scaleFactor)}px
-    - 限制: ${MIN_SCALE_FACTOR}-${maxAllowedScale.toFixed(3)}`);
+  // 调试信息已移除
   
   return scaleFactor;
 }

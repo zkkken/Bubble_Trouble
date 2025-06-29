@@ -16,6 +16,8 @@ interface ContinentStats {
   continentId: string;
   continentName: string;
   playerCount: number;
+  totalDuration: number;
+  averageTime: number;
   flag: string;
 }
 
@@ -42,12 +44,26 @@ const getPlayerInfo = () => {
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem('catComfortGame_playerInfo');
     if (stored) {
-      return JSON.parse(stored);
+      try {
+        const parsed = JSON.parse(stored);
+        console.log('📱 获取玩家信息:', parsed);
+        return {
+          playerName: parsed.playerName || 'Player',
+          continentId: parsed.continentId || 'AS',
+          catAvatarId: parsed.catAvatarId || '1',
+          selectedCat: parsed.selectedCat || '/Cat_1.png'
+        };
+      } catch (error) {
+        console.error('解析玩家信息失败:', error);
+      }
     }
   }
   // 默认玩家信息
+  console.log('📱 使用默认玩家信息');
   return {
     playerName: 'Player',
+    continentId: 'AS',
+    catAvatarId: '1',
     selectedCat: '/Cat_1.png'
   };
 };
@@ -110,34 +126,33 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     'AF': '/africa.png'
   };
 
-  // 获取玩家所在的洲际ID（基于地理位置或默认）
-  const getPlayerContinent = (): string => {
-    // 可以根据玩家IP或设置来确定，这里使用随机或默认
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('catComfortGame_playerContinent');
-      if (stored) {
-        return stored;
-      }
-      
-      // 设置玩家在大洋洲（排名最后），这样容易看到效果
-      localStorage.setItem('catComfortGame_playerContinent', 'OC');
-      return 'OC';
-    }
-    // 默认返回亚洲
-    return 'AS';
-  };
 
-  // 根据玩家人数为洲际生成随机猫咪
+
+  // 根据玩家人数为洲际生成随机猫咪 - 每个人对应一只猫，最多20只
   const generateCatsForContinent = (playerCount: number, continentId: string): CatData[] => {
-    const numCats = Math.min(Math.max(3, Math.floor(playerCount / 10)), 15); // 根据玩家人数生成3-15只猫咪
     const cats: CatData[] = [];
     const usedPositions: Array<{ x: number; y: number; size: number }> = [];
-    const playerContinent = getPlayerContinent();
+    const playerContinentId = playerInfo.continentId; // 从玩家信息中获取洲ID
 
-    // 如果是玩家所在的洲，为玩家主猫咪和名牌预留空间
-    if (continentId === playerContinent) {
-      usedPositions.push({ x: 0, y: 0, size: 106 }); // 主猫咪区域 106x130
+    console.log(`🐱 [${continentId}] 开始生成猫咪 - 玩家数: ${playerCount}, 是否玩家洲: ${continentId === playerContinentId}`);
+
+    // 如果是玩家所在的洲，人数要减1（因为玩家本身不算在自动生成的猫咪中）
+    let actualPlayerCount = playerCount;
+    if (continentId === playerContinentId) {
+      actualPlayerCount = Math.max(0, playerCount - 1);
+      console.log(`🏠 [${continentId}] 玩家所在洲，显示人数减1: ${playerCount} -> ${actualPlayerCount}`);
     }
+
+    // 严格按照玩家数量生成猫咪，没有玩家就不生成
+    if (actualPlayerCount === 0) {
+      console.log(`🚫 [${continentId}] 实际玩家数为0，不生成任何猫咪`);
+      return cats;
+    }
+
+    // 每个玩家对应一只猫，最多20只
+    let numCats = Math.min(actualPlayerCount, 20);
+    
+    console.log(`🐱 [${continentId}] 计算猫咪数量: ${actualPlayerCount}位实际玩家 -> ${numCats}只猫咪`);
 
     const isPositionValid = (x: number, y: number, size: number): boolean => {
       // 检查边界（在卡片区域内，考虑猫咪框架）
@@ -154,9 +169,19 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
       return true;
     };
 
+    // 如果是玩家所在的洲，需要为主猫咪预留位置
+    if (continentId === playerContinentId) {
+      // 在中心预留主猫咪的位置
+      const mainCatX = scale(313) / 2 - scale(60); // 中心位置
+      const mainCatY = scale(143) / 2 - scale(60);
+      usedPositions.push({ x: mainCatX, y: mainCatY, size: scale(120) }); // 主猫咪区域
+      console.log(`🐱 [${continentId}] 为玩家主猫咪预留位置 (${mainCatX}, ${mainCatY})`);
+    }
+
+    // 生成猫咪
     let attempts = 0;
-    while (cats.length < numCats - 1 && attempts < 100) {
-      const size = Math.floor(Math.random() * 21) + scale(40); // 响应式大小40-60px
+    while (cats.length < numCats && attempts < 100) {
+      const size = Math.floor(Math.random() * scale(40)) + scale(25); // 25-65px随机大小
       const x = Math.floor(Math.random() * (scale(313) - size));
       const y = Math.floor(Math.random() * (scale(143) - size));
 
@@ -167,13 +192,15 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           x,
           y,
           size,
-          flipped: Math.random() > 0.5
+          flipped: Math.random() > 0.5 // 随机左右翻转
         });
         usedPositions.push({ x, y, size });
+        console.log(`🐱 [${continentId}] 生成猫咪 ${cats.length}/${numCats} - 位置(${x}, ${y}), 大小${size}`);
       }
       attempts++;
     }
 
+    console.log(`🐱 [${continentId}] 猫咪生成完成: ${cats.length}/${numCats} (尝试${attempts}次)`);
     return cats;
   };
 
@@ -191,18 +218,61 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
         if (data.status === 'success') {
           setContinentStats(data.data);
           
-          // 按玩家人数排序洲际（降序）并生成排名
-          const sortedStats = [...data.data].sort((a, b) => b.playerCount - a.playerCount);
-          const generatedRankings: ContinentRanking[] = sortedStats.map((stat, index) => ({
-            name: continentNames[stat.continentId] || stat.continentName?.toUpperCase() || 'UNKNOWN',
-            continentId: stat.continentId,
-            rank: index + 1,
-            playerCount: stat.playerCount,
-            rankImage: index < 3 ? `/rankingbadge--${index + 1}.png` : "/rankingbadge-normal-2.png",
-            cats: generateCatsForContinent(stat.playerCount, stat.continentId)
-          }));
+          console.log('📊 API返回的原始洲际数据:', data.data.map((stat: ContinentStats) => ({
+            洲ID: stat.continentId,
+            洲名: stat.continentName,
+            玩家数: stat.playerCount,
+            总时长: stat.totalDuration?.toFixed(1) || '0.0',
+            平均时间: stat.averageTime?.toFixed(1) || '0.0'
+          })));
+          
+          // 按平均耐久时间排序洲际（降序 - 时间长的排名靠前）
+          // 没有玩家的洲际平均时间为0，会排在最后
+          const sortedStats = [...data.data].sort((a, b) => {
+            // 有玩家的洲际优先，然后按平均时间降序
+            if (a.playerCount === 0 && b.playerCount === 0) return 0;
+            if (a.playerCount === 0) return 1;
+            if (b.playerCount === 0) return -1;
+            return b.averageTime - a.averageTime;
+          });
+          
+          console.log('📊 排序后的洲际数据:', sortedStats.map((stat, index) => ({
+            排名: index + 1,
+            洲ID: stat.continentId,
+            洲名: stat.continentName,
+            玩家数: stat.playerCount,
+            平均时间: stat.averageTime?.toFixed(1) || '0.0'
+          })));
+          
+          const generatedRankings: ContinentRanking[] = sortedStats.map((stat, index) => {
+            const cats = generateCatsForContinent(stat.playerCount, stat.continentId);
+            
+            const ranking = {
+              name: continentNames[stat.continentId] || stat.continentName?.toUpperCase() || 'UNKNOWN',
+              continentId: stat.continentId,
+              rank: index + 1,
+              playerCount: stat.playerCount,
+              rankImage: index < 3 ? `/rankingbadge--${index + 1}.png` : "/rankingbadge-normal-2.png",
+              cats
+            };
+            
+            // 检查猫咪生成数量
+            console.log(`🐱 [${stat.continentId}] ${ranking.name}: 玩家数${stat.playerCount}, 平均时间${stat.averageTime?.toFixed(1) || '0.0'}s, 生成猫咪${cats.length}只`);
+            
+            return ranking;
+          });
 
-          setRankings(generatedRankings); // 只显示有数据的洲际
+          // 输出完整排名数据
+          console.log('🌍 最终洲际排名:', generatedRankings.map(r => ({
+            排名: r.rank,
+            洲名: r.name,
+            洲ID: r.continentId,
+            玩家总数: r.playerCount,
+            生成猫咪数: r.cats.length,
+            徽章: r.rankImage
+          })));
+
+          setRankings(generatedRankings);
         } else {
           console.error('获取洲际统计失败:', data.message);
         }
@@ -410,11 +480,11 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
           ref={scrollContainerRef}
           className="absolute overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           style={{
-            top: `${scale(289)}px`,
+            top: `${scale(0)}px`,
             left: '50%',
             marginLeft: `${scale(-207)}px`, // 负的内容区域一半宽度进行居中
             width: `${scale(414)}px`,
-            height: `${scale(124)}px`
+            height: `100%`
           }}
           onScroll={handleScroll}
         >
@@ -503,13 +573,12 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                     
                     {/* PassedCat_Text - 玩家数量 */}
                     <div 
-                      className="relative text-center text-[#161616] font-bold"
+                      className="relative text-center text-[#161616] font-bold silkscreen-bold"
                       style={{
                         width: `${scale(165)}px`,
                         height: `${scale(27)}px`,
                         left: 0,
                         fontSize: `${scale(10)}px`,
-                        fontFamily: 'Silkscreen, monospace'
                       }}
                     >
                       {ranking.playerCount} meow clears!
@@ -556,14 +625,14 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                   {/* 显示第4名以后的排名数字 */}
                   {ranking.rank > 3 && (
                     <div 
-                      className="absolute flex items-center justify-center text-white font-bold"
+                      className="absolute flex items-center justify-center text-white font-bold silkscreen-bold"
                       style={{
                         width: `${scale(50)}px`,
                         height: `${scale(50)}px`,
                         top: `${scale(87)}px`,
                         left: 0,
                         fontSize: `${scale(18)}px`,
-                        fontFamily: 'Silkscreen, monospace'
+                        WebkitTextStroke: `${scale(2)}px #000`
                       }}
                     >
                       {ranking.rank}
@@ -599,7 +668,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                   ))}
 
                   {/* 只在玩家所在的洲显示主猫咪和名牌 */}
-                  {ranking.continentId === getPlayerContinent() && (
+                  {ranking.continentId === playerInfo.continentId && (
                     /* 玩家主猫咪和名牌（类似GameCompletionScreen） */
                     <div 
                       className="absolute"
@@ -647,7 +716,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
                           left: `${scale(9)}px`
                         }}
                         alt="玩家的猫咪"
-                        src={playerInfo.selectedCat}
+                        src={`/Cat_${playerInfo.catAvatarId || '1'}.png`}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "/Cat_1.png";

@@ -1,4 +1,4 @@
-import { Devvit, Post } from '@devvit/public-api';
+import { Devvit, Post, useWebView } from '@devvit/public-api';
 import '../server/index';
 import { defineConfig } from '@devvit/server';
 import { postConfigNew } from '../server/core/post';
@@ -12,7 +12,7 @@ import {
 } from './utils';
 
 defineConfig({
-  name: '[Bolt] Cat Comfort Game',
+  name: 'BubbleTrouble',
   entry: 'index.html',
   height: 'tall',
   menu: { enable: false },
@@ -92,7 +92,7 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = (_, context) => {
           {/* 主标题区域 - 完全响应式 */}
           <vstack alignment="center middle" gap={smallSpacing}>
             <text size={titleFontSize} weight="bold" color="white">
-              🐱 Cat Comfort Game 🐱
+              🐱 Bubble Trouble 🐱
             </text>
             <text color="white" size={subtitleFontSize} alignment="center">
               🎮 Keep the cat comfortable! 🎮
@@ -181,7 +181,7 @@ export const CatComfortGameDevvit: Devvit.BlockComponent = (_, context) => {
 };
 
 Devvit.addMenuItem({
-  label: '[Bolt Cat Comfort Game]: New Post',
+  label: 'Bubble_Trouble: New Post',
   location: 'subreddit',
   forUserType: 'moderator',
   onPress: async (_, context) => {
@@ -193,7 +193,7 @@ Devvit.addMenuItem({
       
       // 使用响应式预览组件
       post = await reddit.submitPost({
-        title: 'Cat Comfort Game - Keep the Cat Happy! 🐱',
+        title: 'Bubble Trouble - Keep the Cat Happy! 🐱',
         subredditName: subreddit.name,
         preview: <CatComfortGameDevvit />,
       });
@@ -228,5 +228,95 @@ Devvit.addMenuItem({
     }
   },
 });
+
+// 注意：分享功能需要在实际的WebView帖子中实现
+// 这里暂时保留原有的菜单项功能，分享功能将在WebView中通过postMessage实现
+
+// 处理游戏结果分享请求
+export async function handleShareGameResult(payload: any, context: any) {
+  try {
+    const { playerName, score, time, continentName, gamePostUrl } = payload;
+    console.log('Processing share request for player:', playerName);
+    
+    // 获取当前subreddit
+    const subreddit = await context.reddit.getCurrentSubreddit();
+    const gameName = 'Cat Shower Game';
+    
+    // 使用新的分享文案格式
+    const shareTitle = `玩家🐱 ${playerName} 在${gameName}中获得了 ${score}% 的成绩！`;
+    
+    const shareContent = `🎮 **游戏结果分享** 🎮
+
+👤 **玩家**: ${playerName}
+🌍 **地区**: ${continentName}
+📊 **成绩**: ${score}%
+⏱️ **用时**: ${time}
+
+🏆 ${playerName} 在 ${gameName} 中表现出色！
+
+你能超越这个成绩吗？快来挑战吧！ 🐾
+${gamePostUrl || 'https://www.reddit.com/r/catshowergame'}
+---
+*通过 ${gameName} 自动分享*`;
+    
+    // 创建新的Reddit帖子
+    const resultPost = await context.reddit.submitPost({
+      subredditName: subreddit.name,
+      title: shareTitle,
+      text: shareContent
+    });
+    
+    console.log('Share post created successfully:', resultPost.id);
+    
+    // 发送成功消息回WebView
+    if (context.ui && context.ui.postMessage) {
+      context.ui.postMessage({
+        type: 'shareResultSuccess',
+        payload: {
+          url: resultPost.url,
+          postId: resultPost.id
+        }
+      });
+    }
+    
+    // 显示成功提示
+    if (context.ui && context.ui.showToast) {
+      context.ui.showToast({ text: '🎉 分享成功！帖子已创建' });
+    }
+    
+    return resultPost;
+    
+  } catch (error) {
+    console.error('Error creating share post:', error);
+    
+    // 发送错误消息回WebView
+    if (context.ui && context.ui.postMessage) {
+      context.ui.postMessage({
+        type: 'shareResultError',
+        payload: { 
+          error: typeof error === 'object' && error && 'message' in error 
+            ? (error as Error).message 
+            : '分享失败，请稍后再试' 
+        }
+      });
+    }
+    
+    if (context.ui && context.ui.showToast) {
+      context.ui.showToast({ text: '❌ 分享失败，请稍后再试' });
+    }
+    
+    throw error;
+  }
+}
+
+// 辅助函数：处理游戏结果分享（简化版本，保持向后兼容）
+export async function createSharePost(gameData: {
+  playerName: string;
+  score: number;
+  time: string;
+  continentName: string;
+}, context: any) {
+  return handleShareGameResult(gameData, context);
+}
 
 export default Devvit;

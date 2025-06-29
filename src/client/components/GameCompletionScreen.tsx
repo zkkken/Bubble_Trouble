@@ -7,19 +7,24 @@
  * @author 开发者B - UI/UX 界面负责人
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
+import { ImagePreviewModal } from './ImagePreviewModal';
+import { SuccessToast } from './SuccessToast';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { 
+  captureGameCompletionScreenshot, 
+  downloadImage, 
+  shareResultToClipboard
+} from '../utils/shareUtils';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
   onBackToStart: () => void;
   gameStats: {
-    roundsCompleted: number;
-    totalTime: number;
-    finalComfort: number;
+    enduranceDuration: number;
   };
   playerInfo: {
     playerName: string;
@@ -35,10 +40,119 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   playerInfo,
 }) => {
   const [showRanking, setShowRanking] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState('');
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
+  
+  // 洲ID到图片映射
+  const getContinentImage = (continentId: string): string => {
+    const continentImages: { [key: string]: string } = {
+      'NA': '/namerica.png',
+      'SA': '/samerica.png', 
+      'EU': '/europe.png',
+      'AS': '/asia.png',
+      'AF': '/africa.png',
+      'OC': '/oceania.png'
+    };
+    return continentImages[continentId] || '/asia.png';
+  };
+
+  // 洲ID到全名映射
+  const getContinentName = (continentId: string): string => {
+    const continentNames: { [key: string]: string } = {
+      'NA': 'NORTH AMERICA',
+      'SA': 'SOUTH AMERICA', 
+      'EU': 'EUROPE',
+      'AS': 'ASIA',
+      'AF': 'AFRICA',
+      'OC': 'OCEANIA'
+    };
+    return continentNames[continentId] || continentId;
+  };
+
+  // 获取洲排名（实际从API获取）
+  const [continentRank, setContinentRank] = React.useState<number>(1);
+  const [playerRank, setPlayerRank] = React.useState<number>(1);
+  const [playerRankPercentage, setPlayerRankPercentage] = React.useState<number>(50);
+
+  // 获取实际排名数据
+  React.useEffect(() => {
+    const fetchRankingData = async () => {
+      try {
+        // 获取洲际排名
+        const continentResponse = await fetch('/api/leaderboard/stats');
+        const continentData = await continentResponse.json();
+        
+        console.log('🏆 GameCompletionScreen获取洲际数据:', continentData);
+        
+        if (continentData.status === 'success' && continentData.data) {
+          // 按平均时间降序排序（时间长的排名靠前）
+          const sortedContinents = [...continentData.data].sort((a: any, b: any) => {
+            // 有玩家的洲际优先，然后按平均时间降序
+            if (a.playerCount === 0 && b.playerCount === 0) return 0;
+            if (a.playerCount === 0) return 1;
+            if (b.playerCount === 0) return -1;
+            return b.averageTime - a.averageTime;
+          });
+          
+          console.log('🏆 排序后的洲际数据:', sortedContinents.map((c: any, index: number) => ({
+            排名: index + 1,
+            洲ID: c.continentId,
+            洲名: c.continentName,
+            玩家数: c.playerCount,
+            平均时间: c.averageTime?.toFixed(1) || '0.0'
+          })));
+          
+          const rank = sortedContinents.findIndex((c: any) => c.continentId === playerInfo.continentId) + 1;
+          console.log(`🏆 玩家洲${playerInfo.continentId}的排名: ${rank}`);
+          setContinentRank(rank);
+        }
+
+        // 获取玩家个人排名（提交本局成绩后的排名）
+        const playerData = {
+          playerName: playerInfo.playerName,
+          continentId: playerInfo.continentId,
+          catAvatarId: playerInfo.catAvatarId,
+          enduranceDuration: gameStats.enduranceDuration
+        };
+
+        const submitResponse = await fetch('/api/leaderboard/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(playerData)
+        });
+
+        if (submitResponse.ok) {
+          const submitResult = await submitResponse.json();
+          if (submitResult.playerRank) {
+            setPlayerRank(submitResult.playerRank);
+            
+            // 计算超过的玩家百分比
+            const leaderboardResponse = await fetch(`/api/leaderboard/${playerInfo.continentId}?limit=1000`);
+            const leaderboardData = await leaderboardResponse.json();
+            
+            if (leaderboardData.stats && leaderboardData.stats.playerCount > 0) {
+              const totalPlayers = leaderboardData.stats.playerCount;
+              const playersBeaten = totalPlayers - submitResult.playerRank;
+              const percentage = Math.round((playersBeaten / totalPlayers) * 100);
+              setPlayerRankPercentage(Math.max(0, percentage));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('获取排名数据失败:', error);
+        // 使用默认值
+      }
+    };
+
+    fetchRankingData();
+  }, [playerInfo, gameStats.enduranceDuration]);
+  
   // 格式化时间显示
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -46,148 +160,99 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 获取洲际名称
-  const getContinentName = (continentId: string): string => {
-    const continentNames: { [key: string]: string } = {
-      'AS': 'Asia',
-      'EU': 'Europe', 
-      'NA': 'North America',
-      'SA': 'South America',
-      'AF': 'Africa',
-      'OC': 'Oceania'
-    };
-    return continentNames[continentId] || continentId;
-  };
-
-  // 计算表现百分比（基于时间和轮数）
-  const getPerformancePercentage = (): number => {
-    // 简单的性能计算：基于完成轮数和时间
-    const baseScore = gameStats.roundsCompleted * 20;
-    const timeBonus = Math.max(0, 60 - gameStats.totalTime) * 2;
-    return Math.min(99, Math.max(1, baseScore + timeBonus));
-  // 获取洲际名称
-  const getContinentName = (continentId: string): string => {
-    const continentNames: { [key: string]: string } = {
-      'AS': 'Asia',
-      'EU': 'Europe', 
-      'NA': 'North America',
-      'SA': 'South America',
-      'AF': 'Africa',
-      'OC': 'Oceania'
-    };
-    return continentNames[continentId] || continentId;
-  };
-
-  // 计算表现百分比（基于时间和轮数）
-  const getPerformancePercentage = (): number => {
-    // 简单的性能计算：基于完成轮数和时间
-    const baseScore = gameStats.roundsCompleted * 20;
-    const timeBonus = Math.max(0, 60 - gameStats.totalTime) * 2;
-    return Math.min(99, Math.max(1, baseScore + timeBonus));
-  };
-
-  // 动态生成猫咪数据
-  const generateCats = () => {
-    // 模拟排行榜人数（在实际应用中，这应该来自真实的排行榜数据）
-    const leaderboardCount = Math.floor(Math.random() * 100) + 10; // 10-110人
-    const catCount = Math.max(8, Math.min(20, Math.floor(leaderboardCount / 5))); // 最少8个，最多20个
+  // 根据玩家数生成猫咪动画（最少6个最多20个）
+  const generateRandomCats = (playerCount: number = 10) => {
+    const catCount = Math.max(6, Math.min(20, playerCount));
+    const cats = [];
+    const catImages = ['/Cat_1.png', '/Cat_2.png', '/Cat_3.png', '/Cat_4.png', '/Cat_5.png', '/Cat_6.png', '/Cat_7.png'];
     
-    const catImages = ["/Cat_1.png", "/Cat_2.png", "/Cat_3.png", "/Cat_5.png", "/Cat_6.png", "/Cat_7.png", "/Cat_4.png"];
+    // 猫咪框架尺寸（自适应缩放）
+    const frameWidth = scale(336);
+    const frameHeight = scale(228);
     
-    // 主猫咪和玩家姓名标签组合位置（居中）
-    const centerX = 394 / 2; // 卡片宽度的一半
-    const mainCatAndNameTagArea = {
-      left: centerX - 105/2, // 以姓名标签宽度为准居中
-      top: 48,
-      width: 120, // 以主猫咪宽度为准
-      height: 66 + 120, // 姓名标签高度 + 主猫咪高度
-    };
+    // 主猫咪位置（在框架顶部中央，避免被遮挡）
+    const mainCatCenterX = frameWidth / 2; 
+    const mainCatCenterY = scale(60); // 顶部位置
     
-    // 为了兼容现有逻辑，保留mainCat对象但标记为已处理
-    const mainCat = {
-      src: "/Cat_1.png",
-      size: 120,
-      top: 114,
-      left: centerX - 60, // 居中
-      isMain: true,
-    };
-    
-    // 生成其他猫咪
-    const otherCats: Array<{
-      src: string;
-      size: number;
-      top: number;
-      left: number;
-      isMain: boolean;
-      flipped: boolean;
-    }> = [];
-    const usedPositions: Array<{
-      left: number;
-      top: number;
-      right: number;
-      bottom: number;
-    }> = [];
-    
-    // 主猫咪现在在组合区域中，不需要单独添加
-    
-    // 添加主猫咪和姓名标签组合区域到已使用位置
-    usedPositions.push({
-      left: mainCatAndNameTagArea.left - 5,
-      top: mainCatAndNameTagArea.top - 5,
-      right: mainCatAndNameTagArea.left + mainCatAndNameTagArea.width + 5,
-      bottom: mainCatAndNameTagArea.top + mainCatAndNameTagArea.height + 5,
-    });
-    
-    // 检查位置是否冲突
-    const isPositionValid = (left: number, top: number, size: number) => {
-      for (const usedPos of usedPositions) {
-        if (
-          left < usedPos.right &&
-          left + size > usedPos.left &&
-          top < usedPos.bottom &&
-          top + size > usedPos.top
-        ) {
-          return false;
-        }
-      }
-      return left >= 16 && left + size <= 378 && top >= 114 && top + size <= 280; // 卡片边界限制
-    };
-    
-    // 生成其他猫咪
-    let attempts = 0;
-    while (otherCats.length < catCount - 1 && attempts < 100) {
-      // 70%概率生成50-100px的猫咪，30%概率生成45-49px的猫咪
-      const size = Math.random() > 0.3 
-        ? Math.floor(Math.random() * 51) + 50  // 50-100px
-        : Math.floor(Math.random() * 5) + 45; // 45-49px
-      const left = Math.floor(Math.random() * (394 - size - 32)) + 16; // 卡片内随机位置
-      const top = Math.floor(Math.random() * (280 - size - 114)) + 114; // 避开上方区域
+    for (let i = 0; i < catCount; i++) {
+      let attempts = 0;
+      let validPosition = false;
+      let catData;
       
-      if (isPositionValid(left, top, size)) {
-        otherCats.push({
-          src: catImages[Math.floor(Math.random() * catImages.length)] || "/Cat_1.png",
-          size,
-          top,
-          left,
-          isMain: false,
-          flipped: Math.random() > 0.5, // 随机决定是否翻转
-        });
+      while (!validPosition && attempts < 50) {
+        // 在框架内随机分布，但避开主猫咪区域
+        const size = Math.random() * scale(40) + scale(25); // 25-65px随机大小
+        const x = Math.random() * (frameWidth - size);
+        const y = Math.random() * (frameHeight - size);
         
-        // 添加到已使用位置
-        usedPositions.push({
-          left: left - 2,
-          top: top - 2,
-          right: left + size + 2,
-          bottom: top + size + 2,
-        });
+        // 检查是否与主猫咪区域重叠（避免遮挡）
+        const mainCatRadius = scale(80); // 主猫咪保护区域半径
+        const distanceToMain = Math.sqrt(
+          Math.pow(x + size/2 - mainCatCenterX, 2) + 
+          Math.pow(y + size/2 - mainCatCenterY, 2)
+        );
+        
+        if (distanceToMain > mainCatRadius) {
+          validPosition = true;
+          catData = {
+            src: catImages[Math.floor(Math.random() * catImages.length)],
+            size,
+            top: y,
+            left: x,
+            flipped: Math.random() > 0.5 // 随机左右翻转
+          };
+        }
+        attempts++;
       }
-      attempts++;
+      
+      if (catData) {
+        cats.push(catData);
+      }
     }
-    
-    return otherCats; // 只返回其他猫咪，主猫咪单独渲染
+    return cats;
   };
 
-  const cats = generateCats();
+  const cats = generateRandomCats(15); // 默认使用15只猫咪，可以根据实际玩家数据调整
+
+  // 处理分享功能
+  const handleShare = async () => {
+    try {
+      const gameData = {
+        playerName: playerInfo.playerName,
+        time: formatTime(gameStats.enduranceDuration),
+      };
+      
+      const success = await shareResultToClipboard(gameData);
+      if (success) {
+        setSuccessMessage('分享文本已复制到剪贴板！');
+        setShowSuccessToast(true);
+      } else {
+        setSuccessMessage('复制失败，请手动复制分享内容');
+        setShowSuccessToast(true);
+      }
+    } catch (error) {
+      console.error('分享失败:', error);
+      setSuccessMessage('分享失败，请稍后再试');
+      setShowSuccessToast(true);
+    }
+  };
+
+  // 处理下载功能
+  const handleDownload = async () => {
+    try {
+      const imageData = await captureGameCompletionScreenshot();
+      const filename = `cat-shower-${playerInfo.playerName}-${Date.now()}.png`;
+      downloadImage(imageData, filename);
+      
+      // 显示图片预览
+      setPreviewImageUrl(imageData);
+      setShowImagePreview(true);
+    } catch (error) {
+      console.error('下载失败:', error);
+      setSuccessMessage('截图生成失败，请稍后再试');
+      setShowSuccessToast(true);
+    }
+  };
 
   // 如果显示排名界面，返回排名组件
   if (showRanking) {
@@ -197,7 +262,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div 
-        className="bg-[#2f2f2f] overflow-hidden relative"
+        className="bg-[#2f2f2f] overflow-hidden relative game-completion-screen"
+        data-testid="game-completion-screen"
         style={{
           width: `${scale(724)}px`,
           height: `${scale(584)}px`,
@@ -326,74 +392,90 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                 }}
               />
 
-              {/* 主猫咪和玩家姓名标签组合 */}
+              {/* 猫咪框架容器 - 所有猫咪都在这个框内 */}
               <div 
-                className="absolute flex flex-col items-center left-1/2 transform -translate-x-1/2 animate-float"
-                style={{ top: `${scale(48)}px` }}
+                className="absolute overflow-hidden"
+                style={{
+                  width: `${scale(336)}px`,
+                  height: `${scale(228)}px`,
+                  top: `${scale(72)}px`,
+                  left: `${scale(30)}px`,
+                }}
               >
-                {/* 玩家姓名标签 */}
+                {/* 主猫咪和玩家姓名标签组合 - z-index确保不被遮挡 */}
                 <div 
-                  className="mb-0"
-                  style={{
-                    width: `${scale(105)}px`,
-                    height: `${scale(66)}px`
+                  className="absolute flex flex-col items-center animate-float z-10"
+                  style={{ 
+                    top: `${scale(20)}px`,
+                    left: '50%',
+                    transform: 'translateX(-50%)'
                   }}
                 >
+                  {/* 玩家姓名标签 */}
                   <div 
-                    className="relative bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
+                    className="mb-0"
                     style={{
-                      width: `${scale(103)}px`,
+                      width: `${scale(105)}px`,
                       height: `${scale(66)}px`
                     }}
                   >
                     <div 
-                      className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center" 
-                      style={{ 
-                        fontFamily: 'Pixelify Sans', 
-                        fontSize: `${scale(Math.max(12, 30 - playerInfo.playerName.length * 2))}px`,
-                        top: `${scale(26 - (Math.max(12, 30 - playerInfo.playerName.length * 2) - 20) * 0.2)}px` // 根据字体大小调整居中位置
+                      className="relative bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
+                      style={{
+                        width: `${scale(103)}px`,
+                        height: `${scale(66)}px`
                       }}
                     >
-                      {playerInfo.playerName.slice(0, 8)}
+                      <div 
+                        className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center" 
+                        style={{ 
+                          fontFamily: 'Pixelify Sans', 
+                          fontSize: `${scale(Math.max(12, 30 - playerInfo.playerName.length * 2))}px`,
+                          top: `${scale(37)}px` // 根据fontSize:15->top:37的比例计算
+                        }}
+                      >
+                        {playerInfo.playerName.slice(0, 8)}
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* 主猫咪 */}
+                  <img
+                    className="object-cover"
+                    style={{
+                      width: `${scale(120)}px`,
+                      height: `${scale(120)}px`,
+                    }}
+                    alt="Main Cat"
+                    src={`/Cat_${playerInfo.catAvatarId}.png`}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/Cat_1.png";
+                    }}
+                  />
                 </div>
-                
-                {/* 主猫咪 */}
-                <img
-                  className="object-cover"
-                  style={{
-                    width: `${scale(120)}px`,
-                    height: `${scale(120)}px`,
-                  }}
-                  alt="Main Cat"
-                  src="/Cat_1.png"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/Cat_1.png";
-                  }}
-                />
-              </div>
 
-              {/* 其他猫咪动画 */}
-              {cats.map((cat, index) => (
-                <img
-                  key={`cat-${index}`}
-                  className={`absolute object-cover ${cat.flipped ? 'scale-x-[-1]' : ''}`}
-                  style={{
-                    width: `${scale(cat.size)}px`,
-                    height: `${scale(cat.size)}px`,
-                    top: `${scale(cat.top)}px`,
-                    left: `${scale(cat.left)}px`,
-                  }}
-                  alt="Cat"
-                  src={cat.src}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/Cat_1.png";
-                  }}
-                />
-              ))}
+                {/* 其他猫咪动画 - 在主猫咪下方 */}
+                {cats.map((cat, index) => (
+                  <img
+                    key={`cat-${index}`}
+                    className={`absolute object-cover ${cat.flipped ? 'scale-x-[-1]' : ''}`}
+                    style={{
+                      width: `${cat.size}px`,
+                      height: `${cat.size}px`,
+                      top: `${cat.top}px`,
+                      left: `${cat.left}px`,
+                      zIndex: 5 // 确保在主猫咪下方
+                    }}
+                    alt="Cat"
+                    src={cat.src}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/Cat_1.png";
+                    }}
+                  />
+                ))}
+              </div>
 
               {/* 排名状态卡片 */}
               <div 
@@ -425,7 +507,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     className="text-[#fab817] font-bold"
                     style={{ fontSize: `${scale(28)}px` }}
                   >
-                    #1
+                    #{continentRank}
                   </span>
                 </div>
 
@@ -467,19 +549,12 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     top: `${scale(9)}px`,
                     width: `${scale(291)}px`,
                     left: `${scale(59)}px`,
-                    fontSize: `${scale(24)}px`
+                    fontSize: `${scale(18)}px`
                   }}
                 >
                   <span className="text-black">
-                    Scrubbed for {formatTime(gameStats.totalTime)}, out-soaked{" "}
+                    Scrubbed for {formatTime(gameStats.enduranceDuration)}, out-soaked {playerRankPercentage}% of players!
                   </span>
-                  <span 
-                    className="text-[#ffc106] font-bold"
-                    style={{ fontSize: `${scale(28)}px` }}
-                  >
-                    {getPerformancePercentage()}%
-                  </span>
-                  <span className="text-black"> of players!</span>
                 </div>
 
                 <img
@@ -514,7 +589,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     width: `${scale(56)}px`,
                     height: `${scale(56)}px`
                   }}
-                  onClick={onPlayAgain}
+                  onClick={onBackToStart}
                 >
                   <img
                     className="w-full h-full object-cover"
@@ -526,7 +601,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     }}
                   />
                 </Button>
-
+                {/* 分享按钮 */}
                 <Button
                   variant="ghost"
                   className="p-0 rounded-md"
@@ -534,16 +609,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     width: `${scale(56)}px`,
                     height: `${scale(56)}px`
                   }}
-                  onClick={() => {
-                    // 分享功能
-                    if (navigator.share) {
-                      navigator.share({
-                        title: 'Cat Comfort Game',
-                        text: `I scored ${getPerformancePercentage()}% in Cat Comfort Game!`,
-                        url: window.location.href
-                      });
-                    }
-                  }}
+                  onClick={handleShare}
                 >
                   <img
                     className="w-full h-full object-cover"
@@ -612,19 +678,31 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                 }}
               />
 
-              {/* 洲际文字 */}
+              {/* 洲际图片 */}
               <div 
-                className="absolute flex items-center justify-center silkscreen-text"
+                className="absolute flex items-center justify-center"
                 style={{
-                  width: `${scale(120)}px`,
+                  width: `${scale(200)}px`,
                   height: `${scale(25)}px`,
                   top: `${scale(29)}px`,
-                  left: `${scale(119)}px`,
-                  color: '#F0BC08',
-                  fontSize: `${scale(24)}px`,
+                  left: `${scale(79)}px`,
                 }}
               >
-                {getContinentName(playerInfo.continentId)}
+                              <img
+                className="absolute object-contain"
+                style={{
+                  width: `${scale(150)}px`,
+                  height: 'auto',
+                  top: `${scale(0)}px`,
+                  left: `${scale(21)}px`
+                }}
+                alt={`Continent ${playerInfo.continentId}`}
+                src={getContinentImage(playerInfo.continentId)}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/asia.png';
+                }}
+              />
               </div>
             </div>
           </div>
@@ -639,10 +717,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
               top: `${scale(108)}px`,
               left: `${scale(570)}px`
             }}
-            onClick={() => {
-              // 下载功能（可以保存截图或成绩）
-              window.print();
-            }}
+            onClick={handleDownload}
           >
             <img
               className="w-full h-full object-cover"
@@ -656,6 +731,20 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* 图片预览模态框 */}
+      <ImagePreviewModal
+        isOpen={showImagePreview}
+        imageUrl={previewImageUrl}
+        onClose={() => setShowImagePreview(false)}
+      />
+
+      {/* 成功提示 */}
+      <SuccessToast
+        isOpen={showSuccessToast}
+        message={successMessage}
+        onClose={() => setShowSuccessToast(false)}
+      />
     </div>
   );
 };
