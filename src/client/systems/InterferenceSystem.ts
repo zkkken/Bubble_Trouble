@@ -46,10 +46,12 @@ export class InterferenceSystem {
    * Create new interference event
    */
   createInterferenceEvent(type: InterferenceType): InterferenceEvent {
-    // Controls reversed has a fixed 5-second duration, others use config duration
+    // 延长泡泡和掉落效果时间到8-10秒
     let duration: number;
     if (type === 'controls_reversed') {
       duration = 5;
+    } else if (type === 'bubble_time' || type === 'surprise_drop') {
+      duration = 8 + Math.random() * 2; // 8-10秒随机
     } else {
       duration = this.config.INTERFERENCE_DURATION;
     }
@@ -227,20 +229,20 @@ export class InterferenceSystem {
   }
 
   /**
-   * 生成随机掉落物品
-   * Generate random falling object
+   * 生成随机掉落物品 - 更新物品效果
+   * Generate random falling object - Updated item effects
    */
   generateFallingObject(gameWidth: number = 724): FallingObject {
     const types = ['rubber_duck', 'fish', 'comb', 'grime_goblin', 'alarm_clock'] as const;
     const type = types[Math.floor(Math.random() * types.length)] || 'rubber_duck';
     
-    // 根据物品类型设置舒适度效果
+    // 根据物品类型设置舒适度效果 - 更新效果值
     const comfortEffects = {
-      rubber_duck: 0.15,     // +15% 舒适度
-      fish: 0.1,             // +10% 舒适度  
-      comb: 0.05,            // +5% 舒适度
-      grime_goblin: -0.2,    // -20% 舒适度 (有害物品)
-      alarm_clock: -0.15,    // -15% 舒适度 (有害物品)
+      rubber_duck: 0.05,     // +5% 舒适度
+      fish: 0.05,            // +5% 舒适度  
+      comb: -0.05,           // -5% 舒适度
+      grime_goblin: -0.05,   // -5% 舒适度 (水垢怪)
+      alarm_clock: -0.1,     // -10% 舒适度
     };
 
     // 根据物品类型设置图片路径

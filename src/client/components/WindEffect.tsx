@@ -80,14 +80,18 @@ export const WindEffect: React.FC<WindEffectProps> = ({
 
   // 初始化和清理
   useEffect(() => {
+    console.log('🌬️ WindEffect组件初始化');
     scheduleNextWind();
     
     const cleanupInterval = setInterval(removeOffscreenWinds, 1000);
     
     return () => {
+      console.log('🌬️ WindEffect组件清理');
       clearInterval(cleanupInterval);
     };
   }, [scheduleNextWind, removeOffscreenWinds]);
+
+  console.log(`🌬️ WindEffect渲染: ${winds.length}个风对象`);
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10">

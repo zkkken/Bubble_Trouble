@@ -16,6 +16,7 @@ import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
 import { GameLaunchScreen } from './GameLaunchScreen';
 import { TutorialScreen } from './TutorialScreen';
+import { DifficultyScreen } from './DifficultyScreen';
 
 // 游戏配置 (部分值现在由GameStateManager内部处理)
 const GAME_CONFIG: GameConfig = {
@@ -677,6 +678,7 @@ const PixelGameInterface: React.FC<{
 export const GameInterface: React.FC = () => {
   const [showLaunchScreen, setShowLaunchScreen] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showDifficultyScreen, setShowDifficultyScreen] = useState(false); // 新增难度选择页面
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [isMusicOn, setIsMusicOn] = useState(true);
@@ -710,14 +712,26 @@ export const GameInterface: React.FC = () => {
     setShowTutorial(true);
   };
 
-  const handleTutorialComplete = () => setShowTutorial(false);
-  const handleTutorialSkip = () => setShowTutorial(false);
+  const handleTutorialComplete = () => {
+    setShowTutorial(false);
+    setShowDifficultyScreen(true); // 显示难度选择页面
+  };
+
+  const handleTutorialSkip = () => {
+    setShowTutorial(false);
+    setShowDifficultyScreen(true); // 显示难度选择页面
+  };
+
+  const handleDifficultyContinue = () => {
+    setShowDifficultyScreen(false); // 隐藏难度选择页面
+  };
 
   const handleBackToStart = () => {
     setShowLaunchScreen(true);
     setIsGameStarted(false);
     setPlayerInfo(null);
     setShowGameCompletion(false);
+    setShowDifficultyScreen(false);
     resetGame();
   };
 
@@ -754,6 +768,10 @@ export const GameInterface: React.FC = () => {
 
   if (showTutorial) {
     return <TutorialScreen onSkip={handleTutorialSkip} onComplete={handleTutorialComplete} />;
+  }
+
+  if (showDifficultyScreen) {
+    return <DifficultyScreen onContinue={handleDifficultyContinue} />;
   }
 
   if (!isGameStarted) {
