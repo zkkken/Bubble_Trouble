@@ -31,6 +31,7 @@ const GAME_CONFIG: GameConfig = {
   INTERFERENCE_MIN_INTERVAL: 5,
   INTERFERENCE_MAX_INTERVAL: 10,
   INTERFERENCE_DURATION: 5,
+  IMMORTAL_MODE: true, // 恢复不死模式
 };
 
 // 玩家信息接口
@@ -102,7 +103,7 @@ const PixelGameInterface: React.FC<{
   const [selectedBackground] = useState(() => getRandomBackground());
   
   // 不死模式状态
-  const [immortalMode, setImmortalMode] = useState(false);
+  const [immortalMode, setImmortalMode] = useState(true); // 恢复不死模式
 
   // 精确的舒适度条颜色映射 - 按照用户规格
   const getComfortBarColor = (comfort: number): string => {
@@ -508,8 +509,8 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* 不死模式指示器 - 隐藏 */}
-      {false && immortalMode && (
+      {/* 不死模式指示器 - 显示 */}
+      {immortalMode && (
         <div 
           className="absolute z-50 flex items-center justify-center bg-purple-600 text-white font-bold rounded-lg animate-pulse"
           style={{
@@ -582,63 +583,10 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
-      {/* 泡泡时间效果 - 新的复杂运动系统 - 隐藏 */}
-      {false && gameState.bubbleTimeState?.isActive && (
-        <div className="absolute inset-0 pointer-events-none z-20">
-          {gameState.bubbleTimeState.bubbles.map((bubble: Bubble) => (
-            <div
-              key={bubble.id}
-              className="absolute"
-              style={{
-                left: `${bubble.x}px`,
-                top: `${bubble.y}px`,
-                width: `${scale(bubble.size)}px`,
-                height: `${scale(bubble.size)}px`,
-                opacity: bubble.opacity,
-                transform: 'translate(-50%, -50%)',
-                willChange: 'transform', // 性能优化
-              }}
-            >
-              <img
-                src="/bubble.png"
-                alt="Bubble"
-                className="w-full h-full object-contain"
-                style={{
-                  filter: 'drop-shadow(0 0 10px rgba(173, 216, 230, 0.6))',
-                }}
-                onError={(e) => {
-                  // 如果bubble.png加载失败，使用原来的CSS泡泡
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.parentElement!.style.background = 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(173, 216, 230, 0.6))';
-                  target.parentElement!.style.borderRadius = '50%';
-                  target.parentElement!.style.border = '2px solid rgba(173, 216, 230, 0.8)';
-                  target.parentElement!.style.boxShadow = '0 0 20px rgba(173, 216, 230, 0.4)';
-                }}
-              />
-            </div>
-          ))}
-          {/* 泡泡时间提示文字 */}
-          <div 
-            className="absolute text-center font-bold"
-            style={{
-              top: `${scale(120)}px`,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              color: '#fff',
-              fontSize: `${scale(18)}px`,
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            }}
-          >
-            🎵 点击中央按钮保持节奏！ 🎵
-          </div>
-        </div>
-      )}
-
       {/* 惊喜掉落物品 - Surprise Drop Objects */}
       {gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
         <div className="absolute inset-0 pointer-events-none">
-                                {gameState.fallingObjects.map((obj: FallingObject) => (
+          {gameState.fallingObjects.map((obj: FallingObject) => (
              <div
                key={obj.id}
                className="absolute transition-none falling-item"
@@ -691,41 +639,10 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
-      {/* 接住区域指示器 - 绿色虚线框，内部透明 - 隐藏边框 */}
-      {false && gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
-        <div 
-          className="absolute pointer-events-none z-30"
-          style={{
-            left: `${scale(50)}px`,
-            top: `${scale(480)}px`,
-            width: `${scale(624)}px`,
-            height: `${scale(80)}px`,
-            border: '2px dashed #4ade80',
-            backgroundColor: 'transparent',
-          }}
-        />
-      )}
-
       {/* 冷风效果 - WindEffect组件 */}
       {gameState.interferenceEvent?.type === 'cold_wind' && gameState.interferenceEvent.isActive && (
         <>
           <WindEffect />
-          {/* 冷风提示文字 - 清除 */}
-          {false && (
-            <div 
-              className="absolute text-center font-bold z-30"
-              style={{
-                top: `${scale(150)}px`,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                color: '#87ceeb',
-                fontSize: `${scale(16)}px`,
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-              }}
-            >
-              🌨️ 寒风呼啸，温度下降更快！ 🌨️
-            </div>
-          )}
         </>
       )}
     </div>
@@ -779,14 +696,11 @@ export const GameInterface: React.FC = () => {
     resetGame();
   };
 
-  const handleRestartToStartGame = () => {
-    console.log('🔄 重新开始游戏 - 退回到主界面');
+  // 修复：重新开始游戏，直接重置游戏状态而不退回选择界面
+  const handleRestartGame = () => {
+    console.log('🔄 重新开始游戏 - 直接重置游戏状态');
     setShowGameCompletion(false);
-    setIsGameStarted(false);
-    setPlayerInfo(null);
-    resetGame();
-    // 可选择是否退回到启动界面
-    // setShowLaunchScreen(true);
+    resetGame(); // 直接重置游戏，保持在GameInterface界面
   };
 
   useEffect(() => {
@@ -824,11 +738,8 @@ export const GameInterface: React.FC = () => {
   if (showGameCompletion && playerInfo) {
     return (
       <GameCompletionScreen
-        onPlayAgain={() => {
-          setShowGameCompletion(false);
-          resetGame();
-        }}
-        onBackToStart={handleRestartToStartGame}
+        onPlayAgain={handleRestartGame} // 修复：使用handleRestartGame直接重置游戏
+        onBackToStart={handleBackToStart} // 保持原有的退回主界面功能
         gameStats={{
           enduranceDuration: finalGameTime,
         }}

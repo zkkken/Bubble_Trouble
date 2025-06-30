@@ -11,14 +11,9 @@ import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
-import { ImagePreviewModal } from './ImagePreviewModal';
 import { SuccessToast } from './SuccessToast';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
-import { 
-  captureGameCompletionScreenshot, 
-  downloadImage, 
-  shareResultToClipboard
-} from '../utils/shareUtils';
+import { shareResultToClipboard } from '../utils/shareUtils';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
@@ -40,8 +35,6 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   playerInfo,
 }) => {
   const [showRanking, setShowRanking] = useState(false);
-  const [showImagePreview, setShowImagePreview] = useState(false);
-  const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -176,7 +169,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 根据玩家数生成猫咪动画（最少6个最多20个）- 优化防堆叠逻辑
+  // 根据玩家数生成猫咪动画（最少6个最多20个）- 优化防堆叠逻辑，包括主猫咪保护
   const generateRandomCats = (playerCount: number = 10) => {
     const catCount = Math.max(6, Math.min(20, playerCount));
     const cats: Array<{src: string; size: number; top: number; left: number; flipped: boolean}> = [];
@@ -186,16 +179,31 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     const frameWidth = scale(336);
     const frameHeight = scale(228);
     
-    // 主猫咪位置（在框架顶部中央，避免被遮挡）
+    // 主猫咪位置（在框架顶部中央，避免被遮挡）- 更精确的保护区域
     const mainCatCenterX = frameWidth / 2; 
-    const mainCatCenterY = scale(60); // 顶部位置
-    const mainCatRadius = scale(80); // 主猫咪保护区域半径
+    const mainCatCenterY = scale(80); // 主猫咪中心位置（名牌+猫咪的中心）
+    const mainCatRadius = scale(100); // 增大主猫咪保护区域半径，确保不被遮挡
     
     // 检查两个圆形区域是否重叠
-    const isOverlapping = (x1: number, y1: number, size1: number, x2: number, y2: number, size2: number): boolean => {
-      const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
-      const minDistance = (size1 + size2) / 2 + scale(15); // 额外15px间距防止紧贴
+    const isOverlapping = (x: number, y: number, size: number, centerX: number, centerY: number, radius: number): boolean => {
+      const distance = Math.sqrt(Math.pow(x + size/2 - centerX, 2) + Math.pow(y + size/2 - centerY, 2));
+      const minDistance = size/2 + radius + scale(20); // 额外20px间距防止紧贴
       return distance < minDistance;
+    };
+    
+    // 检查与已有猫咪的重叠
+    const checkCatOverlap = (x: number, y: number, size: number, existingCats: typeof cats): boolean => {
+      for (const cat of existingCats) {
+        const distance = Math.sqrt(
+          Math.pow(x + size/2 - (cat.left + cat.size/2), 2) + 
+          Math.pow(y + size/2 - (cat.top + cat.size/2), 2)
+        );
+        const minDistance = (size + cat.size) / 2 + scale(15); // 15px间距
+        if (distance < minDistance) {
+          return true; // 重叠
+        }
+      }
+      return false; // 不重叠
     };
     
     for (let i = 0; i < catCount; i++) {
@@ -203,35 +211,16 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
       let validPosition = false;
       let catData;
       
-      while (!validPosition && attempts < 100) { // 增加尝试次数
+      while (!validPosition && attempts < 150) { // 增加尝试次数
         // 在框架内随机分布，但避开主猫咪区域
-        const size = Math.random() * scale(35) + scale(25); // 25-60px随机大小，略小避免拥挤
+        const size = Math.random() * scale(30) + scale(20); // 20-50px随机大小，更小避免拥挤
         const x = Math.random() * (frameWidth - size);
         const y = Math.random() * (frameHeight - size);
         
-        const catCenterX = x + size / 2;
-        const catCenterY = y + size / 2;
-        
         // 检查是否与主猫咪区域重叠
-        const distanceToMain = Math.sqrt(
-          Math.pow(catCenterX - mainCatCenterX, 2) + 
-          Math.pow(catCenterY - mainCatCenterY, 2)
-        );
-        
-        if (distanceToMain > mainCatRadius) {
+        if (!isOverlapping(x, y, size, mainCatCenterX, mainCatCenterY, mainCatRadius)) {
           // 检查是否与已有猫咪重叠
-          let overlapsWithExisting = false;
-          for (const existingCat of cats) {
-            const existingCenterX = existingCat.left + existingCat.size / 2;
-            const existingCenterY = existingCat.top + existingCat.size / 2;
-            
-            if (isOverlapping(catCenterX, catCenterY, size, existingCenterX, existingCenterY, existingCat.size)) {
-              overlapsWithExisting = true;
-              break;
-            }
-          }
-          
-          if (!overlapsWithExisting) {
+          if (!checkCatOverlap(x, y, size, cats)) {
             validPosition = true;
             catData = {
               src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
@@ -245,12 +234,44 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
         attempts++;
       }
       
+      // 如果找不到合适位置，使用网格布局（避开主猫咪区域）
+      if (!validPosition) {
+        const cols = 4;
+        const rows = 3;
+        const gridIndex = i % (cols * rows);
+        const col = gridIndex % cols;
+        const row = Math.floor(gridIndex / cols);
+        
+        // 计算网格位置，但跳过主猫咪区域
+        let gridX = col * (frameWidth / cols) + scale(15);
+        let gridY = row * (frameHeight / rows) + scale(15);
+        
+        // 如果网格位置与主猫咪重叠，移动到边缘
+        if (isOverlapping(gridX, gridY, scale(25), mainCatCenterX, mainCatCenterY, mainCatRadius)) {
+          // 移动到框架边缘
+          if (col < cols / 2) {
+            gridX = scale(10); // 左边缘
+          } else {
+            gridX = frameWidth - scale(35); // 右边缘
+          }
+          gridY = frameHeight - scale(35); // 底部
+        }
+        
+        catData = {
+          src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
+          size: scale(25),
+          top: gridY,
+          left: gridX,
+          flipped: Math.random() > 0.5
+        };
+      }
+      
       if (catData) {
         cats.push(catData);
       }
     }
     
-    console.log(`✅ 成功生成 ${cats.length}/${catCount} 只不重叠的猫咪`);
+    console.log(`✅ 成功生成 ${cats.length}/${catCount} 只不重叠的猫咪（主猫咪保护区域已避开）`);
     return cats;
   };
 
@@ -275,23 +296,6 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     } catch (error) {
       console.error('分享失败:', error);
       setSuccessMessage('分享失败，请稍后再试');
-      setShowSuccessToast(true);
-    }
-  };
-
-  // 处理下载功能
-  const handleDownload = async () => {
-    try {
-      const imageData = await captureGameCompletionScreenshot();
-      const filename = `cat-shower-${playerInfo.playerName}-${Date.now()}.png`;
-      downloadImage(imageData, filename);
-      
-      // 显示图片预览
-      setPreviewImageUrl(imageData);
-      setShowImagePreview(true);
-    } catch (error) {
-      console.error('下载失败:', error);
-      setSuccessMessage('截图生成失败，请稍后再试');
       setShowSuccessToast(true);
     }
   };
@@ -451,7 +455,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
               >
                 {/* 主猫咪和玩家姓名标签组合 - z-index确保不被遮挡 */}
                 <div 
-                  className="absolute flex flex-col items-center animate-float z-10"
+                  className="absolute flex flex-col items-center animate-float z-20"
                   style={{ 
                     top: `${scale(20)}px`,
                     left: '50%',
@@ -502,7 +506,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                   />
                 </div>
 
-                {/* 其他猫咪动画 - 在主猫咪下方 */}
+                {/* 其他猫咪动画 - 在主猫咪下方，避开主猫咪区域 */}
                 {cats.map((cat, index) => (
                   <img
                     key={`cat-${index}`}
@@ -629,7 +633,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                   bottom: `${scale(-10)}px`
                 }}
               >
-                {/* 修复：Restart按钮调用正确的回调函数 */}
+                {/* 修复：Restart按钮调用onPlayAgain，直接重新开始游戏而不退回选择界面 */}
                 <Button
                   variant="ghost"
                   className="p-0 rounded-md"
@@ -637,8 +641,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     width: `${scale(56)}px`,
                     height: `${scale(56)}px`
                   }}
-                  onClick={onBackToStart} // 修复：使用onBackToStart而不是onPlayAgain
-                  title="重新开始游戏 - 返回主界面"
+                  onClick={onPlayAgain}
+                  title="重新开始游戏 - 继续在GameInterface界面游戏"
                 >
                   <img
                     className="w-full h-full object-cover"
@@ -650,6 +654,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     }}
                   />
                 </Button>
+                
                 {/* 分享按钮 */}
                 <Button
                   variant="ghost"
@@ -737,56 +742,26 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                   left: `${scale(79)}px`,
                 }}
               >
-                              <img
-                className="absolute object-contain"
-                style={{
-                  width: `${scale(150)}px`,
-                  height: 'auto',
-                  top: `${scale(0)}px`,
-                  left: `${scale(21)}px`
-                }}
-                alt={`Continent ${playerInfo.continentId}`}
-                src={getContinentImage(playerInfo.continentId)}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/asia.png';
-                }}
-              />
+                <img
+                  className="absolute object-contain"
+                  style={{
+                    width: `${scale(150)}px`,
+                    height: 'auto',
+                    top: `${scale(0)}px`,
+                    left: `${scale(21)}px`
+                  }}
+                  alt={`Continent ${playerInfo.continentId}`}
+                  src={getContinentImage(playerInfo.continentId)}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/asia.png';
+                  }}
+                />
               </div>
             </div>
           </div>
-
-          {/* 下载按钮 */}
-          <Button
-            variant="ghost"
-            className="absolute p-0 rounded-md"
-            style={{
-              width: `${scale(56)}px`,
-              height: `${scale(56)}px`,
-              top: `${scale(108)}px`,
-              left: `${scale(570)}px`
-            }}
-            onClick={handleDownload}
-          >
-            <img
-              className="w-full h-full object-cover"
-              alt="Download"
-              src="/icon-download.png"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.alt = "💾";
-              }}
-            />
-          </Button>
         </div>
       </div>
-
-      {/* 图片预览模态框 */}
-      <ImagePreviewModal
-        isOpen={showImagePreview}
-        imageUrl={previewImageUrl}
-        onClose={() => setShowImagePreview(false)}
-      />
 
       {/* 成功提示 */}
       <SuccessToast
