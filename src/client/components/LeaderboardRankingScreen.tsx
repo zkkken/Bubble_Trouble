@@ -126,7 +126,20 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     'AF': '/africa.png'
   };
 
+  // 随机获取背景图片 - 5个场景随机选择
+  const getRandomBackground = (): string => {
+    const backgrounds = [
+      '/background-1.png', 
+      '/background-2.png', 
+      '/background-3.png', 
+      '/background-4.png', 
+      '/background-5.png'
+    ];
+    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
+  };
 
+  // 使用useState确保组件生命周期内背景保持一致
+  const [selectedBackground] = useState(() => getRandomBackground());
 
   // 根据玩家人数为洲际生成随机猫咪 - 每个人对应一只猫，最多20只
   const generateCatsForContinent = (playerCount: number, continentId: string): CatData[] => {
@@ -368,8 +381,13 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
       >
         {/* GameCompletionScreen样式的背景 */}
         <div className="absolute inset-0">
-          {/* 背景图片 */}
-          <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+          {/* 背景图片 - 使用随机选择的背景 */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{
+              backgroundImage: `url(${selectedBackground})`
+            }}
+          />
           
           {/* 舒适度进度条 */}
           <div 
