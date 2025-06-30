@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "./ui/card";
 import { HelpModal } from "./HelpModal";
-import { useResponsiveScale, useResponsiveSize } from "../hooks/useResponsiveScale";
+import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 
 interface GameLaunchScreenProps {
   onStartGame: () => void;
@@ -92,13 +92,49 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
     <>
       <div className="flex items-center justify-center min-h-screen">
         <Card 
-          className="bg-[#2f2f2f] rounded-none overflow-hidden border-0"
+          className="bg-[#2f2f2f] rounded-none overflow-hidden border-0 relative"
           style={{
             width: `${scale(724)}px`,
             height: `${scale(584)}px`,
             ...cssVars
           }}
         >
+          {/* Built with Bolt.new Badge - Top Left Corner */}
+          <div 
+            className="absolute z-50"
+            style={{
+              top: `${scale(16)}px`,
+              left: `${scale(16)}px`
+            }}
+          >
+            <a 
+              href="https://bolt.new" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border border-white/20"
+              style={{
+                fontSize: `${scale(10)}px`,
+                padding: `${scale(4)}px ${scale(8)}px`,
+                borderRadius: `${scale(12)}px`
+              }}
+            >
+              <svg 
+                className="mr-1" 
+                width={scale(12)} 
+                height={scale(12)} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M13 3L4 14h7l-1 8 9-11h-7l1-8z" 
+                  fill="currentColor"
+                />
+              </svg>
+              Built with Bolt.new
+            </a>
+          </div>
+
           <CardContent className="p-0 relative h-full bg-[url(/Bg_Main.png)] bg-cover bg-[50%_50%] flex flex-col items-center">
             {/* Game title */}
             <img
@@ -195,4 +231,4 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
       />
     </>
   );
-}; 
+};
