@@ -15,6 +15,48 @@ export interface InterferenceEvent {
   remainingTime: number;
 }
 
+// 新增：掉落物品接口
+export interface FallingObject {
+  id: string;
+  type: 'rubber_duck' | 'fish' | 'comb' | 'grime_goblin' | 'alarm_clock';
+  yPosition: number;
+  xPosition: number;
+  imageSrc: string;
+  comfortEffect: number; // 对舒适度的影响（可以是负数）
+}
+
+// 新增：泡泡接口 - 复杂运动系统
+export interface Bubble {
+  id: number;              // 唯一标识符
+  x: number;               // 水平位置
+  y: number;               // 垂直位置
+  size: number;            // 泡泡大小
+  opacity: number;         // 透明度
+  speed: number;           // 垂直下降速度
+  horizontalSpeed: number; // 水平漂移速度
+  swayAmplitude: number;   // 摆动幅度
+  swayFrequency: number;   // 摆动频率
+  time: number;            // 时间参数（用于摆动计算）
+}
+
+// 新增：泡泡时间状态接口
+export interface BubbleTimeState {
+  isActive: boolean;
+  bubbles: Bubble[];
+  lastClickTime: number;
+  rhythmClickCount: number;
+}
+
+// 新增：风效果接口
+export interface WindObject {
+  id: number;
+  x: number;
+  y: number;
+  direction: 'left' | 'right'; // 移动方向
+  speed: number; // 穿越速度
+  opacity: number;
+}
+
 export interface GameState {
   currentTemperature: number;
   targetTemperature: number;
@@ -28,6 +70,13 @@ export interface GameState {
   interferenceEvent: InterferenceEvent;
   interferenceTimer: number;
   isControlsReversed: boolean;
+  
+  // 新增：干扰机制相关状态
+  temperatureOffset: number; // 漏电效果：温度指针显示偏移
+  temperatureCoolingMultiplier: number; // 冷风效果：冷却速率倍数
+  bubbleTimeState: BubbleTimeState; // 泡泡时间状态
+  fallingObjects: FallingObject[]; // 惊喜掉落物品
+  windObjects: WindObject[]; // 冷风效果：风效果对象
 }
 
 export interface GameConfig {
@@ -43,6 +92,7 @@ export interface GameConfig {
   INTERFERENCE_MIN_INTERVAL: number;
   INTERFERENCE_MAX_INTERVAL: number;
   INTERFERENCE_DURATION: number;
+  IMMORTAL_MODE?: boolean; // 无敌模式：舒适度不会导致游戏失败
 }
 
 // 图片资源配置

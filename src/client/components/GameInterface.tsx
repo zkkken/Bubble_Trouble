@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { GameConfig } from '../types/GameTypes';
+import { GameConfig, FallingObject, BubbleTimeState, Bubble } from '../types/GameTypes';
+import { WindEffect } from './WindEffect';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
@@ -49,6 +50,8 @@ const PixelGameInterface: React.FC<{
   onBackToStart: () => void;
   isMusicOn: boolean;
   onMusicToggle: () => void;
+  onSetImmortalMode: (enabled: boolean) => void;
+  onTriggerInterference: (interferenceType: 'electric_leakage' | 'cold_wind' | 'controls_reversed' | 'bubble_time' | 'surprise_drop') => void;
 }> = ({ 
   gameState, 
   playerInfo,
@@ -57,12 +60,22 @@ const PixelGameInterface: React.FC<{
   onCenterButtonClick,
   onBackToStart,
   isMusicOn,
-  onMusicToggle
+  onMusicToggle,
+  onSetImmortalMode,
+  onTriggerInterference
 }) => {
   
   const { cssVars } = useResponsiveScale();
   const { scale, scaleFont } = useResponsiveSize();
   const [catFlipped, setCatFlipped] = useState(false);
+  
+  // 温度指针边界反弹状态
+  const [isPointerBouncing, setIsPointerBouncing] = useState(false);
+  const [bounceDirection, setBounceDirection] = useState<'left' | 'right' | null>(null);
+  
+  // 按钮自动循环动画状态
+  const [isLeftButtonAnimating, setIsLeftButtonAnimating] = useState(false);
+  const [isRightButtonAnimating, setIsRightButtonAnimating] = useState(false);
 
   const formatTime = (totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -70,16 +83,150 @@ const PixelGameInterface: React.FC<{
     return `${minutes}:${seconds}`;
   };
 
-  const getComfortBarColor = (comfort: number): string => {
-    if (comfort > 0.75) return '#5FF367'; // Green
-    if (comfort > 0.50) return '#FFDF2B'; // Yellow
-    if (comfort > 0.25) return '#FE8E39'; // Orange
-    return '#FE4339'; // Red
+  // 随机获取背景图片 - 5个场景随机选择
+  const getRandomBackground = (): string => {
+    const backgrounds = [
+      '/background-1.png', 
+      '/background-2.png', 
+      '/background-3.png', 
+      '/background-4.png', 
+      '/background-5.png'
+    ];
+    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
   };
+
+  // 使用useState确保组件生命周期内背景保持一致
+  const [selectedBackground] = useState(() => getRandomBackground());
+  
+  // 不死模式状态
+  const [immortalMode, setImmortalMode] = useState(false);
+
+  // 精确的舒适度条颜色映射 - 按照用户规格
+  const getComfortBarColor = (comfort: number): string => {
+    const percentage = comfort * 100;
+    if (percentage >= 75) return '#5FF367'; // 绿色 75-100%
+    if (percentage >= 50) return '#FFDF2B'; // 黄色 50-75%
+    if (percentage >= 25) return '#FE8E39'; // 橙色 25-50%
+    return '#FE4339'; // 红色 0-25%
+  };
+
+  // 温度指针边界反弹效果
+  useEffect(() => {
+    const temperature = gameState.currentTemperature + (gameState.temperatureOffset || 0);
+    
+    if (temperature <= 0) {
+      setIsPointerBouncing(true);
+      setBounceDirection('left');
+      const timer = setTimeout(() => {
+        setIsPointerBouncing(false);
+        setBounceDirection(null);
+      }, 600);
+      return () => clearTimeout(timer);
+    } else if (temperature >= 1) {
+      setIsPointerBouncing(true);
+      setBounceDirection('right');
+      const timer = setTimeout(() => {
+        setIsPointerBouncing(false);
+        setBounceDirection(null);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentTemperature, gameState.temperatureOffset]);
+
+  // 左侧按钮自动循环弹跳动画 - 每2秒一次
+  useEffect(() => {
+    const startAnimation = () => {
+      setIsLeftButtonAnimating(true);
+      setTimeout(() => {
+        setIsLeftButtonAnimating(false);
+      }, 600);
+    };
+
+    startAnimation();
+    const interval = setInterval(startAnimation, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 右侧按钮自动循环弹跳动画 - 每2秒一次
+  useEffect(() => {
+    const startAnimation = () => {
+      setIsRightButtonAnimating(true);
+      setTimeout(() => {
+        setIsRightButtonAnimating(false);
+      }, 600);
+    };
+
+    // 延迟启动，避免与左侧按钮同时动画
+    setTimeout(() => {
+      startAnimation();
+      const interval = setInterval(startAnimation, 2000);
+      return () => clearInterval(interval);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     const flipInterval = setInterval(() => setCatFlipped(prev => !prev), 3000 + Math.random() * 3000);
     return () => clearInterval(flipInterval);
+  }, []);
+
+  // 键盘监听器 - 不死模式和干扰机制快捷键
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      
+      // 防止在输入框中触发
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (key) {
+        case 'd':
+          // 切换不死模式
+          setImmortalMode(prev => {
+            const newMode = !prev;
+            console.log(`🛡️ 不死模式: ${newMode ? '开启' : '关闭'}`);
+            onSetImmortalMode(newMode);
+            return newMode;
+          });
+          break;
+        
+        case '1':
+          // 触发漏电干扰
+          console.log('⚡ 手动触发漏电干扰');
+          onTriggerInterference('electric_leakage');
+          break;
+          
+        case '2':
+          // 触发冷风干扰
+          console.log('🌬️ 手动触发冷风干扰');
+          onTriggerInterference('cold_wind');
+          break;
+          
+        case '3':
+          // 触发控制反转干扰
+          console.log('🔄 手动触发控制反转');
+          onTriggerInterference('controls_reversed');
+          break;
+          
+        case '4':
+          // 触发泡泡时间干扰
+          console.log('🫧 手动触发泡泡时间');
+          onTriggerInterference('bubble_time');
+          break;
+          
+        case '5':
+          // 触发惊喜掉落干扰
+          console.log('🎁 手动触发惊喜掉落');
+          onTriggerInterference('surprise_drop');
+          break;
+          
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   // 干扰事件类型到图片文件名的映射
@@ -94,6 +241,50 @@ const PixelGameInterface: React.FC<{
     return interferenceImageMap[interferenceType] || '/Bubble_Time!.png';
   };
 
+  // 温度指针位置计算 - 精确像素级控制
+  const calculatePointerPosition = (): number => {
+    const temperature = Math.max(0, Math.min(1, gameState.currentTemperature + (gameState.temperatureOffset || 0)));
+    
+    // 温度条规格：628px总宽度，4px边框，内容区域620px
+    const totalWidth = scale(628);
+    const borderWidth = scale(4);
+    const contentWidth = scale(620); // 628 - 4 - 4
+    const pointerWidth = scale(16);
+    
+    // 指针移动范围：最左4px，最右608px，活动范围604px
+    const minLeft = scale(4); // 紧贴左边框内侧
+    const maxLeft = scale(608); // 4 + 620 - 16
+    const range = scale(604); // 608 - 4
+    
+    const position = minLeft + (temperature * range);
+    
+    // 边界反弹偏移
+    const bounceOffset = isPointerBouncing ? 
+      (bounceDirection === 'left' ? -scale(8) : bounceDirection === 'right' ? scale(8) : 0) : 0;
+    
+    return position + bounceOffset;
+  };
+
+  // 蓝色填充区域计算 - 精确按照用户规格
+  const calculateBlueZone = () => {
+    // 总宽度628px，左右各40px边距，内容区548px
+    // 分为5个等分区域，每区109.6px
+    // 第4区域（60%-80%）显示蓝色填充
+    const totalWidth = scale(628);
+    const sidePadding = scale(40);
+    const contentWidth = scale(548); // 628 - 40 - 40
+    const sectionWidth = scale(109.6); // 548 / 5
+    
+    // 第4区域位置：距离左边368.8px
+    const blueZoneLeft = scale(368.8);
+    const blueZoneWidth = scale(109.6);
+    
+    return { left: blueZoneLeft, width: blueZoneWidth };
+  };
+
+  const blueZone = calculateBlueZone();
+  const pointerPosition = calculatePointerPosition();
+
   return (
     <div 
       className="bg-[#2f2f2f] relative"
@@ -103,7 +294,12 @@ const PixelGameInterface: React.FC<{
         ...cssVars
       }}
     >
-      <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+      <div 
+        className="absolute inset-0 bg-cover bg-center" 
+        style={{
+          backgroundImage: `url(${selectedBackground})`
+        }}
+      />
       
       <div 
         className="absolute"
@@ -111,7 +307,7 @@ const PixelGameInterface: React.FC<{
           width: `${scale(120)}px`,
           height: `${scale(120)}px`,
           left: `${scale(302)}px`,
-          top: `${scale(232)}px`
+          top: `${scale(270)}px`
         }}
       >
         <img
@@ -121,9 +317,9 @@ const PixelGameInterface: React.FC<{
         />
       </div>
 
-      {/* 舒适度进度条 (显示猫咪当前舒适度) */}
+      {/* 舒适度进度条 (ComfortBar) - 按照用户规格 */}
       <div 
-        className="absolute bg-[#d9d9d9] border-[#3a3656]"
+        className="absolute bg-[#d9d9d9] border-[#39358e]"
         style={{
           left: `${scale(48)}px`,
           top: `${scale(108)}px`,
@@ -141,7 +337,7 @@ const PixelGameInterface: React.FC<{
         />
       </div>
 
-      {/* 温度条系统 (Temperature Bar System) */}
+      {/* 温度条系统 (TemperatureBar) - 完全按照用户规格 */}
       <div 
         className="absolute"
         style={{
@@ -151,9 +347,9 @@ const PixelGameInterface: React.FC<{
           height: `${scale(78)}px`
         }}
       >
-        {/* 温度条背景 (Temperature Bar Background) */}
+        {/* 温度条容器 - 628px × 24px */}
         <div 
-          className="absolute bg-[#d9d9d9] border-[#3a3656]"
+          className="absolute bg-[#d9d9d9] border-[#39358e]"
           style={{
             top: `${scale(9)}px`,
             width: `${scale(628)}px`,
@@ -161,65 +357,52 @@ const PixelGameInterface: React.FC<{
             borderWidth: `${scale(4)}px`
           }}
         >
-          {/* 🔵 动态舒适区域 - 这是用来计算舒适度的核心区域！
-              (Dynamic Comfort Zone - This is the CORE area for comfort calculation!)
-              基于目标温度 ± 容差宽度 (based on targetTemperature ± toleranceWidth) */}
+          {/* 蓝色填充区域 - 第4区域（60%-80%） */}
           <div
-            className="absolute top-0 flex-shrink-0"
+            className="absolute top-0"
             style={{
-              left: `${(gameState.targetTemperature * 628 - 63)}px`,
-              top: `0px`,
-              width: `${scale(126)}px`,
+              left: `${blueZone.left}px`,
+              width: `${blueZone.width}px`,
               height: '100%',
               backgroundColor: '#728CFF',
-              /* 🎯 当温度指针在此蓝色区域内时，猫咪舒适度提升 
-                 When temperature pointer is within this blue zone, cat comfort increases */
+              borderTop: `${scale(4)}px solid #39358e`,
+              borderBottom: `${scale(4)}px solid #39358e`,
             }}
           />
         </div>
 
-        {/* 目标温度显示 (Target Temperature Display) - 在动态舒适区域居中正下方 */}
+        {/* 温度指针 - 16px × 40px，向上偏移8px */}
         <div
-          className="absolute flex items-center justify-center silkscreen-bold"
-          style={{
-            width: `${scale(65)}px`,
-            height: `${scale(38)}px`,
-            top: `${scale(33)}px`, // 温度条底部 + 间距
-            left: `${gameState.targetTemperature * 628 - 32.5}px`, // 动态舒适区域中心
-            color: '#F0BC08',
-            textAlign: 'center',
-            WebkitTextStroke: `${scale(2.1)}px #3A368E`,
-            fontFamily: 'Silkscreen',
-            fontSize: `${scale(19)}px`,
-            fontWeight: 700,
-            lineHeight: `${scale(38)}px`,
-          }}
-        >
-          {(gameState.targetTemperature * 100).toFixed(0)}°
-        </div>
-
-        {/* 🌡️ 温度指针 (Temperature Pointer) - 显示当前实际温度 */}
-        <div
-          className="absolute transition-all duration-100 ease-linear"
+          className={`absolute border-[#39358e] transition-all ${
+            isPointerBouncing ? 'duration-600 ease-out' : 'duration-300 ease-out'
+          } ${gameState.interferenceEvent?.type === 'electric_leakage' ? 'electric-leakage-effect' : ''}`}
           style={{
             width: `${scale(16)}px`,
             height: `${scale(40)}px`,
-            top: '0px',
-            borderWidth: `${scale(5)}px`,
-            borderColor: '#3a3656',
-            backgroundColor: '#f8cb56',
-            left: `calc(${gameState.currentTemperature * 100}% - ${scale(8)}px)`,
-            /* 🎮 玩家需要通过左右按钮控制此指针，让它保持在蓝色舒适区域内
-               Players need to control this pointer using left/right buttons to keep it in the blue comfort zone */
+            top: `${scale(0)}px`, // 向上偏移8px
+            left: `${pointerPosition}px`,
+            borderWidth: `${scale(4.9)}px`,
+            backgroundColor: gameState.interferenceEvent?.type === 'electric_leakage' ? '#ff6b6b' : '#f8cb56',
+            boxShadow: gameState.interferenceEvent?.type === 'electric_leakage' ? '0 0 10px rgba(255, 107, 107, 0.8)' : 'none',
+            transform: isPointerBouncing ? 'scaleX(1.1)' : 'scaleX(1)',
           }}
         />
       </div>
 
-      {/* 温度控制按钮 (Temperature Control Buttons) */}
-      {/* 左侧按钮 - 降低/增加温度 (根据是否反转控制而定) */}
+      {/* 温度控制按钮 - 按照用户规格 */}
+      {/* 减号按钮 - 56px × 56px，位置 left-[84px] top-[460px] */}
       <button
-        className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
-        style={{ left: `${scale(84)}px`, top: `${scale(460)}px`, width: `${scale(56)}px`, height: `${scale(56)}px` }}
+        className={`absolute transition-all duration-200 hover:scale-105 active:scale-95 ${
+          gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
+        }`}
+        style={{ 
+          left: `${scale(84)}px`, 
+          top: `${scale(460)}px`, 
+          width: `${scale(56)}px`, 
+          height: `${scale(56)}px`,
+          transform: isLeftButtonAnimating ? 'scale(1.1)' : 'scale(1)',
+          transition: 'transform 0.3s ease-out'
+        }}
         onClick={onLeftButtonClick}
         disabled={gameState.gameStatus !== 'playing'}
       >
@@ -230,10 +413,19 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* 右侧按钮 - 增加/降低温度 (根据是否反转控制而定) */}
+      {/* 加号按钮 - 56px × 56px，位置 left-[584px] top-[460px] */}
       <button
-        className="absolute transition-all duration-100 hover:scale-105 active:scale-95"
-        style={{ left: `${scale(584)}px`, top: `${scale(460)}px`, width: `${scale(56)}px`, height: `${scale(56)}px` }}
+        className={`absolute transition-all duration-200 hover:scale-105 active:scale-95 ${
+          gameState.isControlsReversed ? 'ring-4 ring-purple-400 animate-pulse' : ''
+        }`}
+        style={{ 
+          left: `${scale(584)}px`, 
+          top: `${scale(460)}px`, 
+          width: `${scale(56)}px`, 
+          height: `${scale(56)}px`,
+          transform: isRightButtonAnimating ? 'scale(1.1)' : 'scale(1)',
+          transition: 'transform 0.3s ease-out'
+        }}
         onClick={onRightButtonClick}
         disabled={gameState.gameStatus !== 'playing'}
       >
@@ -295,6 +487,37 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
+      {/* 不死模式指示器 */}
+      {immortalMode && (
+        <div 
+          className="absolute z-50 flex items-center justify-center bg-purple-600 text-white font-bold rounded-lg animate-pulse"
+          style={{
+            left: `${scale(10)}px`,
+            top: `${scale(10)}px`,
+            width: `${scale(100)}px`,
+            height: `${scale(30)}px`,
+            fontSize: `${scale(12)}px`,
+            border: '2px solid #ffd700',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)'
+          }}
+        >
+          🛡️ 不死模式
+        </div>
+      )}
+
+      {/* 快捷键提示 */}
+      <div 
+        className="absolute z-40 text-white text-opacity-60"
+        style={{
+          left: `${scale(10)}px`,
+          bottom: `${scale(10)}px`,
+          fontSize: `${scale(10)}px`,
+          fontFamily: 'monospace'
+        }}
+      >
+        快捷键: D-不死模式 | 1-漏电 | 2-冷风 | 3-反转 | 4-泡泡 | 5-掉落
+      </div>
+
       {/* Status Icons */}
       <div style={{ left: `${scale(48)}px`, top: `${scale(72)}px`, width: `${scale(28)}px`, height: `${scale(28)}px`, position: 'absolute' }}>
         <img
@@ -337,6 +560,135 @@ const PixelGameInterface: React.FC<{
           />
         </div>
       )}
+
+      {/* 泡泡时间效果 - 新的复杂运动系统 */}
+      {gameState.bubbleTimeState?.isActive && (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {gameState.bubbleTimeState.bubbles.map((bubble: Bubble) => (
+            <div
+              key={bubble.id}
+              className="absolute"
+              style={{
+                left: `${bubble.x}px`,
+                top: `${bubble.y}px`,
+                width: `${scale(bubble.size)}px`,
+                height: `${scale(bubble.size)}px`,
+                opacity: bubble.opacity,
+                transform: 'translate(-50%, -50%)',
+                willChange: 'transform', // 性能优化
+              }}
+            >
+              <img
+                src="/bubble.png"
+                alt="Bubble"
+                className="w-full h-full object-contain"
+                style={{
+                  filter: 'drop-shadow(0 0 10px rgba(173, 216, 230, 0.6))',
+                }}
+                onError={(e) => {
+                  // 如果bubble.png加载失败，使用原来的CSS泡泡
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.style.background = 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(173, 216, 230, 0.6))';
+                  target.parentElement!.style.borderRadius = '50%';
+                  target.parentElement!.style.border = '2px solid rgba(173, 216, 230, 0.8)';
+                  target.parentElement!.style.boxShadow = '0 0 20px rgba(173, 216, 230, 0.4)';
+                }}
+              />
+            </div>
+          ))}
+          {/* 泡泡时间提示文字 */}
+          <div 
+            className="absolute text-center font-bold"
+            style={{
+              top: `${scale(120)}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: '#fff',
+              fontSize: `${scale(18)}px`,
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            🎵 点击中央按钮保持节奏！ 🎵
+          </div>
+        </div>
+      )}
+
+      {/* 惊喜掉落物品 - Surprise Drop Objects */}
+      {gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none">
+                                {gameState.fallingObjects.map((obj: FallingObject) => (
+             <div
+               key={obj.id}
+               className="absolute transition-none falling-item"
+              style={{
+                left: `${scale(obj.xPosition)}px`,
+                top: `${scale(obj.yPosition)}px`,
+                width: `${scale(40)}px`,
+                height: `${scale(40)}px`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <img
+                className="w-full h-full object-contain drop-shadow-lg"
+                alt={`Falling ${obj.type}`}
+                src={obj.imageSrc}
+                onError={(e) => {
+                  console.error(`Failed to load falling object image: ${obj.imageSrc}`);
+                  // 如果图片加载失败，显示一个简单的表情符号
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+              {/* 如果图片加载失败，显示文字替代 */}
+              <div 
+                className="absolute inset-0 flex items-center justify-center text-2xl"
+                style={{
+                  backgroundColor: obj.comfortEffect > 0 ? '#4ade80' : '#ef4444',
+                  borderRadius: '50%',
+                  color: 'white',
+                }}
+              >
+                {obj.comfortEffect > 0 ? '✨' : '💀'}
+              </div>
+            </div>
+          ))}
+          {/* 掉落事件提示 */}
+          <div 
+            className="absolute text-center font-bold"
+            style={{
+              bottom: `${scale(100)}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: '#fff',
+              fontSize: `${scale(16)}px`,
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            🎁 点击中央按钮接住物品！ 🎁
+          </div>
+        </div>
+      )}
+
+      {/* 冷风效果 - WindEffect组件 */}
+      {gameState.interferenceEvent?.type === 'cold_wind' && gameState.interferenceEvent.isActive && (
+        <>
+          <WindEffect />
+          <div 
+            className="absolute text-center font-bold z-30"
+            style={{
+              top: `${scale(150)}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: '#87ceeb',
+              fontSize: `${scale(16)}px`,
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            🌨️ 寒风呼啸，温度下降更快！ 🌨️
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -354,6 +706,8 @@ export const GameInterface: React.FC = () => {
     handleRightButtonClick,
     handleCenterButtonClick,
     resetGame,
+    setImmortalMode,
+    triggerInterference,
   } = useGameState(GAME_CONFIG);
 
   const { submitScore } = useLeaderboard();
@@ -387,10 +741,13 @@ export const GameInterface: React.FC = () => {
   };
 
   const handleRestartToStartGame = () => {
+    console.log('🔄 重新开始游戏 - 退回到主界面');
     setShowGameCompletion(false);
     setIsGameStarted(false);
     setPlayerInfo(null);
     resetGame();
+    // 可选择是否退回到启动界面
+    // setShowLaunchScreen(true);
   };
 
   useEffect(() => {
@@ -453,6 +810,8 @@ export const GameInterface: React.FC = () => {
           onBackToStart={handleBackToStart}
           isMusicOn={isMusicOn}
           onMusicToggle={handleMusicToggle}
+          onSetImmortalMode={setImmortalMode}
+          onTriggerInterference={triggerInterference}
         />
       )}
     </div>

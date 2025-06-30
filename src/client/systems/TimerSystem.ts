@@ -47,11 +47,16 @@ export class TimerSystem {
   }
 
   /**
-   * 检查是否因舒适度过低而失败（新的失败条件）
-   * Check if game failed due to low comfort
+   * 检查是否因舒适度过低而失败（支持无敌模式）
+   * Check if game failed due to low comfort (supports immortal mode)
    */
   isComfortFailure(currentComfort: number): boolean {
-    return currentComfort <= 0.1; // 舒适度降到10%以下时游戏失败
+    // 🛡️ 无敌模式下永远不会因舒适度过低失败
+    if (this.config.IMMORTAL_MODE) {
+      return false; // 无敌模式：死不掉！
+    }
+    
+    return currentComfort <= 0.1; // 正常模式：舒适度降到10%以下时游戏失败
   }
 
   /**

@@ -23,7 +23,8 @@ export class TemperatureSystem {
     isPlusHeld: boolean,
     isMinusHeld: boolean,
     isControlsReversed: boolean,
-    deltaTime: number
+    deltaTime: number,
+    coolingMultiplier: number = 1 // 新增：冷却速率倍数参数
   ): number {
     // 🎯 关键：控制反转逻辑 - 当 isControlsReversed 为 true 时，按钮功能互换
     const effectivePlusHeld = isControlsReversed ? isMinusHeld : isPlusHeld;
@@ -37,7 +38,8 @@ export class TemperatureSystem {
       newTemperature -= this.config.TEMPERATURE_CHANGE_RATE * deltaTime;
     } else {
       // 自然冷却：当没有按钮被按下时，温度会自然下降
-      newTemperature -= this.config.TEMPERATURE_COOLING_RATE * deltaTime;
+      // 应用冷风效果的冷却倍数
+      newTemperature -= this.config.TEMPERATURE_COOLING_RATE * deltaTime * coolingMultiplier;
     }
 
     // 确保温度值在有效范围内 (0-1)
@@ -76,5 +78,15 @@ export class TemperatureSystem {
     targetTemperature: number
   ): number {
     return Math.abs(currentTemperature - targetTemperature);
+  }
+
+  /**
+   * 计算带偏移的显示温度（用于漏电效果）
+   * Calculate display temperature with offset (for electric leakage effect)
+   */
+  getDisplayTemperature(actualTemperature: number, temperatureOffset: number): number {
+    const displayTemp = actualTemperature + temperatureOffset;
+    // 确保显示温度也在0-1范围内，但不影响实际温度
+    return Math.max(0, Math.min(1, displayTemp));
   }
 }

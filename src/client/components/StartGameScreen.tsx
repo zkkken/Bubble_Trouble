@@ -511,7 +511,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
                   }}
                 >
                   <img
-                    className={`relative ${cat.width} ${cat.height} ${cat.objectCover ? "object-cover" : ""} pointer-events-none`}
+                    className={`relative ${cat.width} ${cat.height} object-contain pointer-events-none`}
                     alt={cat.alt}
                     src={cat.src}
                     draggable={false}

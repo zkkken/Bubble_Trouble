@@ -17,6 +17,35 @@ interface ContinentRankingScreenProps {
   onBack: () => void;
 }
 
+// 获取玩家信息的函数 (与LeaderboardRankingScreen相同)
+const getPlayerInfo = () => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('catComfortGame_playerInfo');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        console.log('📱 ContinentRankingScreen获取玩家信息:', parsed);
+        return {
+          playerName: parsed.playerName || 'Player',
+          continentId: parsed.continentId || 'AS',
+          catAvatarId: parsed.catAvatarId || '1',
+          selectedCat: parsed.selectedCat || '/Cat_1.png'
+        };
+      } catch (error) {
+        console.error('解析玩家信息失败:', error);
+      }
+    }
+  }
+  // 默认玩家信息
+  console.log('📱 ContinentRankingScreen使用默认玩家信息');
+  return {
+    playerName: 'Player',
+    continentId: 'AS',
+    catAvatarId: '1',
+    selectedCat: '/Cat_1.png'
+  };
+};
+
 export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   continentId,
   continentName,
@@ -29,9 +58,27 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   const [scrollBarTop, setScrollBarTop] = React.useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
+  // 获取玩家信息
+  const playerInfo = getPlayerInfo();
+
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
+
+  // 随机获取背景图片 - 5个场景随机选择
+  const getRandomBackground = (): string => {
+    const backgrounds = [
+      '/background-1.png', 
+      '/background-2.png', 
+      '/background-3.png', 
+      '/background-4.png', 
+      '/background-5.png'
+    ];
+    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
+  };
+
+  // 使用useState确保组件生命周期内背景保持一致
+  const [selectedBackground] = React.useState(() => getRandomBackground());
 
   // 获取洲际排行榜数据
   React.useEffect(() => {
@@ -157,10 +204,15 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
           ...cssVars
         }}
       >
-        {/* 游戏背景 - 来自GameCompletionScreen */}
+        {/* 游戏背景 - 根据洲ID动态加载 */}
         <div className="absolute inset-0">
-          {/* 背景图像 */}
-          <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+          {/* 背景图像 - 随机选择场景 */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{
+              backgroundImage: `url(${selectedBackground})`
+            }}
+          />
 
           {/* 舒适度进度条 */}
           <div 
@@ -271,6 +323,67 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
             alt="Card bg"
             src="/card-bg-1.png"
           />
+
+          {/* 玩家主猫咪和名牌 - 仅在查看自己所选洲时显示 */}
+          {continentId === playerInfo.continentId && (
+            <div 
+              className="absolute z-20"
+              style={{
+                width: `${scale(106)}px`,
+                height: `${scale(130)}px`,
+                top: `${scale(90)}px`,
+                left: `${scale(165)}px`
+              }}
+            >
+              {/* 玩家名牌 */}
+              <div 
+                className="absolute"
+                style={{
+                  width: `${scale(103)}px`,
+                  height: `${scale(66)}px`,
+                  top: 0,
+                  left: 0
+                }}
+              >
+                <div 
+                  className="w-full h-full bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
+                />
+                
+                {/* 玩家名字文字 */}
+                <div 
+                  className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center"
+                  style={{
+                    fontFamily: 'Pixelify Sans', 
+                    fontSize: `${scale(Math.max(8, 20 - playerInfo.playerName.length * 1.5))}px`,
+                    top: `${scale(26 - (Math.max(8, 20 - playerInfo.playerName.length * 1.5) - 16) * 0.2)}px`
+                  }}
+                >
+                  {playerInfo.playerName.slice(0, 8)}
+                </div>
+              </div>
+              
+              {/* 玩家主猫咪 */}
+              <div 
+                className="absolute"
+                style={{
+                  width: `${scale(82)}px`,
+                  height: `${scale(82)}px`,
+                  top: `${scale(48)}px`,
+                  left: `${scale(12)}px`
+                }}
+              >
+                <img
+                  className="w-full h-full object-contain"
+                  alt={`Player cat ${playerInfo.catAvatarId}`}
+                  src={playerInfo.selectedCat}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/Cat_1.png';
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Leaderboard card - centered relative to card background */}
           <Card 

@@ -15,6 +15,8 @@ interface UseGameStateReturn {
   handleRightButtonClick: () => void;
   handleCenterButtonClick: () => void;
   resetGame: () => void;
+  setImmortalMode: (enabled: boolean) => void;
+  triggerInterference: (interferenceType: 'electric_leakage' | 'cold_wind' | 'controls_reversed' | 'bubble_time' | 'surprise_drop') => void;
 }
 
 export const useGameState = (config: GameConfig): UseGameStateReturn => {
@@ -54,6 +56,16 @@ export const useGameState = (config: GameConfig): UseGameStateReturn => {
     setGameState(newState);
   }, [gameStateManager]);
 
+  // Set immortal mode
+  const setImmortalMode = useCallback((enabled: boolean) => {
+    gameStateManager.setImmortalMode(enabled);
+  }, [gameStateManager]);
+
+  // Trigger specific interference
+  const triggerInterference = useCallback((interferenceType: 'electric_leakage' | 'cold_wind' | 'controls_reversed' | 'bubble_time' | 'surprise_drop') => {
+    setGameState(prev => gameStateManager.triggerInterference(prev, interferenceType));
+  }, [gameStateManager]);
+
 
   // Main game loop
   useEffect(() => {
@@ -75,5 +87,7 @@ export const useGameState = (config: GameConfig): UseGameStateReturn => {
     handleRightButtonClick,
     handleCenterButtonClick,
     resetGame,
+    setImmortalMode,
+    triggerInterference,
   };
 };

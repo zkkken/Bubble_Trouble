@@ -75,6 +75,22 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return continentNames[continentId] || continentId;
   };
 
+  // 根据洲ID获取对应背景图片
+  // 随机获取背景图片 - 5个场景随机选择
+  const getRandomBackground = (): string => {
+    const backgrounds = [
+      '/background-1.png', 
+      '/background-2.png', 
+      '/background-3.png', 
+      '/background-4.png', 
+      '/background-5.png'
+    ];
+    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
+  };
+
+  // 使用useState确保组件生命周期内背景保持一致
+  const [selectedBackground] = useState(() => getRandomBackground());
+
   // 获取洲排名（实际从API获取）
   const [continentRank, setContinentRank] = React.useState<number>(1);
   const [playerRank, setPlayerRank] = React.useState<number>(1);
@@ -160,10 +176,10 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 根据玩家数生成猫咪动画（最少6个最多20个）
+  // 根据玩家数生成猫咪动画（最少6个最多20个）- 优化防堆叠逻辑
   const generateRandomCats = (playerCount: number = 10) => {
     const catCount = Math.max(6, Math.min(20, playerCount));
-    const cats = [];
+    const cats: Array<{src: string; size: number; top: number; left: number; flipped: boolean}> = [];
     const catImages = ['/Cat_1.png', '/Cat_2.png', '/Cat_3.png', '/Cat_4.png', '/Cat_5.png', '/Cat_6.png', '/Cat_7.png'];
     
     // 猫咪框架尺寸（自适应缩放）
@@ -173,34 +189,58 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
     // 主猫咪位置（在框架顶部中央，避免被遮挡）
     const mainCatCenterX = frameWidth / 2; 
     const mainCatCenterY = scale(60); // 顶部位置
+    const mainCatRadius = scale(80); // 主猫咪保护区域半径
+    
+    // 检查两个圆形区域是否重叠
+    const isOverlapping = (x1: number, y1: number, size1: number, x2: number, y2: number, size2: number): boolean => {
+      const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+      const minDistance = (size1 + size2) / 2 + scale(15); // 额外15px间距防止紧贴
+      return distance < minDistance;
+    };
     
     for (let i = 0; i < catCount; i++) {
       let attempts = 0;
       let validPosition = false;
       let catData;
       
-      while (!validPosition && attempts < 50) {
+      while (!validPosition && attempts < 100) { // 增加尝试次数
         // 在框架内随机分布，但避开主猫咪区域
-        const size = Math.random() * scale(40) + scale(25); // 25-65px随机大小
+        const size = Math.random() * scale(35) + scale(25); // 25-60px随机大小，略小避免拥挤
         const x = Math.random() * (frameWidth - size);
         const y = Math.random() * (frameHeight - size);
         
-        // 检查是否与主猫咪区域重叠（避免遮挡）
-        const mainCatRadius = scale(80); // 主猫咪保护区域半径
+        const catCenterX = x + size / 2;
+        const catCenterY = y + size / 2;
+        
+        // 检查是否与主猫咪区域重叠
         const distanceToMain = Math.sqrt(
-          Math.pow(x + size/2 - mainCatCenterX, 2) + 
-          Math.pow(y + size/2 - mainCatCenterY, 2)
+          Math.pow(catCenterX - mainCatCenterX, 2) + 
+          Math.pow(catCenterY - mainCatCenterY, 2)
         );
         
         if (distanceToMain > mainCatRadius) {
-          validPosition = true;
-          catData = {
-            src: catImages[Math.floor(Math.random() * catImages.length)],
-            size,
-            top: y,
-            left: x,
-            flipped: Math.random() > 0.5 // 随机左右翻转
-          };
+          // 检查是否与已有猫咪重叠
+          let overlapsWithExisting = false;
+          for (const existingCat of cats) {
+            const existingCenterX = existingCat.left + existingCat.size / 2;
+            const existingCenterY = existingCat.top + existingCat.size / 2;
+            
+            if (isOverlapping(catCenterX, catCenterY, size, existingCenterX, existingCenterY, existingCat.size)) {
+              overlapsWithExisting = true;
+              break;
+            }
+          }
+          
+          if (!overlapsWithExisting) {
+            validPosition = true;
+            catData = {
+              src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
+              size,
+              top: y,
+              left: x,
+              flipped: Math.random() > 0.5 // 随机左右翻转
+            };
+          }
         }
         attempts++;
       }
@@ -209,6 +249,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
         cats.push(catData);
       }
     }
+    
+    console.log(`✅ 成功生成 ${cats.length}/${catCount} 只不重叠的猫咪`);
     return cats;
   };
 
@@ -270,10 +312,15 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
           ...cssVars
         }}
       >
-        {/* 简化的游戏主界面背景 */}
+        {/* 简化的游戏主界面背景 - 根据玩家选择的洲 */}
         <div className="absolute inset-0">
-          {/* 背景图像 */}
-          <div className="absolute inset-0 bg-[url(/background.png)] bg-cover bg-center" />
+          {/* 背景图像 - 随机选择场景 */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{
+              backgroundImage: `url(${selectedBackground})`
+            }}
+          />
 
           {/* 舒适度进度条 */}
           <div 
@@ -590,6 +637,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     height: `${scale(56)}px`
                   }}
                   onClick={onBackToStart}
+                  title="重新开始游戏 - 返回主界面"
                 >
                   <img
                     className="w-full h-full object-cover"

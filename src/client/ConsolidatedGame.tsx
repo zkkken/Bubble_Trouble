@@ -157,7 +157,8 @@ class InterferenceSystem {
 
   getRandomInterferenceType(): InterferenceType {
     const types: InterferenceType[] = ['controls_reversed', 'temperature_shock', 'bubble_obstruction'];
-    return types[Math.floor(Math.random() * types.length)];
+    const randomIndex = Math.floor(Math.random() * types.length);
+    return types[randomIndex] || 'controls_reversed';
   }
 
   createInterferenceEvent(type: InterferenceType): InterferenceEvent {
