@@ -33,7 +33,7 @@ const GAME_CONFIG: GameConfig = {
   INTERFERENCE_MIN_INTERVAL: 5,
   INTERFERENCE_MAX_INTERVAL: 10,
   INTERFERENCE_DURATION: 5,
-  IMMORTAL_MODE: true, // 恢复不死模式
+  IMMORTAL_MODE: false, // 移除不死模式
 };
 
 // 玩家信息接口
@@ -53,8 +53,6 @@ const PixelGameInterface: React.FC<{
   onBackToStart: () => void;
   isMusicOn: boolean;
   onMusicToggle: () => void;
-  onSetImmortalMode: (enabled: boolean) => void;
-  onTriggerInterference: (interferenceType: 'electric_leakage' | 'cold_wind' | 'controls_reversed' | 'bubble_time' | 'surprise_drop') => void;
 }> = ({ 
   gameState, 
   playerInfo,
@@ -63,9 +61,7 @@ const PixelGameInterface: React.FC<{
   onCenterButtonClick,
   onBackToStart,
   isMusicOn,
-  onMusicToggle,
-  onSetImmortalMode,
-  onTriggerInterference
+  onMusicToggle
 }) => {
   
   const { cssVars } = useResponsiveScale();
@@ -91,9 +87,6 @@ const PixelGameInterface: React.FC<{
 
   // 使用统一的背景管理
   const [selectedBackground] = useState(() => getGameBackground());
-  
-  // 不死模式状态
-  const [immortalMode, setImmortalMode] = useState(true); // 恢复不死模式
 
   // 精确的舒适度条颜色映射 - 按照用户规格
   const getComfortBarColor = (comfort: number): string => {
@@ -174,60 +167,6 @@ const PixelGameInterface: React.FC<{
   useEffect(() => {
     const flipInterval = setInterval(() => setCatFlipped(prev => !prev), 3000 + Math.random() * 3000);
     return () => clearInterval(flipInterval);
-  }, []);
-
-  // 键盘监听器 - 不死模式和干扰机制快捷键
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
-      
-      // 防止在输入框中触发
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (key) {
-        case 'd':
-          // 切换不死模式
-          setImmortalMode(prev => {
-            const newMode = !prev;
-            onSetImmortalMode(newMode);
-            return newMode;
-          });
-          break;
-        
-        case '1':
-          // 触发漏电干扰
-          onTriggerInterference('electric_leakage');
-          break;
-          
-        case '2':
-          // 触发冷风干扰
-          onTriggerInterference('cold_wind');
-          break;
-          
-        case '3':
-          // 触发控制反转干扰
-          onTriggerInterference('controls_reversed');
-          break;
-          
-        case '4':
-          // 触发泡泡时间干扰
-          onTriggerInterference('bubble_time');
-          break;
-          
-        case '5':
-          // 触发惊喜掉落干扰
-          onTriggerInterference('surprise_drop');
-          break;
-          
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   // 干扰事件类型到图片文件名的映射
@@ -493,37 +432,6 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* 不死模式指示器 - 显示 */}
-      {immortalMode && (
-        <div 
-          className="absolute z-50 flex items-center justify-center bg-purple-600 text-white font-bold rounded-lg animate-pulse"
-          style={{
-            left: `${scale(10)}px`,
-            top: `${scale(10)}px`,
-            width: `${scale(100)}px`,
-            height: `${scale(30)}px`,
-            fontSize: `${scale(12)}px`,
-            border: '2px solid #ffd700',
-            boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)'
-          }}
-        >
-          🛡️ 不死模式
-        </div>
-      )}
-
-      {/* 快捷键提示 */}
-      <div 
-        className="absolute z-40 text-white text-opacity-60"
-        style={{
-          left: `${scale(10)}px`,
-          bottom: `${scale(10)}px`,
-          fontSize: `${scale(10)}px`,
-          fontFamily: 'monospace'
-        }}
-      >
-        快捷键: D-不死模式 | 1-漏电 | 2-冷风 | 3-反转 | 4-泡泡 | 5-掉落
-      </div>
-
       {/* Status Icons */}
       <div style={{ left: `${scale(48)}px`, top: `${scale(72)}px`, width: `${scale(28)}px`, height: `${scale(28)}px`, position: 'absolute' }}>
         <img
@@ -688,8 +596,6 @@ export const GameInterface: React.FC = () => {
     handleRightButtonClick,
     handleCenterButtonClick,
     resetGame,
-    setImmortalMode,
-    triggerInterference,
   } = useGameState(GAME_CONFIG);
 
   const { submitScore } = useLeaderboard();
@@ -813,8 +719,6 @@ export const GameInterface: React.FC = () => {
           onBackToStart={handleBackToStart}
           isMusicOn={isMusicOn}
           onMusicToggle={handleMusicToggle}
-          onSetImmortalMode={setImmortalMode}
-          onTriggerInterference={triggerInterference}
         />
       )}
     </div>

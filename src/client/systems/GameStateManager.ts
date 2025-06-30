@@ -162,8 +162,8 @@ export class GameStateManager {
     newState.currentTemperature = Math.max(0, Math.min(1, newState.currentTemperature));
     newState.currentComfort = Math.max(0, Math.min(1, newState.currentComfort));
 
-    // 7. 检查游戏失败条件 (除非开启不死模式)
-    if (newState.currentComfort <= 0 && !this.config.IMMORTAL_MODE) {
+    // 7. 检查游戏失败条件 (正常模式)
+    if (newState.currentComfort <= 0) {
       newState.gameStatus = 'failure';
       return newState;
     }
@@ -358,26 +358,5 @@ export class GameStateManager {
 
   getInterferenceSystem(): InterferenceSystem {
     return this.interferenceSystem;
-  }
-
-  /**
-   * 手动触发特定干扰机制 (用于调试/作弊)
-   */
-  triggerInterference(state: GameState, interferenceType: 'electric_leakage' | 'cold_wind' | 'controls_reversed' | 'bubble_time' | 'surprise_drop'): GameState {
-    // 清除当前干扰
-    let newState = this.clearInterferenceEffects(state);
-    
-    // 创建新的干扰事件
-    newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
-    newState = this.activateInterferenceEffects(newState, interferenceType);
-    
-    return newState;
-  }
-
-  /**
-   * 设置不死模式
-   */
-  setImmortalMode(enabled: boolean): void {
-    this.config.IMMORTAL_MODE = enabled;
   }
 }

@@ -96,7 +96,7 @@ export interface GameConfig {
   INTERFERENCE_MIN_INTERVAL: number;
   INTERFERENCE_MAX_INTERVAL: number;
   INTERFERENCE_DURATION: number;
-  IMMORTAL_MODE?: boolean; // 无敌模式：舒适度不会导致游戏失败
+  IMMORTAL_MODE?: boolean; // 移除不死模式
 }
 
 // 图片资源配置
