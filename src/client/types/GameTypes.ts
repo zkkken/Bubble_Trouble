@@ -77,6 +77,10 @@ export interface GameState {
   bubbleTimeState: BubbleTimeState; // 泡泡时间状态
   fallingObjects: FallingObject[]; // 惊喜掉落物品
   windObjects: WindObject[]; // 冷风效果：风效果对象
+
+  // 新增：Tap图标旋转状态
+  tapIconRotation: number; // 当前旋转角度
+  tapIconAnimationTrigger: number; // 动画触发计数器
 }
 
 export interface GameConfig {

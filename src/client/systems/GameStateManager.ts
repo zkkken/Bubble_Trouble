@@ -1,6 +1,6 @@
 /**
- * 游戏状态管理器 - 协调所有游戏系统并管理整体游戏状态 (V2 - 新机制)
- * Game State Manager - Coordinates all game systems and manages overall game state (V2 - New Mechanics)
+ * 游戏状态管理器 - 协调所有游戏系统并管理整体游戏状态 (V2.2 - 新机制)
+ * Game State Manager - Coordinates all game systems and manages overall game state (V2.2 - New Mechanics)
  * 
  * @author 开发者A - 游戏核心逻辑负责人 & Gemini
  */
@@ -19,6 +19,10 @@ const TOLERANCE_WIDTH = 0.1; // 舒适区域宽度（目标温度±10%）
 const FIXED_COMFORT_ZONE_MIN = 0.6; // 60%
 const FIXED_COMFORT_ZONE_MAX = 0.8; // 80%
 
+// 新增：温度指针掉落机制常量
+const TEMP_DROP_INTERVAL = 0.04; // 40ms间隔
+const TEMP_DROP_AMOUNT = 0.006; // 单次减量0.6%
+
 export class GameStateManager {
   private interferenceSystem: InterferenceSystem;
   private config: GameConfig;
@@ -27,6 +31,7 @@ export class GameStateManager {
   private targetTempChangeTimer: number = 0;
   private electricLeakageTimer: number = 0; // 漏电偏移更新计时器
   private fallingObjectSpawnTimer: number = 0; // 掉落物品生成计时器
+  private tempDropAccumulator: number = 0; // 温度掉落计时器 (40ms间隔)
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -44,6 +49,7 @@ export class GameStateManager {
     this.targetTempChangeTimer = TARGET_TEMP_CHANGE_INTERVAL;
     this.electricLeakageTimer = 0;
     this.fallingObjectSpawnTimer = 0;
+    this.tempDropAccumulator = 0;
     
     const initialBubbleState: BubbleTimeState = {
       isActive: false,
@@ -79,6 +85,10 @@ export class GameStateManager {
       bubbleTimeState: initialBubbleState, // 泡泡时间状态
       fallingObjects: [], // 惊喜掉落物品
       windObjects: [], // 冷风效果：风效果对象
+
+      // 新增：Tap图标旋转状态
+      tapIconRotation: 0, // 当前旋转角度
+      tapIconAnimationTrigger: 0, // 动画触发计数器
     };
   }
 
@@ -101,16 +111,26 @@ export class GameStateManager {
     let newState = { ...currentState };
     this.timeAccumulator += deltaTime;
     this.comfortUpdateAccumulator += deltaTime;
+    this.tempDropAccumulator += deltaTime;
 
     // 1. 更新正向计时器
     newState.gameTimer += deltaTime;
     newState.interferenceTimer -= deltaTime; // 干扰计时器倒计时
 
-    // 2. 每80ms更新舒适度 - 按照用户规格
+    // 2. 新增：温度指针掉落机制 - 40ms间隔，0.6%减量 = 15%/秒
+    if (this.tempDropAccumulator >= TEMP_DROP_INTERVAL) {
+      this.tempDropAccumulator -= TEMP_DROP_INTERVAL;
+      
+      // 应用冷风效果的冷却倍数
+      const dropAmount = TEMP_DROP_AMOUNT * newState.temperatureCoolingMultiplier;
+      newState.currentTemperature = Math.max(0, newState.currentTemperature - dropAmount);
+    }
+
+    // 3. 每80ms更新舒适度 - 按照用户规格
     if (this.comfortUpdateAccumulator >= COMFORT_UPDATE_INTERVAL) {
       this.comfortUpdateAccumulator -= COMFORT_UPDATE_INTERVAL;
 
-      // 2a. 基于固定60%-80%区域更新舒适度
+      // 3a. 基于固定60%-80%区域更新舒适度
       const currentTemp = newState.currentTemperature;
       const isInFixedComfortZone = currentTemp >= FIXED_COMFORT_ZONE_MIN && currentTemp <= FIXED_COMFORT_ZONE_MAX;
       
@@ -123,14 +143,11 @@ export class GameStateManager {
       }
     }
 
-    // 3. 每秒更新一次的逻辑
+    // 4. 每秒更新一次的逻辑
     if (this.timeAccumulator >= 1) {
       this.timeAccumulator -= 1;
 
-      // 3a. 温度每秒自动下降（应用冷风效果）- 速度同步15%/秒
-      newState.currentTemperature -= TEMP_AUTO_DECREASE_PER_SECOND * newState.temperatureCoolingMultiplier;
-
-      // 3b. 更新目标温度变化计时器（保留用于显示，但不影响舒适度计算）
+      // 4a. 更新目标温度变化计时器（保留用于显示，但不影响舒适度计算）
       this.targetTempChangeTimer -= 1;
       if (this.targetTempChangeTimer <= 0) {
         newState.targetTemperature = this.generateRandomTargetTemperature();
@@ -139,20 +156,20 @@ export class GameStateManager {
       }
     }
     
-    // 4. 处理干扰效果特殊逻辑
+    // 5. 处理干扰效果特殊逻辑
     this.handleInterferenceEffects(newState, deltaTime);
 
-    // 5. 确保温度和舒适度在 0-1 范围内 (自动回弹)
+    // 6. 确保温度和舒适度在 0-1 范围内 (自动回弹)
     newState.currentTemperature = Math.max(0, Math.min(1, newState.currentTemperature));
     newState.currentComfort = Math.max(0, Math.min(1, newState.currentComfort));
 
-    // 6. 检查游戏失败条件 (除非开启不死模式)
+    // 7. 检查游戏失败条件 (除非开启不死模式)
     if (newState.currentComfort <= 0 && !this.config.IMMORTAL_MODE) {
       newState.gameStatus = 'failure';
       return newState;
     }
 
-    // 7. 更新和触发干扰事件
+    // 8. 更新和触发干扰事件
     if (newState.interferenceEvent.isActive) {
       newState.interferenceEvent.remainingTime -= deltaTime;
       if (newState.interferenceEvent.remainingTime <= 0) {
@@ -252,7 +269,17 @@ export class GameStateManager {
   handleTempIncrease(currentState: GameState): GameState {
     let newTemp = currentState.currentTemperature + TEMP_CLICK_CHANGE;
     newTemp = Math.min(1, newTemp); 
-    return { ...currentState, currentTemperature: newTemp };
+    
+    // 新增：Tap图标顺时针旋转90度
+    const newRotation = currentState.tapIconRotation + 90;
+    const newAnimationTrigger = currentState.tapIconAnimationTrigger + 1;
+    
+    return { 
+      ...currentState, 
+      currentTemperature: newTemp,
+      tapIconRotation: newRotation,
+      tapIconAnimationTrigger: newAnimationTrigger
+    };
   }
 
   /**
@@ -261,7 +288,17 @@ export class GameStateManager {
   handleTempDecrease(currentState: GameState): GameState {
     let newTemp = currentState.currentTemperature - TEMP_CLICK_CHANGE;
     newTemp = Math.max(0, newTemp);
-    return { ...currentState, currentTemperature: newTemp };
+    
+    // 新增：Tap图标逆时针旋转90度
+    const newRotation = currentState.tapIconRotation - 90;
+    const newAnimationTrigger = currentState.tapIconAnimationTrigger + 1;
+    
+    return { 
+      ...currentState, 
+      currentTemperature: newTemp,
+      tapIconRotation: newRotation,
+      tapIconAnimationTrigger: newAnimationTrigger
+    };
   }
   
   /**

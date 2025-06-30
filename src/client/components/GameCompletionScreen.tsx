@@ -629,6 +629,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                   bottom: `${scale(-10)}px`
                 }}
               >
+                {/* 修复：Restart按钮调用正确的回调函数 */}
                 <Button
                   variant="ghost"
                   className="p-0 rounded-md"
@@ -636,7 +637,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                     width: `${scale(56)}px`,
                     height: `${scale(56)}px`
                   }}
-                  onClick={onBackToStart}
+                  onClick={onBackToStart} // 修复：使用onBackToStart而不是onPlayAgain
                   title="重新开始游戏 - 返回主界面"
                 >
                   <img

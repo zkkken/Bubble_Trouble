@@ -77,6 +77,9 @@ const PixelGameInterface: React.FC<{
   const [isLeftButtonAnimating, setIsLeftButtonAnimating] = useState(false);
   const [isRightButtonAnimating, setIsRightButtonAnimating] = useState(false);
 
+  // Tap图标动画状态
+  const [tapIconAnimationState, setTapIconAnimationState] = useState<'idle' | 'animating'>('idle');
+
   const formatTime = (totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
@@ -163,6 +166,19 @@ const PixelGameInterface: React.FC<{
       return () => clearInterval(interval);
     }, 1000);
   }, []);
+
+  // Tap图标旋转动画效果
+  useEffect(() => {
+    if (gameState.tapIconAnimationTrigger === 0) return;
+
+    setTapIconAnimationState('animating');
+
+    const animationTimer = setTimeout(() => {
+      setTapIconAnimationState('idle');
+    }, 300);
+
+    return () => clearTimeout(animationTimer);
+  }, [gameState.tapIconAnimationTrigger]);
 
   useEffect(() => {
     const flipInterval = setInterval(() => setCatFlipped(prev => !prev), 3000 + Math.random() * 3000);
@@ -436,7 +452,7 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* 中央按钮 - 泡泡互动 (Center Button - Bubble Interaction) */}
+      {/* 中央按钮 - 泡泡互动 (Center Button - Bubble Interaction) 带Tap图标旋转 */}
       <button
         className="absolute transition-all duration-200 hover:scale-105 active:scale-95"
         style={{ left: `${scale(322)}px`, top: `${scale(448)}px`, width: `${scale(80)}px`, height: `${scale(80)}px` }}
@@ -444,9 +460,14 @@ const PixelGameInterface: React.FC<{
         disabled={gameState.gameStatus !== 'playing'}
       >
         <img 
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover transition-transform duration-300 ease-out ${
+            tapIconAnimationState === 'animating' ? 'animate-[tapRotate_0.3s_ease-out]' : ''
+          }`}
+          style={{
+            transform: `rotate(${gameState.tapIconRotation || 0}deg)`,
+          }}
           alt="Center tap button" 
-          src="/button-center-interaction.png" 
+          src="/icon-tap.png" 
         />
       </button>
 
@@ -487,8 +508,8 @@ const PixelGameInterface: React.FC<{
         />
       </button>
 
-      {/* 不死模式指示器 */}
-      {immortalMode && (
+      {/* 不死模式指示器 - 隐藏 */}
+      {false && immortalMode && (
         <div 
           className="absolute z-50 flex items-center justify-center bg-purple-600 text-white font-bold rounded-lg animate-pulse"
           style={{
@@ -561,8 +582,8 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
-      {/* 泡泡时间效果 - 新的复杂运动系统 */}
-      {gameState.bubbleTimeState?.isActive && (
+      {/* 泡泡时间效果 - 新的复杂运动系统 - 隐藏 */}
+      {false && gameState.bubbleTimeState?.isActive && (
         <div className="absolute inset-0 pointer-events-none z-20">
           {gameState.bubbleTimeState.bubbles.map((bubble: Bubble) => (
             <div
@@ -670,23 +691,41 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
+      {/* 接住区域指示器 - 绿色虚线框，内部透明 - 隐藏边框 */}
+      {false && gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
+        <div 
+          className="absolute pointer-events-none z-30"
+          style={{
+            left: `${scale(50)}px`,
+            top: `${scale(480)}px`,
+            width: `${scale(624)}px`,
+            height: `${scale(80)}px`,
+            border: '2px dashed #4ade80',
+            backgroundColor: 'transparent',
+          }}
+        />
+      )}
+
       {/* 冷风效果 - WindEffect组件 */}
       {gameState.interferenceEvent?.type === 'cold_wind' && gameState.interferenceEvent.isActive && (
         <>
           <WindEffect />
-          <div 
-            className="absolute text-center font-bold z-30"
-            style={{
-              top: `${scale(150)}px`,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              color: '#87ceeb',
-              fontSize: `${scale(16)}px`,
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            }}
-          >
-            🌨️ 寒风呼啸，温度下降更快！ 🌨️
-          </div>
+          {/* 冷风提示文字 - 清除 */}
+          {false && (
+            <div 
+              className="absolute text-center font-bold z-30"
+              style={{
+                top: `${scale(150)}px`,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                color: '#87ceeb',
+                fontSize: `${scale(16)}px`,
+                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+              }}
+            >
+              🌨️ 寒风呼啸，温度下降更快！ 🌨️
+            </div>
+          )}
         </>
       )}
     </div>
