@@ -1,10 +1,11 @@
 /**
- * 简单的成功提示组件
+ * 简单的成功提示组件 - 根据Figma设计重新实现
  * 用于显示分享成功等提示信息
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useResponsiveSize } from '../hooks/useResponsiveScale';
+import { getGameBackground } from '../utils/shareUtils';
 
 interface SuccessToastProps {
   isOpen: boolean;
@@ -20,6 +21,9 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
   autoCloseDelay = 3000
 }) => {
   const { scale } = useResponsiveSize();
+  
+  // 使用背景系统
+  const [selectedBackground] = useState(() => getGameBackground());
 
   // 自动关闭
   useEffect(() => {
@@ -35,52 +39,64 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* 使用项目背景系统的背景图片 */}
       <div 
-        className="bg-[#28A745] border-4 border-[#34CE57] rounded-lg overflow-hidden relative animate-bounce"
+        className="absolute inset-0 bg-cover bg-center"
         style={{
-          width: `${scale(400)}px`,
-          minHeight: `${scale(150)}px`,
+          backgroundImage: `url(${selectedBackground})`
+        }}
+      />
+      
+      {/* 半透明覆盖层 */}
+      <div className="absolute inset-0 bg-black bg-opacity-50" />
+      
+      {/* 主内容容器 - 点击整个区域关闭 */}
+      <div 
+        className="relative cursor-pointer z-10"
+        onClick={onClose}
+        style={{
+          width: `${scale(286)}px`,
+          height: `${scale(179)}px`,
         }}
       >
-        {/* 关闭按钮 */}
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 z-10 bg-[#FF4500] hover:bg-[#FF5722] text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors text-sm"
-        >
-          ✕
-        </button>
-
-        {/* 内容区域 */}
-        <div className="p-6 text-center text-white">
-          {/* 成功图标 */}
-          <div className="text-4xl mb-3">✅</div>
-          
-          {/* 标题 */}
-          <h2 
-            className="silkscreen-bold text-xl mb-3"
-            style={{
-              WebkitTextStroke: `${scale(2.2)}px #000`
-            }}
-          >
-            操作成功！
-          </h2>
-          
-          {/* 消息内容 */}
-          <p 
-            className="silkscreen-bold text-sm leading-relaxed"
-            style={{
-              WebkitTextStroke: `${scale(1.6)}px #000`
-            }}
-          >
-            {message}
-          </p>
-
-          {/* 自动关闭提示 */}
-          <p className="text-xs text-green-200 mt-4">
-            {autoCloseDelay > 0 && `${Math.ceil(autoCloseDelay / 1000)}秒后自动关闭`}
-          </p>
-        </div>
+        {/* 主卡片内容 - share_result.png */}
+        <img
+          src="/share_result.png"
+          alt="Share Result"
+          className="w-full h-full object-contain"
+          style={{
+            width: `${scale(286)}px`,
+            height: `${scale(179)}px`,
+          }}
+          onError={(e) => {
+            // 如果share_result.png加载失败，显示备用内容
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `
+                <div style="
+                  width: ${scale(286)}px;
+                  height: ${scale(179)}px;
+                  background: rgb(183, 239, 255);
+                  border: ${scale(6)}px solid white;
+                  border-radius: 30px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: rgb(240, 188, 8);
+                  font-weight: bold;
+                  font-size: ${scale(16)}px;
+                  text-align: center;
+                  padding: ${scale(20)}px;
+                ">
+                  ${message}
+                </div>
+              `;
+            }
+          }}
+        />
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import { Card, CardContent } from './ui/card';
 import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
 import { SuccessToast } from './SuccessToast';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
-import { shareResultToClipboard } from '../utils/shareUtils';
+import { shareResultToClipboard, getGameBackground } from '../utils/shareUtils';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
@@ -69,20 +69,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   };
 
   // 根据洲ID获取对应背景图片
-  // 随机获取背景图片 - 5个场景随机选择
-  const getRandomBackground = (): string => {
-    const backgrounds = [
-      '/background-1.png', 
-      '/background-2.png', 
-      '/background-3.png', 
-      '/background-4.png', 
-      '/background-5.png'
-    ];
-    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
-  };
-
-  // 使用useState确保组件生命周期内背景保持一致
-  const [selectedBackground] = useState(() => getRandomBackground());
+  // 使用统一的背景管理系统，确保与游戏界面背景一致
+  const [selectedBackground] = useState(() => getGameBackground());
 
   // 获取洲排名（实际从API获取）
   const [continentRank, setContinentRank] = React.useState<number>(1);
@@ -213,7 +201,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
       
       while (!validPosition && attempts < 150) { // 增加尝试次数
         // 在框架内随机分布，但避开主猫咪区域
-        const size = Math.random() * scale(30) + scale(20); // 20-50px随机大小，更小避免拥挤
+        const size = Math.random() * scale(45) + scale(45); // 45-90px随机大小
         const x = Math.random() * (frameWidth - size);
         const y = Math.random() * (frameHeight - size);
         
@@ -259,7 +247,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
         
         catData = {
           src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
-          size: scale(25),
+          size: scale(45), // 网格布局时使用最小尺寸
           top: gridY,
           left: gridX,
           flipped: Math.random() > 0.5

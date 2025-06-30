@@ -1,157 +1,199 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { WindObject } from '../types/GameTypes';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
+// 配置接口
 interface WindConfig {
   windSize?: { width: number; height: number };
   maxWinds?: number;
-  speedRange?: { min: number; max: number };
-  intervalRange?: { min: number; max: number };
-  heightRange?: { min: number; max: number };
+  speedRange?: { min: number; max: number }; // 动画持续时间（秒）
+  intervalRange?: { min: number; max: number }; // 生成间隔（秒）
+  heightRange?: { min: number; max: number }; // 高度范围（百分比）
   windImage?: string;
 }
+
+// 单个风对象接口
+interface WindObject {
+  id: string;
+  x: number;
+  y: number;
+  direction: 'left' | 'right';
+  duration: number; // 动画持续时间
+  opacity: number;
+}
+
+// 生成随机值的辅助函数 - 移到组件外部
+const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
+
+// 默认配置
+const defaultConfig: Required<WindConfig> = {
+  windSize: { width: 400, height: 200 },
+  maxWinds: 5,
+  speedRange: { min: 3, max: 8 }, // 3-8秒穿越屏幕
+  intervalRange: { min: 3, max: 8 }, // 3-8秒生成间隔
+  heightRange: { min: 10, max: 70 }, // 屏幕高度10%-70%
+  windImage: '/redom-below.png'
+};
 
 interface WindEffectProps {
   config?: WindConfig;
 }
 
-export const WindEffect: React.FC<WindEffectProps> = ({ 
-  config = {} 
-}) => {
-  const {
-    windSize = { width: 400, height: 200 },
-    maxWinds = 5,
-    speedRange = { min: 3, max: 8 }, // 3-8秒穿越屏幕
-    intervalRange = { min: 3000, max: 8000 }, // 3-8秒生成间隔
-    heightRange = { min: 10, max: 70 }, // 屏幕高度10%-70%
-    windImage = '/redom-below.png' // 使用redom-below.png图片
-  } = config;
-
+export const WindEffect: React.FC<WindEffectProps> = ({ config = {} }) => {
   const [winds, setWinds] = useState<WindObject[]>([]);
-  const [nextWindId, setNextWindId] = useState(0);
+  const nextGenerationTimeRef = useRef<number>(0);
+  const animationFrameRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
 
-  // 生成新的风对象
-  const generateWind = useCallback((): WindObject => {
+  // 合并配置
+  const finalConfig = { ...defaultConfig, ...config };
+
+  // 创建新的风对象
+  const createWind = useCallback((): WindObject => {
     const direction = Math.random() < 0.5 ? 'left' : 'right';
-    const startX = direction === 'left' ? -windSize.width : window.innerWidth;
-    const y = (heightRange.min + Math.random() * (heightRange.max - heightRange.min)) / 100 * window.innerHeight;
-    const speed = speedRange.min + Math.random() * (speedRange.max - speedRange.min);
-
+    const gameHeight = 584; // 游戏区域高度
+    const { heightRange, speedRange, windSize } = finalConfig;
+    
     return {
-      id: nextWindId,
-      x: startX,
-      y: y,
+      id: `wind-${Date.now()}-${Math.random()}`,
+      x: direction === 'right' ? -windSize.width : 724 + windSize.width, // 从屏幕外开始
+      y: (gameHeight * heightRange.min / 100) + 
+         Math.random() * (gameHeight * (heightRange.max - heightRange.min) / 100),
       direction,
-      speed: speed * 1000, // 转换为毫秒
-      opacity: 0.6 + Math.random() * 0.4 // 0.6-1.0透明度
+      duration: randomBetween(speedRange.min, speedRange.max),
+      opacity: 0
     };
-  }, [nextWindId, windSize.width, heightRange.min, heightRange.max, speedRange.min, speedRange.max]);
+  }, [finalConfig]);
 
-  // 递归生成风效果
-  const scheduleNextWind = useCallback(() => {
-    const delay = intervalRange.min + Math.random() * (intervalRange.max - intervalRange.min);
-    
-    setTimeout(() => {
-      setWinds(currentWinds => {
-        if (currentWinds.length < maxWinds) {
-          const newWind = generateWind();
-          setNextWindId(prev => prev + 1);
-          return [...currentWinds, newWind];
-        }
-        return currentWinds;
-      });
-      
-      // 继续递归生成
-      scheduleNextWind();
-    }, delay);
-  }, [generateWind, intervalRange.min, intervalRange.max, maxWinds]);
+  // 更新风对象位置和状态
+  const updateWinds = useCallback((currentTime: number, deltaTime: number) => {
+    setWinds(prevWinds => {
+      return prevWinds.map(wind => {
+        const { windSize } = finalConfig;
+        const screenWidth = 724;
+        const speed = (screenWidth + windSize.width * 2) / (wind.duration * 1000); // 像素/毫秒
+        
+        let newX = wind.x;
+        let newOpacity = wind.opacity;
 
-  // 移除离开屏幕的风对象
-  const removeOffscreenWinds = useCallback(() => {
-    setWinds(currentWinds => 
-      currentWinds.filter(wind => {
-        if (wind.direction === 'left') {
-          return wind.x > -windSize.width;
+        // 更新位置
+        if (wind.direction === 'right') {
+          newX += speed * deltaTime;
         } else {
-          return wind.x < window.innerWidth + windSize.width;
+          newX -= speed * deltaTime;
         }
-      })
-    );
-  }, [windSize.width]);
 
-  // 初始化和清理
+        // 计算透明度（淡入淡出效果）
+        const totalDistance = screenWidth + windSize.width * 2;
+        const traveledDistance = wind.direction === 'right' 
+          ? newX + windSize.width 
+          : (screenWidth + windSize.width) - newX;
+        const progress = traveledDistance / totalDistance;
+
+        if (progress < 0.1) {
+          // 淡入阶段
+          newOpacity = progress / 0.1;
+        } else if (progress > 0.9) {
+          // 淡出阶段
+          newOpacity = (1 - progress) / 0.1;
+        } else {
+          // 完全可见阶段
+          newOpacity = 1;
+        }
+
+        return {
+          ...wind,
+          x: newX,
+          opacity: Math.max(0, Math.min(1, newOpacity))
+        };
+      }).filter(wind => {
+        // 移除已经完全离开屏幕的风对象
+        const { windSize } = finalConfig;
+        return wind.direction === 'right' 
+          ? wind.x < 724 + windSize.width 
+          : wind.x > -windSize.width;
+      });
+    });
+  }, [finalConfig]);
+
+  // 尝试生成新的风对象
+  const tryGenerateWind = useCallback((currentTime: number) => {
+    if (currentTime >= nextGenerationTimeRef.current) {
+      setWinds(prevWinds => {
+        // 检查当前数量是否已达到上限
+        if (prevWinds.length >= finalConfig.maxWinds) {
+          return prevWinds;
+        }
+
+        const newWind = createWind();
+        return [...prevWinds, newWind];
+      });
+
+      // 设置下次生成时间
+      const nextInterval = randomBetween(finalConfig.intervalRange.min, finalConfig.intervalRange.max) * 1000;
+      nextGenerationTimeRef.current = currentTime + nextInterval;
+    }
+  }, [finalConfig, createWind]);
+
+  // 主动画循环
+  const animate = useCallback((currentTime: number) => {
+    if (lastTimeRef.current === 0) {
+      lastTimeRef.current = currentTime;
+    }
+
+    const deltaTime = currentTime - lastTimeRef.current;
+    lastTimeRef.current = currentTime;
+
+    // 更新现有风对象
+    updateWinds(currentTime, deltaTime);
+
+    // 尝试生成新风对象
+    tryGenerateWind(currentTime);
+
+    // 继续动画循环
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [updateWinds, tryGenerateWind]);
+
+  // 启动动画循环
   useEffect(() => {
-    console.log('🌬️ WindEffect组件初始化');
-    scheduleNextWind();
+    // 初始化第一次生成时间 - 减少初始延迟以便更快看到效果
+    const initialDelay = 500; // 500毫秒后生成第一个风对象
+    nextGenerationTimeRef.current = performance.now() + initialDelay;
     
-    const cleanupInterval = setInterval(removeOffscreenWinds, 1000);
-    
-    return () => {
-      console.log('🌬️ WindEffect组件清理');
-      clearInterval(cleanupInterval);
-    };
-  }, [scheduleNextWind, removeOffscreenWinds]);
+    animationFrameRef.current = requestAnimationFrame(animate);
 
-  console.log(`🌬️ WindEffect渲染: ${winds.length}个风对象`);
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [animate, finalConfig]);
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
-      {winds.map((wind) => (
-        <div
+      {winds.map(wind => (
+        <img
           key={wind.id}
-          className="absolute wind-object"
+          src={finalConfig.windImage}
+          alt="Wind effect"
+          className="absolute"
           style={{
             left: `${wind.x}px`,
             top: `${wind.y}px`,
-            width: `${windSize.width}px`,
-            height: `${windSize.height}px`,
+            width: `${finalConfig.windSize.width}px`,
+            height: `${finalConfig.windSize.height}px`,
             opacity: wind.opacity,
-            animation: `windTravel-${wind.direction} ${wind.speed}ms linear infinite`,
-            willChange: 'transform'
+            transform: wind.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+            transition: 'opacity 0.3s ease-in-out',
           }}
-        >
-          <img
-            src={windImage}
-            alt="Wind effect"
-            className="w-full h-full object-contain"
-            style={{
-              transform: wind.direction === 'right' ? 'scaleX(-1)' : 'scaleX(1)'
-            }}
-            onError={(e) => {
-              console.warn('Wind image failed to load:', windImage);
-              // 如果图片加载失败，创建一个简单的风效果
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              target.parentElement!.style.background = 'linear-gradient(90deg, transparent 0%, rgba(147, 197, 253, 0.4) 50%, transparent 100%)';
-            }}
-          />
-        </div>
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'block';
+            target.style.backgroundColor = 'rgba(0, 255, 0, 0.5)';
+            target.alt = 'Wind (Image Failed)';
+          }}
+        />
       ))}
-      
-      <style>
-        {`
-          @keyframes windTravel-left {
-            from {
-              transform: translateX(0);
-            }
-            to {
-              transform: translateX(calc(-100vw - ${windSize.width}px));
-            }
-          }
-          
-          @keyframes windTravel-right {
-            from {
-              transform: translateX(0);
-            }
-            to {
-              transform: translateX(calc(100vw + ${windSize.width}px));
-            }
-          }
-          
-          .wind-object {
-            transition: opacity 0.5s ease-in-out;
-          }
-        `}
-      </style>
     </div>
   );
 };
+
+export default WindEffect; 

@@ -152,11 +152,10 @@ export class GameStateManager {
       if (this.targetTempChangeTimer <= 0) {
         newState.targetTemperature = this.generateRandomTargetTemperature();
         this.targetTempChangeTimer = TARGET_TEMP_CHANGE_INTERVAL;
-        console.log(`🎯 目标温度变化为: ${(newState.targetTemperature * 100).toFixed(0)}°`);
       }
     }
-    
-    // 5. 处理干扰效果特殊逻辑
+
+    // 处理干扰效果的特殊逻辑
     this.handleInterferenceEffects(newState, deltaTime);
 
     // 6. 确保温度和舒适度在 0-1 范围内 (自动回弹)
@@ -204,11 +203,13 @@ export class GameStateManager {
       state.bubbleTimeState.bubbles = this.interferenceSystem.updateBubbles(state.bubbleTimeState.bubbles);
     }
 
-    // 处理惊喜掉落：生成和更新掉落物品
+    // 处理惊喜掉落：间隔生成和更新掉落物品 (Devvit风格实现)
     if (state.interferenceEvent.type === 'surprise_drop' && state.interferenceEvent.isActive) {
-      // 生成新的掉落物品
+      // 使用间隔生成器：每1.5-3秒生成一个新物品
       this.fallingObjectSpawnTimer += deltaTime;
-      if (this.fallingObjectSpawnTimer >= 2) { // 每2秒生成一个新物品
+      const spawnInterval = 1.5 + Math.random() * 1.5; // 1.5-3秒间隔
+      
+      if (this.fallingObjectSpawnTimer >= spawnInterval) {
         const newObject = this.interferenceSystem.generateFallingObject();
         state.fallingObjects.push(newObject);
         this.fallingObjectSpawnTimer = 0;
@@ -307,23 +308,15 @@ export class GameStateManager {
   handleCenterButtonClick(currentState: GameState): GameState {
     let newState = { ...currentState };
 
-    // 处理泡泡时间的节奏点击
+    // 处理泡泡时间的节奏点击 - 改为任何点击都会结束该模式
     if (newState.interferenceEvent.type === 'bubble_time' && newState.bubbleTimeState.isActive) {
-      const currentTime = Date.now();
-      const isValidRhythm = this.interferenceSystem.isValidRhythmClick(
-        currentTime, 
-        newState.bubbleTimeState.lastClickTime
-      );
-
-      if (isValidRhythm) {
-        newState.bubbleTimeState.rhythmClickCount += 1;
-        newState.currentComfort += 0.1; // 增加10%舒适度
-        console.log(`🎵 节奏点击成功！连击数: ${newState.bubbleTimeState.rhythmClickCount}`);
-      } else {
-        newState.bubbleTimeState.rhythmClickCount = 0; // 重置连击数
-      }
-
-      newState.bubbleTimeState.lastClickTime = currentTime;
+      // 清除泡泡效果并重置干扰计时器
+      newState = this.clearInterferenceEffects(newState);
+      newState.interferenceEvent = this.interferenceSystem.clearInterferenceEvent();
+      newState.interferenceTimer = this.interferenceSystem.generateRandomInterferenceInterval();
+      // 点击还会获得少量奖励
+      newState.currentComfort = Math.min(1, newState.currentComfort + 0.05); // +5% comfort
+      return newState; // 提前返回，避免进入其他逻辑
     }
 
     // 处理惊喜掉落的接住逻辑
@@ -336,7 +329,6 @@ export class GameStateManager {
         // 应用接住物品的效果
         caughtObjects.forEach(obj => {
           newState.currentComfort += obj.comfortEffect;
-          console.log(`🎁 接住了 ${obj.type}！舒适度变化: ${obj.comfortEffect > 0 ? '+' : ''}${(obj.comfortEffect * 100).toFixed(0)}%`);
         });
 
         // 移除已接住的物品
@@ -379,7 +371,6 @@ export class GameStateManager {
     newState.interferenceEvent = this.interferenceSystem.createInterferenceEvent(interferenceType);
     newState = this.activateInterferenceEffects(newState, interferenceType);
     
-    console.log(`🔧 手动触发干扰: ${interferenceType}`);
     return newState;
   }
 
@@ -388,6 +379,5 @@ export class GameStateManager {
    */
   setImmortalMode(enabled: boolean): void {
     this.config.IMMORTAL_MODE = enabled;
-    console.log(`🛡️ 不死模式已${enabled ? '开启' : '关闭'}`);
   }
 }

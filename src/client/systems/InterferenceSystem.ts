@@ -50,8 +50,10 @@ export class InterferenceSystem {
     let duration: number;
     if (type === 'controls_reversed') {
       duration = 5;
-    } else if (type === 'bubble_time' || type === 'surprise_drop') {
-      duration = 8 + Math.random() * 2; // 8-10秒随机
+    } else if (type === 'surprise_drop') {
+      duration = 10; // 掉落模式固定为10秒
+    } else if (type === 'bubble_time') {
+      duration = 999; // 泡泡模式持续很长时间，直到被点击结束
     } else {
       duration = this.config.INTERFERENCE_DURATION;
     }
@@ -153,7 +155,7 @@ export class InterferenceSystem {
         y: y,
         size: size,
         opacity: 0.6 + Math.random() * 0.4, // 0.6-1.0 透明度
-        speed: 2.5 + Math.random() * 2,      // 垂直下降速度：2.5-4.5 像素/帧
+        speed: 1.0 + Math.random() * 1.5,      // 垂直下降速度：1.0-2.5 像素/帧 (减慢)
         horizontalSpeed: (Math.random() - 0.5) * 1.5, // 水平漂移：-0.75 到 +0.75 像素/帧
         swayAmplitude: 20 + Math.random() * 40,        // 摆动幅度：20-60 像素
         swayFrequency: 0.01 + Math.random() * 0.02,    // 摆动频率：0.01-0.03
@@ -295,8 +297,8 @@ export class InterferenceSystem {
   }
 
   /**
-   * 获取干扰事件的显示内容
-   * Get interference event display content
+   * 获取干扰事件的文本内容
+   * Get interference event text content
    */
   getInterferenceContent(type: InterferenceType) {
     switch (type) {
@@ -361,6 +363,7 @@ export class InterferenceSystem {
    * Check if interference can be cleared by clicking center button
    */
   canBeClearedByClick(type: InterferenceType): boolean {
-    return type !== 'controls_reversed';
+    // 'bubble_time' and 'surprise_drop' and 'cold_wind' should not be cleared by a generic click.
+    return type === 'controls_reversed' || type === 'electric_leakage';
   }
 }

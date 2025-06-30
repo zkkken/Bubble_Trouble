@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "./ui/card";
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { getGameBackground } from '../utils/shareUtils';
 
 interface Player {
   rank: number;
@@ -24,15 +25,17 @@ const getPlayerInfo = () => {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        console.log('📱 ContinentRankingScreen获取玩家信息:', parsed);
         return {
-          playerName: parsed.playerName || 'Player',
+          playerName: parsed.playerName || '默认玩家',
           continentId: parsed.continentId || 'AS',
-          catAvatarId: parsed.catAvatarId || '1',
-          selectedCat: parsed.selectedCat || '/Cat_1.png'
+          catAvatarId: parsed.catAvatarId || '1'
         };
       } catch (error) {
-        console.error('解析玩家信息失败:', error);
+        return {
+          playerName: '默认玩家',
+          continentId: 'AS',
+          catAvatarId: '1'
+        };
       }
     }
   }
@@ -65,20 +68,8 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
 
-  // 随机获取背景图片 - 5个场景随机选择
-  const getRandomBackground = (): string => {
-    const backgrounds = [
-      '/background-1.png', 
-      '/background-2.png', 
-      '/background-3.png', 
-      '/background-4.png', 
-      '/background-5.png'
-    ];
-    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
-  };
-
-  // 使用useState确保组件生命周期内背景保持一致
-  const [selectedBackground] = React.useState(() => getRandomBackground());
+  // 随机获取背景图片 - 使用统一的背景管理系统
+  const [selectedBackground] = React.useState(() => getGameBackground());
 
   // 获取洲际排行榜数据
   React.useEffect(() => {
@@ -91,19 +82,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        // 详细日志输出
-        console.log(`🏆 [${continentId}] ${continentName} 排行榜数据:`, data);
-        
-        if (data.stats) {
-          const { playerCount, totalTime, averageTime } = data.stats;
-          console.log(`📊 [${continentId}] 洲际统计:`, {
-            洲名: continentName,
-            总玩家数: playerCount,
-            洲总用时: `${totalTime.toFixed(1)}秒`,
-            平均用时: `${averageTime.toFixed(1)}秒`,
-            显示条目: data.data?.length || 0
-          });
-        }
+        // 处理排行榜数据
         
         const playersData = data.data || data;
         
@@ -118,15 +97,9 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
           badgeSrc: (item.rank || (index + 1)) <= 3 ? `/rankingbadge--${item.rank || (index + 1)}.png` : undefined
         }));
         
-        console.log('🔧 Transformed players data:', transformedPlayers.slice(0, 3));
         setPlayers(transformedPlayers);
-        
-        // 检查猫咪生成数量
-        if (data.stats && data.stats.playerCount) {
-          console.log(`🐱 [${continentId}] 猫咪检查: 应生成${data.stats.playerCount}只猫，实际排行榜显示${playersData.length}条记录`);
-        }
+
       } catch (error) {
-        console.error(`获取${continentName}排行榜时出错:`, error);
         // 出错时返回空数据
         setPlayers([]);
       } finally {
@@ -324,66 +297,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
             src="/card-bg-1.png"
           />
 
-          {/* 玩家主猫咪和名牌 - 仅在查看自己所选洲时显示 */}
-          {continentId === playerInfo.continentId && (
-            <div 
-              className="absolute z-20"
-              style={{
-                width: `${scale(106)}px`,
-                height: `${scale(130)}px`,
-                top: `${scale(90)}px`,
-                left: `${scale(165)}px`
-              }}
-            >
-              {/* 玩家名牌 */}
-              <div 
-                className="absolute"
-                style={{
-                  width: `${scale(103)}px`,
-                  height: `${scale(66)}px`,
-                  top: 0,
-                  left: 0
-                }}
-              >
-                <div 
-                  className="w-full h-full bg-[url(/nametag.png)] bg-contain bg-center bg-no-repeat"
-                />
-                
-                {/* 玩家名字文字 */}
-                <div 
-                  className="absolute left-0 right-0 font-bold text-black tracking-[0] leading-[normal] whitespace-nowrap text-center"
-                  style={{
-                    fontFamily: 'Pixelify Sans', 
-                    fontSize: `${scale(Math.max(8, 20 - playerInfo.playerName.length * 1.5))}px`,
-                    top: `${scale(26 - (Math.max(8, 20 - playerInfo.playerName.length * 1.5) - 16) * 0.2)}px`
-                  }}
-                >
-                  {playerInfo.playerName.slice(0, 8)}
-                </div>
-              </div>
-              
-              {/* 玩家主猫咪 */}
-              <div 
-                className="absolute"
-                style={{
-                  width: `${scale(82)}px`,
-                  height: `${scale(82)}px`,
-                  top: `${scale(48)}px`,
-                  left: `${scale(12)}px`
-                }}
-              >
-                <img
-                  className="w-full h-full object-contain"
-                  alt={`Player cat ${playerInfo.catAvatarId}`}
-                  src={playerInfo.selectedCat}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/Cat_1.png';
-                  }}
-                />
-              </div>
-            </div>
-          )}
+
 
           {/* Leaderboard card - centered relative to card background */}
           <Card 
@@ -485,10 +399,14 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                         {/* 玩家名字区域，位置(54,6) */}
                         <div 
                           className="w-full h-[38px] flex items-center mt-[6px]"
+                          style={{ height: `${scale(38)}px`, marginTop: `${scale(6)}px` }}
                         >
                           <div 
                             className="[font-family:'Pixelify_Sans',Helvetica] font-bold text-black tracking-[0] leading-[38px] whitespace-nowrap overflow-hidden text-ellipsis w-full"
-                            style={{ fontSize: '1.5rem' }}
+                            style={{ 
+                              fontSize: `${scale(24)}px`,
+                              lineHeight: `${scale(38)}px`
+                            }}
                           >
                             {player.name.slice(0, 15)}
                           </div>
@@ -497,21 +415,25 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
 
                       {/* 时间文本 - 90x38px区域，位置(243,6) */}
                       <div 
-                        className="w-[90px] h-[38px] flex items-center justify-center mt-[6px]"
+                        className="flex items-center justify-center"
+                        style={{
+                          width: `${scale(90)}px`,
+                          height: `${scale(38)}px`,
+                          marginTop: `${scale(6)}px`
+                        }}
                       >
                         <div
-                          className={`text-center whitespace-nowrap tracking-[0] leading-[38px] silkscreen-bold`}
+                          className={`text-center whitespace-nowrap tracking-[0] silkscreen-bold`}
                           style={index < 3 ? {
                             color: '#F1BA08',
                             textAlign: 'center',
                             WebkitTextStroke: `${scale(2.7)}px #000`,
-                            fontSize: '1.5rem',
-                            lineHeight: '38px'
+                            fontSize: `${scale(24)}px`,
+                            lineHeight: `${scale(38)}px`
                           } : {
-                            fontSize: '1.25rem',
-                            lineHeight: '38px',
-                            color: '#000',
-                            WebkitTextStroke: `${scale(2.2)}px #000`
+                            fontSize: `${scale(20)}px`,
+                            lineHeight: `${scale(38)}px`,
+                            color: '#000'
                           }}
                         >
                           {player.time}
@@ -525,16 +447,44 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
           </Card>
 
           {/* Title banner - centered horizontally with card background */}
-          <div className="w-[363px] h-[206px] left-[180.5px] absolute top-0">
-            <div className="relative w-[361px] h-[153px] top-[53px] -left-1">
+          <div 
+            className="absolute"
+            style={{
+              width: `${scale(363)}px`,
+              height: `${scale(206)}px`,
+              left: `${scale(180.5)}px`,
+              top: 0
+            }}
+          >
+            <div 
+              className="relative"
+              style={{
+                width: `${scale(361)}px`,
+                height: `${scale(153)}px`,
+                top: `${scale(53)}px`,
+                left: `${scale(-4)}px`
+              }}
+            >
               <img
-                className="w-[309px] h-[153px] left-[26px] object-cover absolute top-0"
+                className="absolute object-cover"
+                style={{
+                  width: `${scale(309)}px`,
+                  height: `${scale(153)}px`,
+                  left: `${scale(26)}px`,
+                  top: 0
+                }}
                 alt="Banner succ"
                 src="/banner-succ.png"
               />
 
               <img
-                className="absolute w-[150px] h-auto top-[30px] left-[105px] object-contain"
+                className="absolute object-contain"
+                style={{
+                  width: `${scale(150)}px`,
+                  height: 'auto',
+                  top: `${scale(30)}px`,
+                  left: `${scale(105)}px`
+                }}
                 alt={continentName}
                 src={continentImage}
               />
@@ -543,7 +493,13 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
 
           {/* Back button */}
           <button
-            className="absolute w-[50px] h-[47px] top-[101px] left-[110px] cursor-pointer hover:scale-105 transition-transform z-30"
+            className="absolute cursor-pointer hover:scale-105 transition-transform z-30"
+            style={{
+              width: `${scale(50)}px`,
+              height: `${scale(47)}px`,
+              top: `${scale(101)}px`,
+              left: `${scale(110)}px`
+            }}
             onClick={onBack}
             aria-label="Go back"
           >

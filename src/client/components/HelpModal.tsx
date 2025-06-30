@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { getGameBackground } from '../utils/shareUtils';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
+  
+  // 使用背景系统
+  const [selectedBackground] = useState(() => getGameBackground());
 
   useEffect(() => {
     if (isOpen) {
@@ -32,7 +36,6 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleStartClick = () => {
-    console.log("Start button clicked from help modal!");
     handleClose(); // Close modal when start is clicked
   };
 
@@ -84,7 +87,6 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           ...cssVars
         }}
       >
-        {/* 主容器移除背景图片 */}
         <div 
           className="relative"
           style={{
@@ -92,6 +94,21 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             height: `${scale(584)}px`
           }}
         >
+          {/* 游戏背景系统 - 与其他组件保持一致 */}
+          <div className="absolute inset-0">
+            {/* 背景图片 */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center" 
+              style={{
+                backgroundImage: `url(${selectedBackground})`
+              }}
+            />
+            
+            {/* 半透明遮罩层 */}
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-30"
+            />
+          </div>
           {/* 使用原始div而不是Card组件，完全匹配参考HTML */}
           <div 
             className="text-card-foreground shadow flex flex-col justify-center border-solid border-white items-center absolute"

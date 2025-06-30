@@ -431,4 +431,48 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     console.error('复制失败:', error);
     return false;
   }
+};
+
+/**
+ * 获取或设置游戏背景 - 统一的背景管理
+ * 确保所有界面使用相同的背景图片
+ */
+export const getGameBackground = (): string => {
+  const backgrounds: string[] = [
+    '/background-1.png', 
+    '/background-2.png', 
+    '/background-3.png', 
+    '/background-4.png', 
+    '/background-5.png'
+  ];
+
+  // 先检查localStorage中是否有保存的背景
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('catComfortGame_background');
+    if (saved && backgrounds.includes(saved)) {
+      return saved;
+    }
+  }
+  
+  // 如果没有保存的背景，生成一个新的并保存
+  const randomIndex = Math.floor(Math.random() * backgrounds.length);
+  // 确保随机索引在有效范围内
+  const safeIndex = Math.max(0, Math.min(randomIndex, backgrounds.length - 1));
+  const finalBackground = backgrounds[safeIndex] as string;
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('catComfortGame_background', finalBackground);
+    console.log('🎨 游戏背景已保存:', finalBackground);
+  }
+  return finalBackground;
+};
+
+/**
+ * 清除保存的背景（用于重新开始游戏时）
+ */
+export const clearGameBackground = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('catComfortGame_background');
+    console.log('🎨 游戏背景已清除');
+  }
 }; 

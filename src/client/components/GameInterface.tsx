@@ -11,6 +11,7 @@ import { WindEffect } from './WindEffect';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { getGameBackground } from '../utils/shareUtils';
 
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
@@ -88,20 +89,8 @@ const PixelGameInterface: React.FC<{
     return `${minutes}:${seconds}`;
   };
 
-  // 随机获取背景图片 - 5个场景随机选择
-  const getRandomBackground = (): string => {
-    const backgrounds = [
-      '/background-1.png', 
-      '/background-2.png', 
-      '/background-3.png', 
-      '/background-4.png', 
-      '/background-5.png'
-    ];
-    return backgrounds[Math.floor(Math.random() * backgrounds.length)] || '/background-1.png';
-  };
-
-  // 使用useState确保组件生命周期内背景保持一致
-  const [selectedBackground] = useState(() => getRandomBackground());
+  // 使用统一的背景管理
+  const [selectedBackground] = useState(() => getGameBackground());
   
   // 不死模式状态
   const [immortalMode, setImmortalMode] = useState(true); // 恢复不死模式
@@ -202,7 +191,6 @@ const PixelGameInterface: React.FC<{
           // 切换不死模式
           setImmortalMode(prev => {
             const newMode = !prev;
-            console.log(`🛡️ 不死模式: ${newMode ? '开启' : '关闭'}`);
             onSetImmortalMode(newMode);
             return newMode;
           });
@@ -210,31 +198,26 @@ const PixelGameInterface: React.FC<{
         
         case '1':
           // 触发漏电干扰
-          console.log('⚡ 手动触发漏电干扰');
           onTriggerInterference('electric_leakage');
           break;
           
         case '2':
           // 触发冷风干扰
-          console.log('🌬️ 手动触发冷风干扰');
           onTriggerInterference('cold_wind');
           break;
           
         case '3':
           // 触发控制反转干扰
-          console.log('🔄 手动触发控制反转');
           onTriggerInterference('controls_reversed');
           break;
           
         case '4':
           // 触发泡泡时间干扰
-          console.log('🫧 手动触发泡泡时间');
           onTriggerInterference('bubble_time');
           break;
           
         case '5':
           // 触发惊喜掉落干扰
-          console.log('🎁 手动触发惊喜掉落');
           onTriggerInterference('surprise_drop');
           break;
           
@@ -623,62 +606,69 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
-      {/* 惊喜掉落物品 - Surprise Drop Objects */}
+      {/* 惊喜掉落物品 - Surprise Drop Objects (Devvit风格实现) */}
       {gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
-        <div className="absolute inset-0 pointer-events-none">
-          {gameState.fallingObjects.map((obj: FallingObject) => (
-             <div
-               key={obj.id}
-               className="absolute transition-none falling-item"
-              style={{
-                left: `${scale(obj.xPosition)}px`,
-                top: `${scale(obj.yPosition)}px`,
-                width: `${scale(40)}px`,
-                height: `${scale(40)}px`,
-                transform: 'translate(-50%, -50%)',
-              }}
-            >
-              <img
-                className="w-full h-full object-contain drop-shadow-lg"
-                alt={`Falling ${obj.type}`}
-                src={obj.imageSrc}
-                onError={(e) => {
-                  console.error(`Failed to load falling object image: ${obj.imageSrc}`);
-                  // 如果图片加载失败，显示一个简单的表情符号
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  // 显示文字替代
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <div style="
-                        width: 100%; 
-                        height: 100%; 
-                        display: flex; 
-                        align-items: center; 
-                        justify-content: center; 
-                        background: ${obj.comfortEffect > 0 ? '#4ade80' : '#ef4444'};
-                        border-radius: 50%;
-                        color: white;
-                        font-size: 24px;
-                        font-weight: bold;
-                      ">
-                        ${obj.comfortEffect > 0 ? '✨' : '💀'}
-                      </div>
-                    `;
-                  }
+        <div className="absolute inset-0 pointer-events-none z-15">
+          {gameState.fallingObjects.map((obj: FallingObject) => {
+            // 定义接住区域：底部100px高度区域
+            const catchZoneTop = 484; // 游戏区域底部向上100px
+            const catchZoneBottom = 584; // 游戏区域底部
+            const isInCatchZone = obj.yPosition >= catchZoneTop && obj.yPosition <= catchZoneBottom;
+            
+            return (
+              <div
+                key={obj.id}
+                className="absolute transition-none falling-item"
+                style={{
+                  left: `${scale(obj.xPosition)}px`,
+                  top: `${scale(obj.yPosition)}px`,
+                  width: `${scale(40)}px`,
+                  height: `${scale(40)}px`,
+                  transform: 'translate(-50%, -50%)',
+                  // 在接住区域时高亮显示
+                  filter: isInCatchZone ? 'drop-shadow(0 0 15px #ffff00) brightness(1.3)' : 'drop-shadow(0 0 5px rgba(0,0,0,0.3))',
+                  zIndex: isInCatchZone ? 25 : 15,
                 }}
-              />
-            </div>
-          ))}
+              >
+                <img
+                  className="w-full h-full object-contain"
+                  alt={`Falling ${obj.type}`}
+                  src={obj.imageSrc}
+                  onError={(e) => {
+                    // 如果图片加载失败，显示颜色编码的圆圈
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <div style="
+                          width: 100%; 
+                          height: 100%; 
+                          display: flex; 
+                          align-items: center; 
+                          justify-content: center; 
+                          background: ${obj.comfortEffect > 0 ? '#4ade80' : '#ef4444'};
+                          border-radius: 50%;
+                          color: white;
+                          font-size: ${scale(20)}px;
+                          font-weight: bold;
+                          border: 2px solid white;
+                        ">
+                          ${obj.comfortEffect > 0 ? '✨' : '💀'}
+                        </div>
+                      `;
+                    }
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
       {/* 冷风效果 - WindEffect组件 */}
       {gameState.interferenceEvent?.type === 'cold_wind' && gameState.interferenceEvent.isActive && (
-        <>
-          <WindEffect />
-        </>
+        <WindEffect />
       )}
     </div>
   );
@@ -710,6 +700,18 @@ export const GameInterface: React.FC = () => {
   const handleMusicToggle = () => setIsMusicOn(prev => !prev);
 
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
+    // 保存玩家信息到localStorage，确保数据持久化
+    const playerData = {
+      playerName: newPlayerInfo.playerName,
+      continentId: newPlayerInfo.continentId,
+      catAvatarId: newPlayerInfo.catAvatarId,
+      selectedCat: `/Cat_${newPlayerInfo.catAvatarId}.png`
+    };
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('catComfortGame_playerInfo', JSON.stringify(playerData));
+    }
+    
     setPlayerInfo(newPlayerInfo);
     setIsGameStarted(true);
     setShowGameCompletion(false);
@@ -746,7 +748,6 @@ export const GameInterface: React.FC = () => {
 
   // 修复：重新开始游戏，直接重置游戏状态而不退回选择界面
   const handleRestartGame = () => {
-    console.log('🔄 重新开始游戏 - 直接重置游戏状态');
     setShowGameCompletion(false);
     resetGame(); // 直接重置游戏，保持在GameInterface界面
   };
