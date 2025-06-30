@@ -1,66 +1,45 @@
-## Devvit Bolt Starter Experimental
+# Cat Comfort Game - The Ultimate Useless Sh!t Challenge Entry
 
-An experimental starter that explores a new way to build applications on Reddit's developer platform.
+## 🛁 Project Overview
 
-## Video Tutorial
+Welcome to the **Cat Comfort Game**, a whimsical and utterly "useless" temperature control simulation designed to bring a smile to your face (or perhaps a confused frown). Your mission, should you choose to accept it, is to meticulously adjust the water temperature in a virtual cat's shower to keep it within a "comfortable" range. Sounds simple? Think again! With unpredictable temperature shifts, control reversals, and bubbly obstructions, this game is a delightful exercise in digital feline pampering, perfectly embodying the spirit of the "Useless Sh!t Challenge" for the Reddit Devvit platform.
 
-[![Video Tutorial](docs-img/video-preview.png)](https://www.youtube.com/watch?v=uI85NRCoQNU)
+## 👥 Team Members
 
-## Getting Started
+This project is brought to you by our talented team of five developers:
 
-This template is made specifically to work with **Bolt.new**.
-Click the button below to open this template directly in Bolt:
+- **LadyWinterD** - Game Core Logic & Systems Architecture
+- **Charmaine Kwok** - UI/UX Design & Frontend Development  
+- **Avery Zhu** - Backend API & Data Management
+- **Kenz Zhan** - Devvit Integration & Platform Deployment
+- **瑾 严** - Quality Assurance & Testing Framework
 
-<a href="https://bolt.new/github.com/reddit/devvit-bolt-starter-experimental"><img src="docs-img/open-in-bolt-2x.png" heigh="36px" width="199px" alt="Open in Bolt"></a>
+Together, we've combined our diverse skills to create this delightfully absurd cat-showering experience that showcases the full potential of the Bolt.new and Reddit Devvit platforms.
 
-As soon as the project is checked out you will get the following errors.
-**This is expected**!
+## ✨ Core Features
 
-```
-❌  Authentication: Please run `npm run login` to authenticate with Reddit
-❌  App initialization: Please run `npm run devvit:init` to setup your app remotely
-❌  Playtest subreddit: Please update YOUR_SUBREDDIT_NAME in the dev:devvit script in package.json
-```
+*   **Dynamic Temperature Control**: Adjust the water temperature using intuitive controls to keep your feline friend happy.
+*   **Feline Comfort System**: Monitor your cat's happiness level, which dynamically fluctuates based on how well you maintain the ideal temperature.
+*   **Challenging Interference Events**: Brace yourself for random, quirky events like reversed controls, sudden temperature shocks, and vision-obscuring bubbles that add a layer of delightful chaos.
+*   **Interactive Tutorial**: A guided experience to master the art of digital cat showering, ensuring you're ready for the main game.
+*   **Global Leaderboards**: See how your cat-pampering skills stack up against others across different continents, powered by Reddit Devvit's Redis backend.
+*   **Shareable Results**: Capture and share your glorious (or disastrous) game outcomes with friends and the Reddit community.
 
-### Step 1: Login
+## 🛠️ Technical Stack
 
-In bolt terminal, run
+*   **Frontend**: React, TypeScript, Tailwind CSS, Vite
+*   **Backend**: Node.js, Express, Devvit's Redis
+*   **Platform**: Reddit Devvit
+*   **Code Quality**: ESLint, Prettier
 
-```
-npm run login
-```
+## 🏆 Hackathon Submission Details
 
-This will authenticate with Reddit. You will be prompted to follow a link and paste an authentication code.
-Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
+### Useless Sh!t Challenge
 
-### Step 2: App Initialization
+This game is our proud entry for the "Useless Sh!t Challenge." We've embraced the spirit of bringing a "wacky, weird, and silly idea" to Reddit. The concept of meticulously managing a virtual cat's shower temperature is inherently quirky and non-essential, yet it provides an engaging and unexpectedly challenging gameplay loop. It aims to entertain through its sheer absurdity and the unpredictable obstacles it presents within the Reddit ecosystem.
 
-In bolt terminal, run
+### Built with Bolt.new
 
-```
-npm run devvit:init
-```
+The Cat Comfort Game is built primarily with [Bolt.new](https://bolt.new/), leveraging its integrated development environment for a seamless full-stack experience. The core functionality, UI components, and backend logic are all developed within the Bolt.new ecosystem.
 
-This will get your app set up with Devvit. You will be prompted to follow a link and paste an authentication code. Paste that authentication code in your **terminal window** in Bolt, then press `<Enter>`.
-
-### Step 3: Playtest subreddit
-
-For this step, you will need to go to Reddit and create an empty subreddit for you to test your app.
-
-You can do this by following going to [Reddit](https://www.reddit.com) and clicking the **"Create a Community"** button in the left-side navigation. Once you create your community, paste the name of the subreddit (for example if you community is reddit.com/r/my_test_subreddit, you will paste `my_test_subreddit`) into the `package.json` file, replacing the string `YOUR_SUBREDDIT_NAME`.
-
-After that, if you run `npm run dev` again, all checks should pass and you should be able to test your application on Reddit.
-
-### Step 4: Testing your app
-
-Once the initial configuration is done, you can test your application by navigating to your test subreddit, clicking the three dots icon on the top-right and creating a new post. The command will be called `[Bolt Word Guesser] New Post`. Once you create a new post you can go back and forth with Bolt by prompting your way to making your app and testing it on Reddit.
-
-Now vibe code away!
-
-### Known limitations
-
-- **Only test on your subreddit:** Your app's backend requests will not work on Bolt's preview window. You need to continue to test your app running in your subreddit, where your backend code will work.
-
-- **Use Reddit's backend:** Devvit provides a free of charge scalable backend. Bolt will be able to help you use Reddit's Redis database for key-value storage. You are not going to be able to use other tools such as Supabase for your backend.
-
-- **This is experimental:** While the Devvit team is working to make it as easy as possible to use Bolt for authoring Reddit apps, this is all still in an experimental phase. If you run into issues, please [join our Discord](https://discord.com/invite/Cd43ExtEFS) and ask your questions in **#devvit-vibe-coding**
+**Important**: For your official hackathon submission, please ensure the publicly deployed version of the Project interface includes the required "Built on Bolt" badge as per the hackathon guidelines
