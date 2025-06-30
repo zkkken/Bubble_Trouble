@@ -617,7 +617,7 @@ export const ConsolidatedCatComfortGame: React.FC = () => {
     <div className="w-[390px] h-[844px] relative">
       <div className="fixed w-[390px] h-[844px] top-0 left-0 border-0">
         <div className="p-0 h-[844px] bg-white">
-          <div className="relative w-[390px] h-[844px] bg-[url(/background.png)] bg-cover bg-[50%_50%]">
+          <div className="relative w-[390px] h-[844px] bg-[url(/background-1.png)] bg-cover bg-[50%_50%]">
             
             {/* 计时器显示 */}
             <div className="absolute top-[320px] left-[25px] flex flex-col items-center">
