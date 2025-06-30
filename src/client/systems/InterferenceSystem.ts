@@ -105,8 +105,8 @@ export class InterferenceSystem {
   }
 
   /**
-   * 创建初始泡泡状态 - 新的复杂运动系统
-   * Create initial bubble time state - New complex motion system
+   * 创建初始泡泡状态 - 新的从上到下下落系统
+   * Create initial bubble time state - New top-to-bottom falling system
    */
   createBubbleTimeState(): BubbleTimeState {
     const bubbles: Bubble[] = [];
@@ -127,7 +127,7 @@ export class InterferenceSystem {
       
       do {
         x = size / 2 + Math.random() * (724 - size); // 确保不超出边界
-        y = 584 + Math.random() * 200; // 从屏幕底部下方开始
+        y = -size - Math.random() * 200; // 从屏幕顶部上方开始
         attempts++;
       } while (attempts < maxAttempts && this.checkBubbleOverlap(x, y, size, bubbles));
 
@@ -136,7 +136,7 @@ export class InterferenceSystem {
         const cols = 3;
         const rows = 3;
         const gridX = (i % cols) * (724 / cols) + size / 2;
-        const gridY = 584 + Math.floor(i / cols) * (200 / rows);
+        const gridY = -size - Math.floor(i / cols) * (200 / rows);
         x = gridX;
         y = gridY;
       }
@@ -184,13 +184,13 @@ export class InterferenceSystem {
   }
 
   /**
-   * 更新泡泡位置 - 60fps动画循环
-   * Update bubble positions - 60fps animation loop
+   * 更新泡泡位置 - 60fps动画循环，从上到下下落
+   * Update bubble positions - 60fps animation loop, falling from top to bottom
    */
   updateBubbles(bubbles: Bubble[]): Bubble[] {
     return bubbles.map(bubble => {
-      // 垂直下降：简单的线性运动
-      const newY = bubble.y - bubble.speed;
+      // 垂直下降：简单的线性运动（向下）
+      const newY = bubble.y + bubble.speed;
       
       // 更新时间参数
       const newTime = bubble.time + bubble.swayFrequency;
@@ -202,8 +202,8 @@ export class InterferenceSystem {
       // 边界处理：水平边界不会飘出屏幕
       const clampedX = Math.max(bubble.size / 2, Math.min(724 - bubble.size / 2, newX));
       
-      // 垂直边界：泡泡离开屏幕顶部后重新从底部生成
-      const clampedY = newY < -bubble.size ? 584 + bubble.size : newY;
+      // 垂直边界：泡泡离开屏幕底部后重新从顶部生成
+      const clampedY = newY > 584 + bubble.size ? -bubble.size - Math.random() * 100 : newY;
       
       return {
         ...bubble,

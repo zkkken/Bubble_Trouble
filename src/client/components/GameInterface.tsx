@@ -583,6 +583,59 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
+      {/* 泡泡时间效果 - 新的从上到下下落系统 */}
+      {gameState.bubbleTimeState?.isActive && (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {gameState.bubbleTimeState.bubbles.map((bubble: Bubble) => (
+            <div
+              key={bubble.id}
+              className="absolute"
+              style={{
+                left: `${bubble.x}px`,
+                top: `${bubble.y}px`,
+                width: `${scale(bubble.size)}px`,
+                height: `${scale(bubble.size)}px`,
+                opacity: bubble.opacity,
+                transform: 'translate(-50%, -50%)',
+                willChange: 'transform', // 性能优化
+              }}
+            >
+              <img
+                src="/bubble.png"
+                alt="Bubble"
+                className="w-full h-full object-contain"
+                style={{
+                  filter: 'drop-shadow(0 0 10px rgba(173, 216, 230, 0.6))',
+                }}
+                onError={(e) => {
+                  // 如果bubble.png加载失败，使用原来的CSS泡泡
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.style.background = 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(173, 216, 230, 0.6))';
+                  target.parentElement!.style.borderRadius = '50%';
+                  target.parentElement!.style.border = '2px solid rgba(173, 216, 230, 0.8)';
+                  target.parentElement!.style.boxShadow = '0 0 20px rgba(173, 216, 230, 0.4)';
+                }}
+              />
+            </div>
+          ))}
+          {/* 泡泡时间提示文字 */}
+          <div 
+            className="absolute text-center font-bold"
+            style={{
+              top: `${scale(120)}px`,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              color: '#fff',
+              fontSize: `${scale(18)}px`,
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            🎵 点击中央按钮保持节奏！ 🎵
+          </div>
+        </div>
+      )}
+
       {/* 惊喜掉落物品 - Surprise Drop Objects */}
       {gameState.fallingObjects && gameState.fallingObjects.length > 0 && (
         <div className="absolute inset-0 pointer-events-none">

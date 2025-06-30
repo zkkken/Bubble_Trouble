@@ -23,7 +23,7 @@ export const WindEffect: React.FC<WindEffectProps> = ({
     speedRange = { min: 3, max: 8 }, // 3-8秒穿越屏幕
     intervalRange = { min: 3000, max: 8000 }, // 3-8秒生成间隔
     heightRange = { min: 10, max: 70 }, // 屏幕高度10%-70%
-    windImage = '/redom-below.png'
+    windImage = '/redom-below.png' // 使用redom-below.png图片
   } = config;
 
   const [winds, setWinds] = useState<WindObject[]>([]);
@@ -150,4 +150,4 @@ export const WindEffect: React.FC<WindEffectProps> = ({
       </style>
     </div>
   );
-}; 
+};

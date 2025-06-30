@@ -180,6 +180,9 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
     onComplete?.();
   };
 
+  // 检查是否显示跳过按钮 - 当显示dialog-5时隐藏跳过按钮
+  const shouldShowSkipButton = !gameState.hasReachedFillMiddleFromRight;
+
   // 游戏界面数据（响应式缩放）
   const gameElements = {
     controls: [
@@ -507,28 +510,30 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
               onClick={gameState.hasReachedFillMiddleFromRight ? handleCompleteClick : undefined}
             />
 
-            {/* 跳过按钮 - 位于对话框左上角 */}
-            <Button
-              variant="ghost"
-              className="absolute p-0"
-              style={createStyles({
-                top: 221,
-                left: 305,
-                width: 82,
-                height: 39
-              })}
-              onClick={handleSkipClick}
-            >
-              <img
-                className="w-full h-full object-cover"
-                alt="Skip tutorial"
-                src="/icon-skip-1.png"
-              />
-            </Button>
+            {/* 跳过按钮 - 位于对话框左上角，当显示dialog-5时隐藏 */}
+            {shouldShowSkipButton && (
+              <Button
+                variant="ghost"
+                className="absolute p-0"
+                style={createStyles({
+                  top: 221,
+                  left: 305,
+                  width: 82,
+                  height: 39
+                })}
+                onClick={handleSkipClick}
+              >
+                <img
+                  className="w-full h-full object-cover"
+                  alt="Skip tutorial"
+                  src="/icon-skip-1.png"
+                />
+              </Button>
+            )}
 
           </div>
         </CardContent>
       </Card>
     </div>
   );
-}; 
+};
