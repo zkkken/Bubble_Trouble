@@ -107,13 +107,17 @@ export class InterferenceSystem {
   }
 
   /**
-   * 创建初始泡泡状态 - 新的从上到下下落系统
-   * Create initial bubble time state - New top-to-bottom falling system
+   * 创建初始泡泡状态 - 新的从上到下下落系统，限制在游戏画面内
+   * Create initial bubble time state - New top-to-bottom falling system, constrained to game area
    */
   createBubbleTimeState(): BubbleTimeState {
     const bubbles: Bubble[] = [];
     // 生成5-8个随机位置的泡泡
     const bubbleCount = 5 + Math.floor(Math.random() * 4);
+    
+    // 游戏画面尺寸限制：724x584
+    const gameWidth = 724;
+    const gameHeight = 584;
     
     for (let i = 0; i < bubbleCount; i++) {
       // 尺寸分布：70% 大泡泡（120-150px），30% 小泡泡（50-70px）
@@ -122,24 +126,24 @@ export class InterferenceSystem {
         ? 120 + Math.random() * 30  // 120-150px
         : 50 + Math.random() * 20;  // 50-70px
 
-      // 防重叠机制：尝试找到合适位置
+      // 防重叠机制：尝试找到合适位置，限制在游戏画面内
       let x, y;
       let attempts = 0;
       const maxAttempts = 10;
       
       do {
-        x = size / 2 + Math.random() * (724 - size); // 确保不超出边界
+        x = size / 2 + Math.random() * (gameWidth - size); // 确保不超出游戏画面边界
         y = -size - Math.random() * 200; // 从屏幕顶部上方开始
         attempts++;
       } while (attempts < maxAttempts && this.checkBubbleOverlap(x, y, size, bubbles));
 
-      // 如果找不到合适位置，使用网格布局
+      // 如果找不到合适位置，使用网格布局，限制在游戏画面内
       if (attempts >= maxAttempts) {
         const cols = 3;
         const rows = 3;
-        const gridX = (i % cols) * (724 / cols) + size / 2;
+        const gridX = (i % cols) * (gameWidth / cols) + size / 2;
         const gridY = -size - Math.floor(i / cols) * (200 / rows);
-        x = gridX;
+        x = Math.min(gridX, gameWidth - size / 2); // 确保不超出游戏画面
         y = gridY;
       }
 
@@ -186,10 +190,13 @@ export class InterferenceSystem {
   }
 
   /**
-   * 更新泡泡位置 - 60fps动画循环，从上到下下落
-   * Update bubble positions - 60fps animation loop, falling from top to bottom
+   * 更新泡泡位置 - 60fps动画循环，从上到下下落，限制在游戏画面内
+   * Update bubble positions - 60fps animation loop, falling from top to bottom, constrained to game area
    */
   updateBubbles(bubbles: Bubble[]): Bubble[] {
+    const gameWidth = 724;
+    const gameHeight = 584;
+    
     return bubbles.map(bubble => {
       // 垂直下降：简单的线性运动（向下）
       const newY = bubble.y + bubble.speed;
@@ -201,11 +208,11 @@ export class InterferenceSystem {
       const newX = bubble.x + bubble.horizontalSpeed + 
                    Math.sin(newTime) * bubble.swayAmplitude * 0.1;
       
-      // 边界处理：水平边界不会飘出屏幕
-      const clampedX = Math.max(bubble.size / 2, Math.min(724 - bubble.size / 2, newX));
+      // 边界处理：水平边界不会飘出游戏画面
+      const clampedX = Math.max(bubble.size / 2, Math.min(gameWidth - bubble.size / 2, newX));
       
-      // 垂直边界：泡泡离开屏幕底部后重新从顶部生成
-      const clampedY = newY > 584 + bubble.size ? -bubble.size - Math.random() * 100 : newY;
+      // 垂直边界：泡泡离开游戏画面底部后重新从顶部生成
+      const clampedY = newY > gameHeight + bubble.size ? -bubble.size - Math.random() * 100 : newY;
       
       return {
         ...bubble,
@@ -229,8 +236,8 @@ export class InterferenceSystem {
   }
 
   /**
-   * 生成随机掉落物品 - 更新物品效果
-   * Generate random falling object - Updated item effects
+   * 生成随机掉落物品 - 更新物品效果和图片关联
+   * Generate random falling object - Updated item effects and image associations
    */
   generateFallingObject(gameWidth: number = 724): FallingObject {
     const types = ['rubber_duck', 'fish', 'comb', 'grime_goblin', 'alarm_clock'] as const;
@@ -245,7 +252,7 @@ export class InterferenceSystem {
       alarm_clock: -0.1,     // -10% 舒适度
     };
 
-    // 根据物品类型设置图片路径
+    // 根据物品类型设置图片路径 - 确保与PNG文件关联
     const imagePaths = {
       rubber_duck: '/Rubber_Duck.png',
       fish: '/Fish.png', 

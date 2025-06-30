@@ -647,19 +647,28 @@ const PixelGameInterface: React.FC<{
                   // 如果图片加载失败，显示一个简单的表情符号
                   const target = e.target as HTMLImageElement;
                   target.style.display = 'none';
+                  // 显示文字替代
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div style="
+                        width: 100%; 
+                        height: 100%; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        background: ${obj.comfortEffect > 0 ? '#4ade80' : '#ef4444'};
+                        border-radius: 50%;
+                        color: white;
+                        font-size: 24px;
+                        font-weight: bold;
+                      ">
+                        ${obj.comfortEffect > 0 ? '✨' : '💀'}
+                      </div>
+                    `;
+                  }
                 }}
               />
-              {/* 如果图片加载失败，显示文字替代 */}
-              <div 
-                className="absolute inset-0 flex items-center justify-center text-2xl"
-                style={{
-                  backgroundColor: obj.comfortEffect > 0 ? '#4ade80' : '#ef4444',
-                  borderRadius: '50%',
-                  color: 'white',
-                }}
-              >
-                {obj.comfortEffect > 0 ? '✨' : '💀'}
-              </div>
             </div>
           ))}
         </div>
