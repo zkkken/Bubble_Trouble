@@ -619,20 +619,6 @@ const PixelGameInterface: React.FC<{
               />
             </div>
           ))}
-          {/* 泡泡时间提示文字 */}
-          <div 
-            className="absolute text-center font-bold"
-            style={{
-              top: `${scale(120)}px`,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              color: '#fff',
-              fontSize: `${scale(18)}px`,
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            }}
-          >
-            🎵 点击中央按钮保持节奏！ 🎵
-          </div>
         </div>
       )}
 
@@ -675,20 +661,6 @@ const PixelGameInterface: React.FC<{
               </div>
             </div>
           ))}
-          {/* 掉落事件提示 */}
-          <div 
-            className="absolute text-center font-bold"
-            style={{
-              bottom: `${scale(100)}px`,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              color: '#fff',
-              fontSize: `${scale(16)}px`,
-              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
-            }}
-          >
-            🎁 点击中央按钮接住物品！ 🎁
-          </div>
         </div>
       )}
 
