@@ -104,21 +104,6 @@ if ('serviceWorker' in navigator) {
 }
 
 console.log('🎯 Application starting');
-// 初始化错误抑制
-suppressDevvitErrors();
-
-// 禁用 Service Worker 注册以避免 fetch 事件处理器警告
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
-      registration.unregister();
-    }
-  }).catch(err => {
-    console.log('Service Worker cleanup failed:', err);
-  });
-}
-
-console.log('🎯 Application starting');
 
 // 初始化音频管理器 - 确保用户交互监听器已设置
 console.log('🎵 Audio Manager initialized - ready for user interaction');
@@ -145,7 +130,6 @@ if (rootElement) {
     </React.StrictMode>,
   );
   
-  console.log('Application rendered successfully');
   console.log('Application rendered successfully');
 } else {
   console.error('❌ Root element not found!');
