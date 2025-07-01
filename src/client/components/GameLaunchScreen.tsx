@@ -147,8 +147,8 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                 src="/bolt.png" 
                 alt="Built with Bolt.new" 
                 style={{
-                  width: `${scale(40)}px`,
-                  height: `${scale(40)}px`
+                  width: `${scale(120)}px`,
+                  height: `${scale(120)}px`
                 }}
               />
             </a>
