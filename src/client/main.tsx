@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { CatComfortGame } from './CatComfortGame';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { audioManager } from './services/audioManager';
 import './index.css';
 
 console.log('🚀 Main.tsx: Starting application initialization');
@@ -63,6 +64,14 @@ if ('serviceWorker' in navigator) {
 }
 
 console.log('🎯 Application starting');
+
+// 初始化音频管理器 - 确保用户交互监听器已设置
+console.log('🎵 Audio Manager initialized - ready for user interaction');
+
+// 页面卸载时清理音频资源
+window.addEventListener('beforeunload', () => {
+  audioManager.dispose();
+});
 
 // 渲染应用
 const rootElement = document.getElementById('root');

@@ -256,17 +256,40 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
         time: formatTime(gameStats.enduranceDuration),
       };
       
+      console.log('🔗 尝试复制分享内容到剪贴板...');
       const success = await shareResultToClipboard(gameData);
+      
       if (success) {
-        setSuccessMessage('Share text copied to clipboard!');
+        console.log('✅ 分享内容复制成功');
+        setSuccessMessage('🎉 Share text copied to clipboard!');
         setShowSuccessToast(true);
       } else {
-        setSuccessMessage('Copy failed, please manually copy share content');
+        console.log('⚠️ 复制失败，显示手动复制提示');
+        setSuccessMessage('❌ Copy blocked by browser. Please check the console for share text to copy manually.');
         setShowSuccessToast(true);
+        
+        // 在控制台输出分享文本，方便用户手动复制
+        const shareText = `🐱 Player ${gameData.playerName} survived ${gameData.time} in Cat Shower Game!
+
+🎮 **Game Result Share** 🎮
+
+👤 **Player**: ${gameData.playerName}
+⏱️ **Survival Time**: ${gameData.time}
+
+🏆 ${gameData.playerName} performed excellently in Cat Shower Game!
+
+Can you beat this score? Come and challenge! 🐾
+
+---
+*Shared via Cat Shower Game*`;
+        
+        console.log('\n📋 请手动复制以下分享内容：\n' + '='.repeat(50));
+        console.log(shareText);
+        console.log('='.repeat(50));
       }
     } catch (error) {
-      console.error('分享失败:', error);
-      setSuccessMessage('Share failed, please try again later');
+      console.error('❌ 分享功能出现错误:', error);
+      setSuccessMessage('⚠️ Share failed due to browser restrictions. Check console for manual copy.');
       setShowSuccessToast(true);
     }
   };

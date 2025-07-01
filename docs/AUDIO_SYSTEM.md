@@ -176,3 +176,154 @@ audioManager.playSound('newSoundEffect');
 ---
 
 🎵 **享受有声的猫咪洗澡游戏体验！** 🐱 
+
+## 音效触发机制分析
+
+### 1. 游戏失败音效 (`gameFailure`)
+**触发条件**: 
+```typescript
+if (gameState.gameStatus === 'failure') {
+  audioManager.playSound('gameFailure');
+}
+```
+
+**失败判定**:
+```typescript
+// 新的安全判定 - 防止游戏开始前意外触发
+if (newState.currentComfort <= 0 && newState.gameTimer > 1.0) {
+  newState.gameStatus = 'failure';
+}
+```
+
+**修复措施**:
+- ✅ 添加了 `gameTimer > 1.0` 条件，防止游戏开始1秒内意外失败
+- ✅ 游戏开始阶段如果舒适度异常，自动修正为1%
+- ✅ 重置游戏时所有计时器都会正确归零
+
+### 2. 背景音乐循环 (`backgroundMusic`)
+**配置**:
+```typescript
+backgroundMusic: { 
+  path: '/music/Pixel Purrfection (Remix).mp3', 
+  isLoop: true, 
+  volume: 0.4 
+}
+```
+
+**修复措施**:
+- ✅ 确保音乐循环属性正确设置
+- ✅ 添加音乐结束监听器，防止循环失败时重新播放
+- ✅ 改进错误处理和日志记录
+
+### 3. 干扰音效防重复播放
+**新机制**:
+```typescript
+const handleInterferenceSound = useCallback((interferenceType: string) => {
+  // 防止同一个干扰事件重复播放音效
+  if (lastInterferenceType === interferenceType) return;
+  
+  // 播放对应音效...
+  setLastInterferenceType(interferenceType);
+}, [isMusicOn, lastInterferenceType]);
+```
+
+**触发时机**:
+- `bubble_time` -> `bubbleTime` 音效
+- `electric_leakage` -> `electricStart` 音效  
+- `controls_reversed` -> `controlsReversed` 音效
+- `surprise_drop` -> `surpriseDrop` 音效
+- `cold_wind` -> `coldWind` 音效
+
+### 4. 难度提升音效 (`difficultyUp`)
+**触发条件**:
+```typescript
+// 每15秒触发难度提升（仅在没有干扰事件时累计）
+if (this.difficultyTimer >= DIFFICULTY_INCREASE_INTERVAL) {
+  audioManager.playSound('difficultyUp');
+}
+```
+
+## 游戏运行测试模拟
+
+### 测试场景1: 正常游戏流程
+1. **游戏开始** (0秒)
+   - ✅ 播放 `gameStartAction` 
+   - ✅ 1秒后开始 `backgroundMusic` 循环
+   - 舒适度: 50%, 温度: 37.5%
+
+2. **游戏运行** (1-15秒)
+   - 温度自然下降 (15%/秒)
+   - 舒适度基于温度区域变化 (15%/秒)
+   - 预期: 无音效意外触发
+
+3. **首次难度提升** (15秒)
+   - ✅ 播放 `difficultyUp` 音效
+   - 预期: 仅播放一次
+
+4. **干扰事件触发** (随机)
+   - ✅ 播放对应干扰音效 (仅一次)
+   - 预期: 不重复播放
+
+### 测试场景2: 边界条件
+1. **游戏重置测试**
+   - ✅ 所有计时器归零
+   - ✅ 音效状态重置
+   - 预期: 无残留音效
+
+2. **快速失败测试**
+   - 游戏开始后立即让舒适度降为0
+   - 预期: 1秒内不会触发失败音效
+
+3. **音乐开关测试**
+   - 开关音乐按钮
+   - 预期: 背景音乐正确停止/重新开始
+
+## 问题排查指南
+
+### 检查失败音效随机触发
+1. 查看控制台日志中的舒适度和游戏时间
+2. 确认是否在游戏时间 > 1秒后才触发
+3. 检查游戏重置时计时器是否正确归零
+
+### 检查背景音乐循环
+1. 确认音频文件路径正确
+2. 查看浏览器是否阻止自动播放
+3. 检查音乐结束监听器是否正常工作
+
+### 检查其他音效意外触发
+1. 监控干扰事件的触发频率
+2. 检查难度提升的15秒间隔
+3. 确认音效防重复机制正常工作
+
+## 使用示例
+
+```typescript
+// 播放音效
+audioManager.playSound('catMeow')
+
+// 开始背景音乐
+audioManager.startBackgroundMusic()
+
+// 设置静音
+audioManager.setMuted(true)
+
+// 停止所有音效
+audioManager.stopAllSounds()
+```
+
+## 技术实现
+
+### 自动播放处理
+- 检测用户首次交互
+- 处理浏览器自动播放限制
+- 提供降级方案
+
+### 音频文件管理
+- 预加载机制
+- 循环播放控制
+- 音量控制系统
+
+### 错误处理
+- 音频加载失败处理
+- 播放失败回退机制
+- 详细错误日志记录

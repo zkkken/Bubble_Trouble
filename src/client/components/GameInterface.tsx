@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { GameConfig, FallingObject, BubbleTimeState, Bubble, WindObject } from '../types/GameTypes';
-import { WindEffect } from './WindEffect';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
@@ -51,7 +50,6 @@ const PixelGameInterface: React.FC<{
   onLeftButtonClick: () => void;
   onRightButtonClick: () => void;
   onCenterButtonClick: () => void;
-  onBackToStart: () => void;
   isMusicOn: boolean;
   onMusicToggle: () => void;
 }> = ({ 
@@ -60,13 +58,12 @@ const PixelGameInterface: React.FC<{
   onLeftButtonClick, 
   onRightButtonClick, 
   onCenterButtonClick,
-  onBackToStart,
   isMusicOn,
   onMusicToggle
 }) => {
   
   const { cssVars } = useResponsiveScale();
-  const { scale, scaleFont } = useResponsiveSize();
+  const { scale } = useResponsiveSize();
   const [catFlipped, setCatFlipped] = useState(false);
   
   // 温度指针边界反弹状态
@@ -79,6 +76,9 @@ const PixelGameInterface: React.FC<{
 
   // Tap图标动画状态
   const [tapIconAnimationState, setTapIconAnimationState] = useState<'idle' | 'animating'>('idle');
+
+  // 添加状态记录干扰音效播放
+  const [lastInterferenceType, setLastInterferenceType] = useState<string>('');
 
   const formatTime = (totalSeconds: number): string => {
     const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -198,39 +198,48 @@ const PixelGameInterface: React.FC<{
     return () => clearTimeout(animationTimer);
   }, [gameState.tapIconAnimationTrigger]);
 
-  // 干扰事件音效处理
-  useEffect(() => {
-    if (!gameState.interferenceEvent?.isActive || !isMusicOn) return;
-
-    const interferenceType = gameState.interferenceEvent.type;
+  // 干扰音效处理函数 - 防止重复播放
+  const handleInterferenceSound = useCallback((interferenceType: string) => {
+    // 防止同一个干扰事件重复播放音效
+    if (lastInterferenceType === interferenceType) return;
     
-    switch (interferenceType) {
-      case 'bubble_time':
-        audioManager.playSound('bubbleTime');
-        break;
-      case 'electric_leakage':
-        audioManager.playSound('electricStart');
-        break;
-      case 'controls_reversed':
-        audioManager.playSound('controlsReversed');
-        break;
-      case 'surprise_drop':
-        audioManager.playSound('surpriseDrop');
-        break;
-      case 'cold_wind':
-        audioManager.playSound('coldWind');
-        break;
-      default:
-        break;
+    if (isMusicOn && interferenceType) {
+      console.log(`🎵 播放干扰音效: ${interferenceType}`);
+      
+      switch (interferenceType) {
+        case 'bubble_time':
+          audioManager.playSound('bubbleTime');
+          break;
+        case 'electric_leakage':
+          audioManager.playSound('electricStart');
+          break;
+        case 'controls_reversed':
+          audioManager.playSound('controlsReversed');
+          break;
+        case 'surprise_drop':
+          audioManager.playSound('surpriseDrop');
+          break;
+        case 'cold_wind':
+          audioManager.playSound('coldWind');
+          break;
+      }
+      
+      setLastInterferenceType(interferenceType);
     }
-  }, [gameState.interferenceEvent?.isActive, gameState.interferenceEvent?.type, isMusicOn]);
+  }, [isMusicOn, lastInterferenceType]);
 
-  // 泡泡时间结束音效
+  // 监听干扰事件变化
   useEffect(() => {
-    if (gameState.bubbleTimeState?.isActive === false && gameState.bubbleTimeState?.justEnded && isMusicOn) {
-      audioManager.playSound('bubbleTime');
+    if (gameState.interferenceEvent.isActive && gameState.interferenceEvent.type) {
+      handleInterferenceSound(gameState.interferenceEvent.type);
+    } else if (!gameState.interferenceEvent.isActive) {
+      // 干扰事件结束时重置
+      setLastInterferenceType('');
     }
-  }, [gameState.bubbleTimeState?.isActive, gameState.bubbleTimeState?.justEnded, isMusicOn]);
+  }, [gameState.interferenceEvent.isActive, gameState.interferenceEvent.type, handleInterferenceSound]);
+
+  // 移除泡泡时间结束音效 - 避免音乐冲突
+  // 泡泡时间音效应该只在事件开始时播放，事件持续期间持续播放，只有用户点击中间按钮才停止
 
   // 接住物品音效 - 监听掉落物品数量变化
   const [previousFallingObjectsCount, setPreviousFallingObjectsCount] = useState<number>(0);
@@ -289,15 +298,8 @@ const PixelGameInterface: React.FC<{
   const calculatePointerPosition = (): number => {
     const temperature = Math.max(0, Math.min(1, gameState.currentTemperature + (gameState.temperatureOffset || 0)));
     
-    // 温度条规格：628px总宽度，4px边框，内容区域620px
-    const totalWidth = scale(628);
-    const borderWidth = scale(4);
-    const contentWidth = scale(620); // 628 - 4 - 4
-    const pointerWidth = scale(16);
-    
     // 指针移动范围：最左4px，最右608px，活动范围604px
     const minLeft = scale(4); // 紧贴左边框内侧
-    const maxLeft = scale(608); // 4 + 620 - 16
     const range = scale(604); // 608 - 4
     
     const position = minLeft + (temperature * range);
@@ -385,7 +387,7 @@ const PixelGameInterface: React.FC<{
             borderWidth: `${scale(4)}px`
           }}
         >
-          {/* 4个蓝色填充区域 - 每隔10秒显示一个 */}
+          {/* 4个蓝色填充区域 - 每隔15秒显示一个，同时更换背景地图 */}
           {temperatureZones.map((zone, index) => (
             <div
               key={index}
@@ -476,7 +478,7 @@ const PixelGameInterface: React.FC<{
           transition: 'transform 0.3s ease-out'
         }}
         onClick={onLeftButtonClick}
-        disabled={gameState.gameStatus !== 'playing'}
+        disabled={gameState.gameStatus === 'failure' || gameState.gameStatus === 'success' || gameState.gameStatus === 'paused'}
       >
         <img
           className="w-full h-full object-cover"
@@ -499,7 +501,7 @@ const PixelGameInterface: React.FC<{
           transition: 'transform 0.3s ease-out'
         }}
         onClick={onRightButtonClick}
-        disabled={gameState.gameStatus !== 'playing'}
+        disabled={gameState.gameStatus === 'failure' || gameState.gameStatus === 'success' || gameState.gameStatus === 'paused'}
       >
         <img
           className="w-full h-full object-cover"
@@ -513,7 +515,7 @@ const PixelGameInterface: React.FC<{
         className="absolute transition-all duration-200 hover:scale-105 active:scale-95"
         style={{ left: `${scale(322)}px`, top: `${scale(448)}px`, width: `${scale(80)}px`, height: `${scale(80)}px` }}
         onClick={onCenterButtonClick}
-        disabled={gameState.gameStatus !== 'playing'}
+        disabled={gameState.gameStatus === 'failure' || gameState.gameStatus === 'success' || gameState.gameStatus === 'paused'}
       >
         <img 
           className={`w-full h-full object-cover transition-transform duration-300 ease-out ${
@@ -580,32 +582,57 @@ const PixelGameInterface: React.FC<{
         />
       </div>
 
-      {/* 干扰事件指示器 - Interference Event Indicator */}
-      {gameState.interferenceEvent?.isActive && (
-        <div 
-          className="absolute"
-          style={{
-            top: `${scale(24)}px`,
-            left: `${scale(156)}px`,
-            width: `${scale(412)}px`,
-            height: `${scale(35)}px`,
-            flexShrink: 0,
-            aspectRatio: '412/35'
-          }}
-        >
-          <img
-            className="w-full h-full object-contain"
-            alt={`${gameState.interferenceEvent.type} interference event`}
-            src={getInterferenceImageSrc(gameState.interferenceEvent.type)}
-            onError={(e) => {
-              console.error(`Failed to load interference image for type: ${gameState.interferenceEvent.type}`);
-              // 如果图片加载失败，设置一个默认图片
-              const target = e.target as HTMLImageElement;
-              target.src = '/Bubble_Time!.png';
-            }}
-          />
+      {/* 干扰事件指示器 - 支持多个同时发生的事件 */}
+      {gameState.interferenceEvents && gameState.interferenceEvents.length > 0 && (
+        <div className="absolute">
+          {gameState.interferenceEvents.map((event: any, index: number) => (
+            <div 
+              key={event.id || `${event.type}_${index}`}
+              className="absolute transition-all duration-300 ease-out"
+              style={{
+                top: `${scale(24 + (index * 45))}px`, // 优先级高的事件在下方：第一个事件在24px，第二个在69px，第三个在114px
+                left: `${scale(156)}px`,
+                width: `${scale(412)}px`,
+                height: `${scale(35)}px`,
+                flexShrink: 0,
+                aspectRatio: '412/35',
+                zIndex: 30 - index, // 第一个事件层级最高，后续事件层级递减
+                animation: index === gameState.interferenceEvents.length - 1 ? 'fadeInDown 0.3s ease-out' : undefined, // 只有最新事件有淡入动画
+              }}
+            >
+              <img
+                className="w-full h-full object-contain"
+                alt={`${event.type} interference event`}
+                src={getInterferenceImageSrc(event.type)}
+                onError={(e) => {
+                  console.error(`Failed to load interference image for type: ${event.type}`);
+                  // 如果图片加载失败，设置一个默认图片
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/Bubble_Time!.png';
+                }}
+              />
+              
+              {/* 多事件叠加时显示事件序号 */}
+              {gameState.interferenceEvents.length > 1 && (
+                <div 
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center"
+                  style={{
+                    width: `${scale(20)}px`,
+                    height: `${scale(20)}px`,
+                    fontSize: `${scale(12)}px`,
+                    marginTop: `${scale(-5)}px`,
+                    marginRight: `${scale(-5)}px`,
+                  }}
+                >
+                  {index + 1}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
+
+
 
       {/* 泡泡时间效果 - 新的从上到下下落系统 */}
       {gameState.bubbleTimeState?.isActive && (
@@ -716,8 +743,8 @@ const PixelGameInterface: React.FC<{
               style={{
                 left: `${scale(wind.x)}px`,
                 top: `${scale(wind.y)}px`,
-                width: `${scale(60)}px`,  // 风图标尺寸
-                height: `${scale(40)}px`,
+                width: `${scale(90)}px`,  // 风图标尺寸 - 增加1.5倍 (60 * 1.5 = 90)
+                height: `${scale(60)}px`, // 风图标尺寸 - 增加1.5倍 (40 * 1.5 = 60)
                 opacity: wind.opacity,
                 transform: wind.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)', // 根据方向翻转
                 willChange: 'transform, opacity', // 性能优化
@@ -950,7 +977,6 @@ export const GameInterface: React.FC = () => {
           onLeftButtonClick={handleLeftButtonClick}
           onRightButtonClick={handleRightButtonClick}
           onCenterButtonClick={handleCenterButtonClick}
-          onBackToStart={handleBackToStart}
           isMusicOn={isMusicOn}
           onMusicToggle={handleMusicToggle}
         />

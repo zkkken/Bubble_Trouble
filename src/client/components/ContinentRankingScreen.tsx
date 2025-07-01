@@ -97,7 +97,34 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
           badgeSrc: (item.rank || (index + 1)) <= 3 ? `/rankingbadge--${item.rank || (index + 1)}.png` : undefined
         }));
         
-        setPlayers(transformedPlayers);
+        // 数据去重：基于玩家名字和时间的组合去重
+        const uniquePlayers = transformedPlayers.filter((player, index, self) =>
+          index === self.findIndex(p => p.name === player.name && p.time === player.time)
+        );
+        
+        // 重新排序和重新分配排名以确保一致性
+        const sortedPlayers = uniquePlayers
+          .sort((a, b) => {
+            // 将时间字符串转换为秒数进行排序
+            const timeToSeconds = (timeStr: string) => {
+              const [minutes, seconds] = timeStr.split(':').map(Number);
+              return (minutes || 0) * 60 + (seconds || 0);
+            };
+            return timeToSeconds(b.time) - timeToSeconds(a.time); // 降序排列（时间越长排名越前）
+          })
+          .map((player, index) => {
+            const newRank = index + 1;
+            const hasBadge = newRank <= 3;
+            return {
+              ...player,
+              rank: newRank,
+              hasBadge,
+              ...(hasBadge && { badgeSrc: `/rankingbadge--${newRank}.png` })
+            };
+          });
+        
+        console.log(`📊 ${continentName} 排行榜数据：原始${transformedPlayers.length}条，去重后${sortedPlayers.length}条`);
+        setPlayers(sortedPlayers);
         
       } catch (error) {
         // 出错时返回空数据
@@ -348,9 +375,13 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                     </div>
                   </div>
                 ) : (
-                  players.map((player, index) => (
+                  players.map((player, index) => {
+                    // 检测当前用户是否在榜上
+                    const isCurrentPlayer = player.name === playerInfo.playerName;
+                    
+                    return (
                     <div
-                      key={index}
+                      key={`${player.rank}-${player.name}-${player.time}`}
                       className="flex-shrink-0 flex flex-row items-start"
                       style={{ 
                         width: `${scale(333)}px`,
@@ -402,8 +433,14 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                           style={{ height: `${scale(38)}px`, marginTop: `${scale(6)}px` }}
                         >
                           <div 
-                            className="[font-family:'Pixelify_Sans',Helvetica] font-bold text-black tracking-[0] leading-[38px] whitespace-nowrap overflow-hidden text-ellipsis w-full"
-                            style={{ 
+                            className={`font-bold tracking-[0] leading-[38px] whitespace-nowrap overflow-hidden text-ellipsis w-full ${
+                              isCurrentPlayer ? 'silkscreen-bold text-[#F1BA08]' : '[font-family:\'Pixelify_Sans\',Helvetica] text-black'
+                            }`}
+                            style={isCurrentPlayer ? { 
+                              fontSize: `${scale(24)}px`,
+                              lineHeight: `${scale(38)}px`,
+                              WebkitTextStroke: `${scale(2.2)}px #000`,
+                            } : { 
                               fontSize: `${scale(24)}px`,
                               lineHeight: `${scale(38)}px`
                             }}
@@ -424,12 +461,18 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                       >
                         <div
                           className={`text-center whitespace-nowrap tracking-[0] silkscreen-bold`}
-                          style={index < 3 ? {
+                          style={player.rank <= 3 ? {
                             color: '#F1BA08',
                             textAlign: 'center',
                             WebkitTextStroke: `${scale(2.7)}px #000`,
                             fontSize: `${scale(24)}px`,
                             lineHeight: `${scale(38)}px`
+                          } : isCurrentPlayer ? {
+                            fontSize: `${scale(20)}px`,
+                            lineHeight: `${scale(38)}px`,
+                            color: '#F1BA08',
+                            WebkitTextStroke: `${scale(1.5)}px #000`,
+                            fontWeight: 'bold'
                           } : {
                             fontSize: `${scale(20)}px`,
                             lineHeight: `${scale(38)}px`,
@@ -440,7 +483,8 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </CardContent>

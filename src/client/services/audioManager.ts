@@ -42,9 +42,12 @@ class AudioManager {
   private audioFiles: Map<SoundType, AudioFile> = new Map();
   private isMuted = false;
   private masterVolume = 0.7;
+  private hasUserInteracted = false; // 用户是否已经有过交互
+  private pendingAutoplayMusic = false; // 是否有待播放的背景音乐
 
   constructor() {
     this.initializeAudioFiles();
+    this.setupUserInteractionListeners();
   }
 
   private initializeAudioFiles() {
@@ -86,6 +89,48 @@ class AudioManager {
       });
     });
   }
+
+  /**
+   * 设置用户交互监听器
+   * 用于处理自动播放失败的情况
+   */
+  private setupUserInteractionListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    const handleFirstInteraction = () => {
+      this.hasUserInteracted = true;
+      
+      // 如果有待播放的背景音乐，立即播放
+      if (this.pendingAutoplayMusic && !this.isMuted) {
+        console.log('🎵 用户首次交互，尝试播放背景音乐');
+        this.playSound('backgroundMusic').catch(error => {
+          console.warn('用户交互后背景音乐播放仍然失败:', error);
+        });
+        this.pendingAutoplayMusic = false;
+      }
+      
+      // 移除监听器，因为只需要处理首次交互
+      this.removeUserInteractionListeners();
+    };
+
+    // 监听多种用户交互事件
+    const events = ['click', 'touchstart', 'keydown', 'mousedown'];
+    events.forEach(event => {
+      document.addEventListener(event, handleFirstInteraction, { once: true, passive: true });
+    });
+
+    // 存储清理函数
+    this.removeUserInteractionListeners = () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleFirstInteraction);
+      });
+    };
+  }
+
+  /**
+   * 移除用户交互监听器的清理函数
+   */
+  private removeUserInteractionListeners: () => void = () => {};
 
   /**
    * 预加载音频文件
@@ -154,8 +199,25 @@ class AudioManager {
       }
       
       await audio.play();
+      
+      // 如果成功播放，标记用户已经有交互（或者浏览器允许自动播放）
+      if (!this.hasUserInteracted) {
+        this.hasUserInteracted = true;
+        this.removeUserInteractionListeners();
+      }
     } catch (error) {
-      console.warn(`Failed to play audio: ${soundEffect}`, error);
+      // 处理自动播放失败的情况
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        console.warn(`🔇 自动播放被阻止: ${soundEffect}, 等待用户交互`);
+        
+        // 如果是背景音乐，标记为待播放
+        if (soundEffect === 'backgroundMusic') {
+          this.pendingAutoplayMusic = true;
+          console.log('🎵 背景音乐将在用户首次交互后播放');
+        }
+      } else {
+        console.warn(`Failed to play audio: ${soundEffect}`, error);
+      }
     }
   }
 
@@ -190,11 +252,16 @@ class AudioManager {
     
     if (muted) {
       this.stopAllSounds();
+      this.pendingAutoplayMusic = false; // 清除待播放标记
     } else {
-      // 如果取消静音且背景音乐之前在播放，重新开始
-      const bgMusic = this.audioFiles.get('backgroundMusic');
-      if (bgMusic?.audio && !bgMusic.audio.paused) {
-        this.playSound('backgroundMusic');
+      // 如果取消静音，尝试播放背景音乐
+      if (this.hasUserInteracted) {
+        // 用户已有交互，直接播放
+        this.startBackgroundMusic();
+      } else {
+        // 用户还没有交互，标记为待播放
+        this.pendingAutoplayMusic = true;
+        console.log('🎵 取消静音，背景音乐将在用户交互后播放');
       }
     }
   }
@@ -221,11 +288,41 @@ class AudioManager {
   }
 
   /**
-   * 开始背景音乐
+   * 开始播放背景音乐
    */
   async startBackgroundMusic(): Promise<void> {
-    if (!this.isMuted) {
+    if (this.isMuted) {
+      console.log('🔇 音乐已静音，跳过背景音乐播放');
+      return;
+    }
+
+    // 先停止当前播放的背景音乐
+    this.stopBackgroundMusic();
+    
+    try {
+      console.log('🎵 开始播放背景音乐: Pixel Purrfection (Remix)');
       await this.playSound('backgroundMusic');
+      
+      // 确保音乐循环播放
+      const audioFile = this.audioFiles.get('backgroundMusic');
+      if (audioFile?.audio) {
+        audioFile.audio.loop = true;
+        audioFile.audio.volume = audioFile.volume * this.masterVolume;
+        
+        // 添加音乐结束监听器，以防循环失败
+        audioFile.audio.addEventListener('ended', () => {
+          console.log('🔁 背景音乐结束，重新播放');
+          if (!this.isMuted) {
+            this.startBackgroundMusic().catch(error => {
+              console.warn('🚫 背景音乐重新播放失败:', error);
+            });
+          }
+        });
+        
+        console.log('✅ 背景音乐循环播放已设置');
+      }
+    } catch (error) {
+      console.warn('🚫 背景音乐播放失败:', error);
     }
   }
 
@@ -242,6 +339,21 @@ class AudioManager {
   isBackgroundMusicPlaying(): boolean {
     const bgMusic = this.audioFiles.get('backgroundMusic');
     return bgMusic?.audio ? !bgMusic.audio.paused : false;
+  }
+
+  /**
+   * 检查是否有待播放的背景音乐
+   */
+  hasPendingAutoplayMusic(): boolean {
+    return this.pendingAutoplayMusic;
+  }
+
+  /**
+   * 清理资源
+   */
+  dispose(): void {
+    this.removeUserInteractionListeners();
+    this.stopAllSounds();
   }
 }
 

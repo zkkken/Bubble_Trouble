@@ -406,29 +406,82 @@ export const simulateShare = (gameData: {
 // 复制链接到剪贴板
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
+    // 首先检查剪贴板API的权限
     if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } else {
-      // 降级方案
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'absolute';
-      textArea.style.left = '-999999px';
-      document.body.prepend(textArea);
-      textArea.select();
       try {
-        document.execCommand('copy');
-        return true;
-      } catch (error) {
-        console.error(error);
-        return false;
-      } finally {
-        textArea.remove();
+        // 检查剪贴板写入权限
+        const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' as PermissionName });
+        
+        if (permissionStatus.state === 'granted' || permissionStatus.state === 'prompt') {
+          await navigator.clipboard.writeText(text);
+          console.log('✅ 复制成功：使用现代剪贴板API');
+          return true;
+        } else {
+          console.warn('❌ 剪贴板权限被拒绝，使用降级方案');
+          return fallbackCopyToClipboard(text);
+        }
+      } catch (clipboardError) {
+        // 如果剪贴板API失败（权限策略阻止），使用降级方案
+        if (clipboardError instanceof Error && clipboardError.name === 'NotAllowedError') {
+          console.warn('❌ 剪贴板API被权限策略阻止，使用降级方案');
+          return fallbackCopyToClipboard(text);
+        }
+        throw clipboardError;
       }
+    } else {
+      // 环境不支持现代剪贴板API，直接使用降级方案
+      console.warn('⚠️ 环境不支持现代剪贴板API，使用降级方案');
+      return fallbackCopyToClipboard(text);
     }
   } catch (error) {
     console.error('复制失败:', error);
+    return fallbackCopyToClipboard(text);
+  }
+};
+
+// 降级复制方案
+const fallbackCopyToClipboard = (text: string): boolean => {
+  try {
+    // 方法1：尝试使用旧的 execCommand 方法
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    textArea.style.pointerEvents = 'none';
+    textArea.style.zIndex = '-1';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    // 尝试选择所有文本
+    textArea.setSelectionRange(0, 99999);
+    
+    try {
+      const successful = document.execCommand('copy');
+      console.log(successful ? '✅ 复制成功：使用降级方案' : '❌ 降级复制失败');
+      return successful;
+    } catch (execError) {
+      console.error('❌ execCommand 复制失败:', execError);
+      return false;
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  } catch (error) {
+    console.error('❌ 降级复制方案失败:', error);
+    
+    // 最后的降级方案：提示用户手动复制
+    if (typeof window !== 'undefined' && window.prompt) {
+      try {
+        window.prompt('复制失败，请手动复制以下内容：', text);
+        return true; // 假设用户完成了复制
+      } catch (promptError) {
+        console.error('❌ 提示框也失败了:', promptError);
+      }
+    }
+    
     return false;
   }
 };

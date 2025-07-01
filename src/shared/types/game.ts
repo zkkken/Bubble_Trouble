@@ -1,4 +1,4 @@
-export type GameStatus = 'playing' | 'success' | 'failure' | 'paused';
+export type GameStatus = 'ready' | 'playing' | 'success' | 'failure' | 'paused';
 export type InterferenceType = 'bubble_time' | 'cold_wind' | 'controls_reversed' | 'electric_leakage' | 'surprise_drop' | 'none';
 
 export interface InterferenceEvent {

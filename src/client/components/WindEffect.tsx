@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { useResponsiveSize } from '../hooks/useResponsiveScale';
 
 // 配置接口
 interface WindConfig {
@@ -28,9 +28,6 @@ interface WindElement {
   opacity: number;
   phase: 'fade-in' | 'moving' | 'fade-out';
 }
-
-// 生成随机值的辅助函数 - 移到组件外部
-const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
 
 // 默认配置
 const defaultConfig: Required<WindConfig> = {

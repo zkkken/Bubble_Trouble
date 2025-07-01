@@ -5,7 +5,7 @@
  * @author 全团队共享
  */
 
-export type GameStatus = 'playing' | 'success' | 'failure' | 'paused';
+export type GameStatus = 'ready' | 'playing' | 'success' | 'failure' | 'paused';
 export type InterferenceType = 'bubble_time' | 'controls_reversed' | 'electric_leakage' | 'surprise_drop' | 'cold_wind' | 'none';
 
 export interface InterferenceEvent {
@@ -13,6 +13,15 @@ export interface InterferenceEvent {
   isActive: boolean;
   duration: number;
   remainingTime: number;
+  id?: string; // 添加ID以支持多个同时发生的事件
+}
+
+// 新增：难度等级接口
+export interface DifficultyLevel {
+  level: number;
+  interferenceMinInterval: number; // 事件最小间隔
+  interferenceMaxInterval: number; // 事件最大间隔
+  maxSimultaneousEvents: number;   // 最大同时事件数
 }
 
 // 新增：掉落物品接口
@@ -67,9 +76,14 @@ export interface GameState {
   isPlusHeld: boolean;
   isMinusHeld: boolean;
   gameStatus: GameStatus;
-  interferenceEvent: InterferenceEvent;
+  
+  // 修改：支持多个同时发生的干扰事件
+  interferenceEvents: InterferenceEvent[]; // 改为数组支持多个事件
   interferenceTimer: number;
   isControlsReversed: boolean;
+  
+  // 新增：难度系统
+  difficultyLevel: number; // 当前难度等级
   
   // 新增：干扰机制相关状态
   temperatureOffset: number; // 漏电效果：温度指针显示偏移
@@ -81,8 +95,11 @@ export interface GameState {
   tapIconRotation: number; // 当前旋转角度
   tapIconAnimationTrigger: number; // 动画触发计数器
   
-  // 新增：当前温度区域（0-3，每10秒轮换）
+  // 新增：当前温度区域（0-3，每15秒轮换）
   currentTemperatureZone: number;
+  
+  // 为了兼容性保留单个干扰事件接口
+  interferenceEvent: InterferenceEvent;
 }
 
 export interface GameConfig {

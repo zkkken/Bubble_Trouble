@@ -358,8 +358,8 @@ export class InterferenceSystem {
   createColdWindState(): WindObject[] {
     const windObjects: WindObject[] = [];
     
-    // 立即生成1-2个初始风对象
-    const initialCount = 1 + Math.floor(Math.random() * 2);
+    // 最少同时2朵云，最多4朵云
+    const initialCount = 2 + Math.floor(Math.random() * 3); // 2-4个 (2 + 0/1/2 = 2/3/4)
     
     for (let i = 0; i < initialCount; i++) {
       windObjects.push(this.generateWindObject());
