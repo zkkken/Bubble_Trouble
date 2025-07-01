@@ -233,7 +233,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
         position: "left-12 top-[72px]",
       },
       {
-        src: "/icon-temp.png",
+        src: "/38°C.png",
         alt: "Temperature indicator",
         position: `top-[180px]`,
         size: "w-[66px] h-[18px]",
@@ -350,7 +350,7 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
               // 计算图标的动态属性
               let iconWidth, iconHeight, iconLeft, iconTop;
               
-              if (indicator.src === "/icon-temp.png") {
+              if (indicator.src === "/38°C.png") {
                 // 温度图标
                 iconWidth = 66;
                 iconHeight = 18;

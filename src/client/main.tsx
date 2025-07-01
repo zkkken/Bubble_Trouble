@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { CatComfortGame } from './CatComfortGame';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { audioManager } from './services/audioManager';
+import { globalPreloadStrategy } from './utils/imageOptimization';
 import './index.css';
 
 console.log('🚀 Main.tsx: Starting application initialization');
@@ -49,6 +50,45 @@ const suppressDevvitErrors = () => {
   });
 };
 
+// 图片预加载初始化函数
+const initImagePreloading = async () => {
+  console.log('🖼️ Starting critical image preloading...');
+  
+  try {
+    // 立即开始预加载启动界面关键图片
+    await globalPreloadStrategy.preloadForLaunch();
+    console.log('✅ Launch images preloaded successfully');
+    
+    // 延迟预加载游戏核心图片
+    setTimeout(async () => {
+      try {
+        await globalPreloadStrategy.preloadForGame();
+        console.log('✅ Game images preloaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Game images preload failed:', error);
+      }
+    }, 1000);
+    
+    // 进一步延迟预加载其他页面图片
+    setTimeout(async () => {
+      try {
+        await Promise.allSettled([
+          globalPreloadStrategy.preloadForTutorial(),
+          globalPreloadStrategy.preloadForSelection(),
+          globalPreloadStrategy.preloadForCompletion()
+        ]);
+        console.log('✅ Additional page images preloaded');
+      } catch (error) {
+        console.warn('⚠️ Additional images preload failed:', error);
+      }
+    }, 3000);
+    
+  } catch (error) {
+    console.error('❌ Critical image preload failed:', error);
+    // 即使预加载失败也要继续渲染应用
+  }
+};
+
 // 初始化错误抑制
 suppressDevvitErrors();
 
@@ -72,6 +112,9 @@ console.log('🎵 Audio Manager initialized - ready for user interaction');
 window.addEventListener('beforeunload', () => {
   audioManager.dispose();
 });
+
+// 启动图片预加载（非阻塞）
+initImagePreloading();
 
 // 渲染应用
 const rootElement = document.getElementById('root');

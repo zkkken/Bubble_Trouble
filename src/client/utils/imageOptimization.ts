@@ -104,12 +104,12 @@ export const preloadImages = async (
         loadResults.push({ success: true, element: data.element });
       } else {
         failed.push(sources[index] || '');
-        loadResults.push({ success: false, error: data.error });
+        loadResults.push({ success: false, error: data.error || 'Unknown error' });
         console.warn(`Failed to preload image: ${sources[index]}`, data.error);
       }
     } else {
       failed.push(sources[index] || '');
-      loadResults.push({ success: false, error: result.reason });
+      loadResults.push({ success: false, error: String(result.reason || 'Unknown error') });
       console.warn(`Failed to preload image: ${sources[index]}`, result.reason);
     }
   });
@@ -165,7 +165,7 @@ export const createAdvancedImageLoader = () => {
      */
     warmCache: async (sources: string[], options: ImagePreloadOptions = {}) => {
       const promises = sources.map(src => 
-        this.loadImage(src, options).catch(error => {
+        this.loadImage(src, options).catch((error: any) => {
           console.warn(`Failed to warm cache for: ${src}`, error);
           return null;
         })
@@ -201,9 +201,9 @@ export const IMAGE_CATEGORIES = {
   // 启动界面关键图片
   LAUNCH_CRITICAL: [
     "/Title_BubbleTrouble.png",
-    "/Are_You_Ready_For_A_Wash.png", 
     "/Button_Start.png",
-    "/Bg_Main.png"
+    "/Bg_Main.png",
+    "/bg-main.png"
   ],
   
   // 启动界面次要图片
@@ -394,7 +394,7 @@ export const createLayeredImagePreloader = () => {
           totalLoaded += result.value.loaded.length;
           totalFailed += result.value.failed.length;
         } else {
-          console.error(`Failed to preload category ${categories[index]}:`, result.reason);
+          console.error(`Failed to preload category ${categories[index] || 'unknown'}:`, result.reason);
         }
       });
       

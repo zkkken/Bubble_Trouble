@@ -49,6 +49,28 @@ const getPlayerInfo = () => {
   };
 };
 
+// 获取当前局游戏成绩的函数
+const getCurrentGameResult = () => {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('catComfortGame_currentResult');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return {
+          playerName: parsed.playerName,
+          continentId: parsed.continentId,
+          enduranceDuration: parsed.enduranceDuration,
+          timestamp: parsed.timestamp
+        };
+      } catch (error) {
+        console.warn('🚨 无法解析当前局成绩数据:', error);
+        return null;
+      }
+    }
+  }
+  return null;
+};
+
 export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
   continentId,
   continentName,
@@ -63,6 +85,19 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
 
   // 获取玩家信息
   const playerInfo = getPlayerInfo();
+  
+  // 获取当前局游戏成绩
+  const currentGameResult = getCurrentGameResult();
+  
+  // 调试：输出当前局成绩信息
+  React.useEffect(() => {
+    console.log('🏆 ContinentRankingScreen初始化:', {
+      洲别: continentId,
+      洲名: continentName,
+      当前局成绩: currentGameResult,
+      玩家信息: playerInfo
+    });
+  }, [continentId, continentName, currentGameResult, playerInfo]);
 
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
@@ -376,8 +411,48 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                   </div>
                 ) : (
                   players.map((player, index) => {
-                    // 检测当前用户是否在榜上
-                    const isCurrentPlayer = player.name === playerInfo.playerName;
+                    // 精确检测当前局用户是否在榜上
+                    // 需要同时匹配：名字、洲别、时间
+                    const isCurrentPlayer = currentGameResult && 
+                      player.name === currentGameResult.playerName &&
+                      continentId === currentGameResult.continentId &&
+                      (() => {
+                        // 将排行榜时间格式转换为秒数进行比较
+                        const playerTimeInSeconds = (() => {
+                          const [minutes, seconds] = player.time.split(':').map(Number);
+                          return (minutes || 0) * 60 + (seconds || 0);
+                        })();
+                        
+                        // 当前局时间（已经是秒数）
+                        const currentGameTimeInSeconds = currentGameResult.enduranceDuration;
+                        
+                        // 允许1秒的误差范围（处理四舍五入差异）
+                        const timeDifference = Math.abs(playerTimeInSeconds - currentGameTimeInSeconds);
+                        
+                        console.log('🎯 用户匹配检查:', {
+                          榜单用户: player.name,
+                          榜单时间: player.time,
+                          榜单时间秒: playerTimeInSeconds,
+                          当前局用户: currentGameResult.playerName,
+                          当前局时间秒: currentGameTimeInSeconds,
+                          洲别匹配: continentId === currentGameResult.continentId,
+                          名字匹配: player.name === currentGameResult.playerName,
+                          时间差异: timeDifference,
+                          是否匹配: timeDifference <= 1
+                        });
+                        
+                        return timeDifference <= 1;
+                      })();
+                    
+                    // 如果找到匹配的用户，记录日志
+                    if (isCurrentPlayer) {
+                      console.log('✅ 找到当前局用户在排行榜中:', {
+                        排名: player.rank,
+                        名字: player.name,
+                        时间: player.time,
+                        洲别: continentId
+                      });
+                    }
                     
                     return (
                     <div

@@ -10,6 +10,7 @@ import { GameConfig, FallingObject, BubbleTimeState, Bubble, WindObject } from '
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { usePageImagePreloader } from '../hooks/useImagePreloader';
 import { getGameBackground } from '../utils/shareUtils';
 import { audioManager } from '../services/audioManager';
 
@@ -18,6 +19,7 @@ import { GameCompletionScreen } from './GameCompletionScreen';
 import { GameLaunchScreen } from './GameLaunchScreen';
 import { TutorialScreen } from './TutorialScreen';
 import { DifficultyScreen } from './DifficultyScreen';
+import { ImageLoadingProgress } from './ImageLoadingProgress';
 
 // 游戏配置 (部分值现在由GameStateManager内部处理)
 const GAME_CONFIG: GameConfig = {
@@ -788,6 +790,11 @@ export const GameInterface: React.FC = () => {
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [isMusicOn, setIsMusicOn] = useState(true);
   
+  // 图片预加载状态管理
+  const gamePreloader = usePageImagePreloader('game');
+  const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
+  const [showImageLoading, setShowImageLoading] = useState(true);
+  
   const {
     gameState,
     handleLeftButtonClick: gameHandleLeftButtonClick,
@@ -800,6 +807,19 @@ export const GameInterface: React.FC = () => {
   const [showGameCompletion, setShowGameCompletion] = useState(false);
   const [finalGameTime, setFinalGameTime] = useState<number>(0);
   const [userCountryCode] = useState<string>('US');
+
+  // 监听图片预加载进度
+  useEffect(() => {
+    setImageLoadingProgress(gamePreloader.progress);
+    
+    // 当预加载完成时隐藏加载界面
+    if (gamePreloader.isComplete && !gamePreloader.isLoading) {
+      const timer = setTimeout(() => {
+        setShowImageLoading(false);
+      }, 800); // 延迟800ms以显示完成动画
+      return () => clearTimeout(timer);
+    }
+  }, [gamePreloader.progress, gamePreloader.isComplete, gamePreloader.isLoading]);
 
   const handleMusicToggle = () => {
     setIsMusicOn(prev => {
@@ -890,6 +910,19 @@ export const GameInterface: React.FC = () => {
       const score = Math.floor(gameState.gameTimer);
       setFinalGameTime(score);
       
+      // 存储当前局成绩到localStorage，用于排行榜精确匹配
+      if (typeof window !== 'undefined' && playerInfo) {
+        const currentGameResult = {
+          playerName: playerInfo.playerName,
+          continentId: playerInfo.continentId,
+          catAvatarId: playerInfo.catAvatarId,
+          enduranceDuration: score,
+          timestamp: Date.now() // 添加时间戳确保唯一性
+        };
+        localStorage.setItem('catComfortGame_currentResult', JSON.stringify(currentGameResult));
+        console.log('💾 存储当前局成绩:', currentGameResult);
+      }
+      
       // 停止背景音乐并播放游戏失败音效
       audioManager.stopBackgroundMusic();
       if (isMusicOn) {
@@ -929,6 +962,29 @@ export const GameInterface: React.FC = () => {
     }
     gameHandleCenterButtonClick();
   }, [isMusicOn, gameHandleCenterButtonClick]);
+
+  // 显示图片加载进度（最高优先级）
+  if (showImageLoading) {
+    return (
+      <>
+        <ImageLoadingProgress
+          progress={imageLoadingProgress}
+          isLoading={gamePreloader.isLoading}
+          onComplete={() => setShowImageLoading(false)}
+        />
+        {/* 预加载完成后显示启动界面，但保持在加载界面下方 */}
+        {!gamePreloader.isLoading && (
+          <div style={{ visibility: 'hidden' }}>
+            <GameLaunchScreen 
+              onStartGame={handleStartFromLaunch} 
+              onToggleMusic={handleMusicToggle}
+              isMusicEnabled={isMusicOn}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
 
   if (showLaunchScreen) {
     return <GameLaunchScreen 
