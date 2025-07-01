@@ -24,6 +24,9 @@ const TEMP_DROP_AMOUNT = 0.006; // 单次减量0.6%
 const DIFFICULTY_INCREASE_INTERVAL = 30; // 每30秒增加难度
 const TEMPERATURE_ZONE_INTERVAL = 15; // 温度区域轮换间隔改为15秒，同时更换地图
 
+// 新增：温度条边缘无效区域（两侧各40px）
+const EDGE_ZONE_WIDTH = 0.08; // 两侧各8%的区域为无效区域
+
 // 难度等级配置
 const DIFFICULTY_LEVELS: DifficultyLevel[] = [
   { level: 1, interferenceMinInterval: 8, interferenceMaxInterval: 15, maxSimultaneousEvents: 1 },
@@ -151,6 +154,14 @@ export class GameStateManager {
   }
 
   /**
+   * 检查温度是否在边缘无效区域
+   * 两侧各8%的区域为无效区域（对应UI中的左右各40px）
+   */
+  private isTemperatureInEdgeZone(temperature: number): boolean {
+    return temperature < EDGE_ZONE_WIDTH || temperature > (1 - EDGE_ZONE_WIDTH);
+  }
+
+  /**
    * 更新游戏状态 - 主要的游戏循环逻辑 (新机制)
    */
   updateGameState(currentState: GameState, deltaTime: number): GameState {
@@ -226,13 +237,16 @@ export class GameStateManager {
       ];
       
       const activeZone = temperatureZones[currentZone];
-      const isInActiveZone = activeZone && currentTemp >= activeZone.min && currentTemp <= activeZone.max;
       
-      if (isInActiveZone) {
+      // 检查是否在边缘无效区域
+      const isInEdgeZone = this.isTemperatureInEdgeZone(currentTemp);
+      
+      // 只有在有效区域内且在当前温度区域内才增加舒适度
+      if (!isInEdgeZone && activeZone && currentTemp >= activeZone.min && currentTemp <= activeZone.max) {
         // 在当前显示的温度区域内，每80ms +1.2% (15%/秒)
         newState.currentComfort += COMFORT_CHANGE_PER_SECOND * COMFORT_UPDATE_INTERVAL;
       } else {
-        // 在当前显示的温度区域外，每80ms -1.2% (15%/秒)
+        // 在当前显示的温度区域外或在边缘无效区域，每80ms -1.2% (15%/秒)
         newState.currentComfort -= COMFORT_CHANGE_PER_SECOND * COMFORT_UPDATE_INTERVAL;
       }
     }

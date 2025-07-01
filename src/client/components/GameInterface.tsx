@@ -315,6 +315,38 @@ const PixelGameInterface: React.FC<{
   // 移除原来的单区域计算，使用新的4区域系统
   const pointerPosition = calculatePointerPosition();
 
+  // 显示边缘无效区域的视觉指示器
+  const renderEdgeZones = () => {
+    const totalWidth = scale(628);
+    const edgeWidth = scale(40); // 左右各40px的无效区域
+    
+    return (
+      <>
+        {/* 左侧无效区域 */}
+        <div 
+          className="absolute h-full bg-red-500 opacity-10"
+          style={{
+            left: `${scale(4)}px`, // 从边框内侧开始
+            width: `${edgeWidth}px`,
+            top: 0,
+            zIndex: 5
+          }}
+        />
+        
+        {/* 右侧无效区域 */}
+        <div 
+          className="absolute h-full bg-red-500 opacity-10"
+          style={{
+            right: `${scale(4)}px`, // 从右边框内侧开始
+            width: `${edgeWidth}px`,
+            top: 0,
+            zIndex: 5
+          }}
+        />
+      </>
+    );
+  };
+
   return (
     <div 
       className="bg-[#2f2f2f] relative"
@@ -404,6 +436,9 @@ const PixelGameInterface: React.FC<{
               }}
             />
           ))}
+          
+          {/* 边缘无效区域指示器 */}
+          {renderEdgeZones()}
         </div>
 
         {/* 温度图片 - 在各区域正下方18px处显示 */}
