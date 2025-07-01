@@ -141,27 +141,16 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
               href="https://bolt.new" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border border-white/20"
-              style={{
-                fontSize: `${scale(10)}px`,
-                padding: `${scale(4)}px ${scale(8)}px`,
-                borderRadius: `${scale(12)}px`
-              }}
+              className="inline-flex items-center transition-all duration-200 hover:scale-105"
             >
-              <svg 
-                className="mr-1" 
-                width={scale(12)} 
-                height={scale(12)} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M13 3L4 14h7l-1 8 9-11h-7l1-8z" 
-                  fill="currentColor"
-                />
-              </svg>
-              Built with Bolt.new
+              <img 
+                src="/bolt.png" 
+                alt="Built with Bolt.new" 
+                style={{
+                  width: `${scale(40)}px`,
+                  height: `${scale(40)}px`
+                }}
+              />
             </a>
           </div>
 
