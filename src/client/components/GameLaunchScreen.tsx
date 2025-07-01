@@ -118,6 +118,13 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
     onStartGame(); // 与正常开始游戏相同，进入教学页面
   };
 
+  // Handle Bolt.new link click
+  const handleBoltLinkClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Open in the same window instead of a new tab
+    window.location.href = "https://bolt.new";
+  };
+
   return (
     <>
       <div className="flex items-center justify-center min-h-screen">
@@ -139,16 +146,15 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
           >
             <a 
               href="https://bolt.new" 
-              target="_blank" 
-              rel="noopener noreferrer"
+              onClick={handleBoltLinkClick}
               className="inline-flex items-center transition-all duration-200 hover:scale-105"
             >
               <img 
                 src="/bolt.png" 
                 alt="Built with Bolt.new" 
                 style={{
-                  width: `${scale(120)}px`,
-                  height: `${scale(120)}px`
+                  width: `${scale(40)}px`,
+                  height: `${scale(40)}px`
                 }}
               />
             </a>
