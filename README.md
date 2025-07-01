@@ -1,20 +1,19 @@
-# Cat Comfort Game - The Ultimate Useless Sh!t Challenge Entry
+# Bubble Trouble - The Ultimate Useless Sh!t Challenge Entry
 
 ## 🛁 Project Overview
 
-Welcome to the **Cat Comfort Game**, a whimsical and utterly "useless" temperature control simulation designed to bring a smile to your face (or perhaps a confused frown). Your mission, should you choose to accept it, is to meticulously adjust the water temperature in a virtual cat's shower to keep it within a "comfortable" range. Sounds simple? Think again! With unpredictable temperature shifts, control reversals, and bubbly obstructions, this game is a delightful exercise in digital feline pampering, perfectly embodying the spirit of the "Useless Sh!t Challenge" for the Reddit Devvit platform.
+Welcome to the **Bubble Trouble**, a whimsical and utterly "useless" temperature control simulation designed to bring a smile to your face (or perhaps a confused frown). Your mission, should you choose to accept it, is to meticulously adjust the water temperature in a virtual cat's shower to keep it within a "comfortable" range. Sounds simple? Think again! With unpredictable temperature shifts, control reversals, and bubbly obstructions, this game is a delightful exercise in digital feline pampering, perfectly embodying the spirit of the "Useless Sh!t Challenge" for the Reddit Devvit platform.
 
 ## 👥 Team Members
 
-This project is brought to you by our talented team of five developers:
+At the project's outset, all team members were deeply involved in preliminary research, collectively establishing the project's core vision and technical roadmap. During the development phase, the team embraced a full-stack spirit, with every member contributing to frontend development to jointly build the game's core interface and interactive experience. Based on this, the core responsibilities and contributions of each member are as follows:
 
-- **LadyWinterD** - Game Core Logic & Systems Architecture
-- **Charmaine Kwok** - UI/UX Design & Frontend Development  
-- **Avery Zhu** - Backend API & Data Management
-- **Kenz Zhan** - Devvit Integration & Platform Deployment
-- **瑾 严** - Quality Assurance & Testing Framework
+*   **Avery Zhu (Team Lead):** As the team's leader and coordinator, Avery comprehensively managed the project's development lifecycle and key milestones. He led the conception and design of the core game mechanics, was deeply involved in UI/UX planning, and personally spearheaded the writing of technical documentation and the production of the final promotional video, ensuring a high degree of consistency and quality from concept to finished product.
+*   **Kenz Zhan (Lead Developer):** As the core force of our technical push, Kenz undertook the responsibilities of Lead Developer. He not only led the deep integration, deployment, and online release of the project on the Reddit Devvit platform but also independently wrote and debugged a vast amount of critical code and established a comprehensive testing process, serving as the cornerstone of the project's stability.
+*   **LadyWinterD (Backend & Systems Architecture):** Responsible for building and maintaining the project's robust backend architecture. She precisely executed backend data flow and performance optimizations, independently developed several core interactive features, and meticulously wrote key technical documentation, laying a solid foundation for the game's smooth operation and future scalability.
+*   **瑾 严 (Yán Jǐn) (Game Design & Core Logic):** As the core architect of the game experience, Yán Jǐn led the design and code implementation of the core gameplay logic. She made key decisions in the UI/UX design and was responsible for multiple rounds of project testing and quality control, making her the pivotal figure in ensuring the game's fun and playability.
+*   **Charmaine Kwok (UI/UX & Visual Design):** Led the project's overall visual and user experience design, successfully translating the core fun of the game into an intuitive and polished graphical interface. She independently managed the entire creative, editing, and production process for the promotional video and was deeply involved in refining and beautifying the project documentation, significantly elevating the project's final presentation and professionalism.
 
-Together, we've combined our diverse skills to create this delightfully absurd cat-showering experience that showcases the full potential of the Bolt.new and Reddit Devvit platforms.
 
 ## ✨ Core Features
 
@@ -40,6 +39,6 @@ This game is our proud entry for the "Useless Sh!t Challenge." We've embraced th
 
 ### Built with Bolt.new
 
-The Cat Comfort Game is built primarily with [Bolt.new](https://bolt.new/), leveraging its integrated development environment for a seamless full-stack experience. The core functionality, UI components, and backend logic are all developed within the Bolt.new ecosystem.
+The Bubble Trouble is built primarily with [Bolt.new](https://bolt.new/), leveraging its integrated development environment for a seamless full-stack experience. The core functionality, UI components, and backend logic are all developed within the Bolt.new ecosystem.
 
 **Important**: For your official hackathon submission, please ensure the publicly deployed version of the Project interface includes the required "Built on Bolt" badge as per the hackathon guidelines
