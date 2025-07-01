@@ -9,10 +9,22 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="no">
     <title>Bubble Trouble</title>
+    
+    <!-- 预加载关键字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 预加载关键图片资源 -->
+    <link rel="preload" as="image" href="/Title_BubbleTrouble.png">
+    <link rel="preload" as="image" href="/Are_You_Ready_For_A_Wash.png">
+    <link rel="preload" as="image" href="/Button_Start.png">
+    <link rel="preload" as="image" href="/Bg_Main.png">
+    
+    <!-- 预加载关键音频资源 -->
+    <link rel="preload" as="audio" href="/music/Pixel Purrfection (Remix).mp3">
+    
     <style>
       .silkscreen-bold {
         font-family: "Silkscreen", sans-serif;
@@ -55,7 +67,7 @@
         }
       }
       
-      /* 加载动画 */
+      /* 优化的加载动画 */
       .loading {
         display: flex;
         flex-direction: column;
@@ -77,6 +89,24 @@
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+      
+      /* 图片加载优化 */
+      img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+      }
+      
+      /* 预加载图片的占位符样式 */
+      .image-placeholder {
+        background: linear-gradient(90deg, #f0f0f0 25%, transparent 37%, #f0f0f0 63%);
+        background-size: 400% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+      }
+      
+      @keyframes shimmer {
+        0% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
       
       /* 泡泡飘入动画 */
