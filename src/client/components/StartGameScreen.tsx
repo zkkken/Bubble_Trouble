@@ -1,17 +1,18 @@
 /**
- * 开始游戏界面组件 - 优化图片加载版本
+ * 开始游戏界面组件
+ * 基于 project 设计稿的精确像素级实现
+ * 支持拖拽猫咪选择大洲和拖拽方式选择猫咪
  * 基于 project 设计稿的精确像素级实现
  * 支持拖拽猫咪选择大洲和拖拽方式选择猫咪
  * 
  * @author 开发者B - UI/UX 界面负责人
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
-import { usePageImagePreloader } from '../hooks/useImagePreloader';
 import { audioManager } from '../services/audioManager';
 
 interface StartGameScreenProps {
@@ -48,9 +49,6 @@ export const StartGameScreen: React.FC<StartGameScreenProps> = ({ onStartGame, o
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
-
-  // 图片预加载
-  const { isLoading, isComplete, progress } = usePageImagePreloader('selection');
 
   const containerRef = useRef<HTMLDivElement>(null);
   // 使用 ref 来避免闭包问题
@@ -96,6 +94,7 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     { id: 7, src: "/Cat_7.png", alt: "Cat", width: "w-[49px]", height: "h-[49px]" },
   ];
 
+  // 生成随机猫咪名字
   // 生成随机猫咪名字
   const generateRandomName = () => {
     const randomIndex = Math.floor(Math.random() * catNames.length);
@@ -303,41 +302,13 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     }
   };
 
+
+
   // 获取选中大洲的信息
   const selectedContinent = CONTINENTS.find(c => c.code === continentId);
 
   // 获取响应式的大洲位置
   const scaledContinents = getContinentsWithScale(scale);
-
-  // 如果图片还在加载中，显示加载界面
-  if (isLoading || !isComplete) {
-    return (
-      <div 
-        className="bg-[#2f2f2f] mx-auto relative flex items-center justify-center"
-        style={{
-          width: `${scale(724)}px`,
-          height: `${scale(584)}px`,
-          ...cssVars
-        }}
-      >
-        <div className="flex flex-col items-center">
-          <div 
-            className="animate-spin rounded-full border-4 border-blue-500 border-t-transparent mb-4"
-            style={{
-              width: `${scale(40)}px`,
-              height: `${scale(40)}px`
-            }}
-          />
-          <div 
-            className="text-white font-bold"
-            style={{ fontSize: `${scale(16)}px` }}
-          >
-            Loading Selection Screen... {Math.round(progress)}%
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div 
@@ -348,7 +319,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
         height: `${scale(584)}px`,
         ...cssVars
       }}
-      data-component="selection"
     >
       <div 
         className="relative bg-[url('/Bg_Main.png')] bg-cover bg-center bg-no-repeat"
@@ -411,8 +381,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
                   className="w-full h-full object-cover"
                   alt="Button random"
                   src="/Button_Random.png"
-                  loading="lazy"
-                  decoding="async"
                 />
               </Button>
         </div>
@@ -433,8 +401,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
                   width: `${scale(364)}px`,
                   height: `${scale(222)}px`
                 }}
-                loading="eager"
-                decoding="async"
               />
               
               {/* 大洲目标区域 */}
@@ -506,8 +472,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
                       height: `${scale(32)}px`
                     }}
                     draggable={false}
-                    loading="lazy"
-                    decoding="async"
                   />
                 </div>
               )}
@@ -557,8 +521,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
                     alt={cat.alt}
                     src={cat.src}
                     draggable={false}
-                    loading="lazy"
-                    decoding="async"
                   />
                   
                   {/* 选中指示器 */}
@@ -602,8 +564,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
             className="w-full h-full pointer-events-none"
             alt="Close button"
             src="/Close_button.png"
-            loading="lazy"
-            decoding="async"
           />
         </Button>
 
@@ -622,8 +582,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
             className="w-full h-full pointer-events-none"
             alt="Start button"
             src="/Button_Start.png"
-            loading="lazy"
-            decoding="async"
           />
         </Button>
 
@@ -640,8 +598,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
             className="w-full h-auto object-contain"
             alt="Drag your cat onto the map"
             src="/Title_ChooseYouCat.png"
-            loading="eager"
-            decoding="async"
             onError={(e) => {
               // 如果图片加载失败，显示文字标题作为备用
               const target = e.target as HTMLImageElement;
@@ -684,8 +640,6 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
               height: `${scale(48)}px`
             }}
             draggable={false}
-            loading="lazy"
-            decoding="async"
           />
         </div>
       )}

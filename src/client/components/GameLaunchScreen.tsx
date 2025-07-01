@@ -29,7 +29,6 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   isMusicEnabled = true,
 }) => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
   
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
@@ -42,47 +41,6 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
       audioManager.preloadAudio('backgroundMusic');
     }
   }, [isMusicEnabled]);
-
-  // 预加载关键图片
-  useEffect(() => {
-    const imagesToPreload = [
-      "/Title_BubbleTrouble.png",
-      "/Are_You_Ready_For_A_Wash.png",
-      "/Button_Start.png",
-      "/Button_Music_On.png",
-      "/Button_Music_Off.png",
-      "/Button_Help.png",
-      "/Bg_Main.png"
-    ];
-
-    let loadedCount = 0;
-    const totalImages = imagesToPreload.length;
-
-    const preloadImage = (src: string) => {
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) {
-            setImagesLoaded(true);
-          }
-          resolve();
-        };
-        img.onerror = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) {
-            setImagesLoaded(true);
-          }
-          resolve();
-        };
-        img.src = src;
-      });
-    };
-
-    Promise.all(imagesToPreload.map(preloadImage)).then(() => {
-      setImagesLoaded(true);
-    });
-  }, []);
 
   // Game assets data - 响应式图片尺寸
   const gameAssets: GameAssets = {
@@ -173,14 +131,12 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
         >
           {/* Built with Bolt.new Badge - Top Left Corner */}
           <div 
-            className="absolute z-50 flex flex-col"
+            className="absolute z-50"
             style={{
               top: `${scale(16)}px`,
-              left: `${scale(16)}px`,
-              gap: `${scale(8)}px`
+              left: `${scale(16)}px`
             }}
           >
-            {/* Built with Bolt.new Badge */}
             <a 
               href="https://bolt.new" 
               target="_blank" 
@@ -207,59 +163,12 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
               </svg>
               Built with Bolt.new
             </a>
-
-            {/* The World's Largest Hackathon Badge */}
-            <div 
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-semibold rounded-full shadow-lg border border-white/20"
-              style={{
-                fontSize: `${scale(9)}px`,
-                padding: `${scale(4)}px ${scale(8)}px`,
-                borderRadius: `${scale(12)}px`,
-                width: 'max-content'
-              }}
-            >
-              <svg 
-                className="mr-1" 
-                width={scale(12)} 
-                height={scale(12)} 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" 
-                  fill="currentColor"
-                />
-              </svg>
-              The World's Largest Hackathon
-            </div>
           </div>
 
           <CardContent className="p-0 relative h-full bg-[url(/Bg_Main.png)] bg-cover bg-[50%_50%] flex flex-col items-center">
-            {/* Loading overlay */}
-            {!imagesLoaded && (
-              <div className="absolute inset-0 bg-[#2f2f2f] flex items-center justify-center z-40">
-                <div className="flex flex-col items-center">
-                  <div 
-                    className="animate-spin rounded-full border-4 border-blue-500 border-t-transparent"
-                    style={{
-                      width: `${scale(40)}px`,
-                      height: `${scale(40)}px`
-                    }}
-                  />
-                  <div 
-                    className="text-white mt-4 font-bold"
-                    style={{ fontSize: `${scale(16)}px` }}
-                  >
-                    Loading...
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Game title */}
             <img
-              className={`${gameAssets.title.className} transition-opacity duration-300 ${imagesLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={gameAssets.title.className}
               alt={gameAssets.title.alt}
               src={gameAssets.title.src}
               style={{
@@ -267,20 +176,16 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                 height: `${scale(259)}px`,
                 marginTop: `${scale(32)}px`
               }}
-              loading="eager"
-              decoding="async"
             />
 
             {/* Game tagline */}
             <img
-              className={`${gameAssets.tagline.className} transition-opacity duration-300 ${imagesLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className={gameAssets.tagline.className}
               alt={gameAssets.tagline.alt}
               src={gameAssets.tagline.src}
               style={{
                 marginTop: `${scale(8)}px`
               }}
-              loading="eager"
-              decoding="async"
             />
 
             {/* Start button */}
@@ -294,8 +199,7 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
             >
               <button
                 onClick={() => handleButtonClick('start')}
-                className={`cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90 ${imagesLoaded ? 'opacity-100' : 'opacity-0'}`}
-                disabled={!imagesLoaded}
+                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"
               >
                 <img
                   className={gameAssets.buttons[0].className}
@@ -305,15 +209,13 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                     width: `${scale(155)}px`,
                     height: `${scale(72)}px`
                   }}
-                  loading="eager"
-                  decoding="async"
                 />
               </button>
             </div>
 
             {/* Control buttons container */}
             <div 
-              className={`flex absolute transition-opacity duration-300 ${imagesLoaded ? 'opacity-100' : 'opacity-0'}`}
+              className="flex absolute"
               style={{
                 gap: `${scale(40)}px`,
                 bottom: `${scale(40)}px`
@@ -322,7 +224,6 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
               <button
                 onClick={() => handleButtonClick('music')}
                 className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"
-                disabled={!imagesLoaded}
               >
                 <img
                   className={gameAssets.buttons[1].className}
@@ -332,14 +233,11 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                     width: `${scale(124)}px`,
                     height: `${scale(53)}px`
                   }}
-                  loading="lazy"
-                  decoding="async"
                 />
               </button>
               <button
                 onClick={() => handleButtonClick('help')}
                 className="cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-150 ease-in-out hover:brightness-110 active:brightness-90"
-                disabled={!imagesLoaded}
               >
                 <img
                   className={gameAssets.buttons[2].className}
@@ -349,8 +247,6 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                     width: `${scale(120)}px`,
                     height: `${scale(53)}px`
                   }}
-                  loading="lazy"
-                  decoding="async"
                 />
               </button>
             </div>
