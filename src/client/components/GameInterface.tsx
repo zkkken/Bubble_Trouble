@@ -5,13 +5,14 @@
  * @author 开发者B - UI/UX 界面负责人 & Gemini
  */
 
-import React, { useState, useEffect } from 'react';
-import { GameConfig, FallingObject, BubbleTimeState, Bubble } from '../types/GameTypes';
+import React, { useState, useEffect, useCallback } from 'react';
+import { GameConfig, FallingObject, BubbleTimeState, Bubble, WindObject } from '../types/GameTypes';
 import { WindEffect } from './WindEffect';
 import { useGameState } from '../hooks/useGameState';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 import { getGameBackground } from '../utils/shareUtils';
+import { audioManager } from '../services/audioManager';
 
 import { StartGameScreen } from './StartGameScreen';
 import { GameCompletionScreen } from './GameCompletionScreen';
@@ -85,17 +86,50 @@ const PixelGameInterface: React.FC<{
     return `${minutes}:${seconds}`;
   };
 
-  // 使用统一的背景管理
-  const [selectedBackground] = useState(() => getGameBackground());
+  // 使用游戏状态中的当前温度区域
+  const currentTemperatureZone = gameState.currentTemperatureZone || 0;
+
+  // 背景图片管理：根据温度区域变化随机切换
+  const [selectedBackground, setSelectedBackground] = useState(() => getGameBackground());
+  
+  // 当温度区域变化时，随机切换背景图片
+  useEffect(() => {
+    const backgrounds = [
+      '/background-1.png', 
+      '/background-2.png', 
+      '/background-3.png', 
+      '/background-4.png', 
+      '/background-5.png'
+    ] as const;
+    
+    // 随机选择新的背景图片，确保索引有效
+    const randomIndex = Math.floor(Math.random() * backgrounds.length);
+    const safeIndex = Math.max(0, Math.min(randomIndex, backgrounds.length - 1));
+    const newBackground = backgrounds[safeIndex] as string;
+    setSelectedBackground(newBackground);
+    
+    console.log(`🎨 温度区域 ${currentTemperatureZone} 切换背景至: ${newBackground}`);
+  }, [currentTemperatureZone]);
 
   // 精确的舒适度条颜色映射 - 按照用户规格
   const getComfortBarColor = (comfort: number): string => {
-    const percentage = comfort * 100;
-    if (percentage >= 75) return '#5FF367'; // 绿色 75-100%
-    if (percentage >= 50) return '#FFDF2B'; // 黄色 50-75%
-    if (percentage >= 25) return '#FE8E39'; // 橙色 25-50%
-    return '#FE4339'; // 红色 0-25%
+    if (comfort >= 0.85) return '#5ff367';  // 非常舒适 - 鲜绿色
+    if (comfort >= 0.70) return '#8bc34a';  // 舒适 - 浅绿色
+    if (comfort >= 0.55) return '#cddc39';  // 一般 - 黄绿色
+    if (comfort >= 0.40) return '#ffc107';  // 不太舒适 - 黄色
+    if (comfort >= 0.25) return '#ff9800';  // 不舒适 - 橙色
+    return '#f44336';                       // 非常不舒适 - 红色
   };
+
+  // 温度区域轮换现在由GameStateManager管理
+
+  // 猫咪翻转动画
+  useEffect(() => {
+    const flipInterval = setInterval(() => {
+      setCatFlipped(prev => !prev);
+    }, 3000);
+    return () => clearInterval(flipInterval);
+  }, []);
 
   // 温度指针边界反弹效果
   useEffect(() => {
@@ -164,19 +198,89 @@ const PixelGameInterface: React.FC<{
     return () => clearTimeout(animationTimer);
   }, [gameState.tapIconAnimationTrigger]);
 
+  // 干扰事件音效处理
   useEffect(() => {
-    const flipInterval = setInterval(() => setCatFlipped(prev => !prev), 3000 + Math.random() * 3000);
-    return () => clearInterval(flipInterval);
-  }, []);
+    if (!gameState.interferenceEvent?.isActive || !isMusicOn) return;
+
+    const interferenceType = gameState.interferenceEvent.type;
+    
+    switch (interferenceType) {
+      case 'bubble_time':
+        audioManager.playSound('bubbleTime');
+        break;
+      case 'electric_leakage':
+        audioManager.playSound('electricStart');
+        break;
+      case 'controls_reversed':
+        audioManager.playSound('controlsReversed');
+        break;
+      case 'surprise_drop':
+        audioManager.playSound('surpriseDrop');
+        break;
+      case 'cold_wind':
+        audioManager.playSound('coldWind');
+        break;
+      default:
+        break;
+    }
+  }, [gameState.interferenceEvent?.isActive, gameState.interferenceEvent?.type, isMusicOn]);
+
+  // 泡泡时间结束音效
+  useEffect(() => {
+    if (gameState.bubbleTimeState?.isActive === false && gameState.bubbleTimeState?.justEnded && isMusicOn) {
+      audioManager.playSound('bubbleTime');
+    }
+  }, [gameState.bubbleTimeState?.isActive, gameState.bubbleTimeState?.justEnded, isMusicOn]);
+
+  // 接住物品音效 - 监听掉落物品数量变化
+  const [previousFallingObjectsCount, setPreviousFallingObjectsCount] = useState<number>(0);
+  useEffect(() => {
+    const currentCount = gameState.fallingObjects?.length || 0;
+    
+    // 如果物品数量减少且当前是惊喜掉落事件，说明接住了物品
+    if (currentCount < previousFallingObjectsCount && 
+        gameState.interferenceEvent?.type === 'surprise_drop' && 
+        gameState.interferenceEvent?.isActive && 
+        isMusicOn) {
+              audioManager.playSound('giftCaught');
+    }
+    
+    setPreviousFallingObjectsCount(currentCount);
+  }, [gameState.fallingObjects?.length, gameState.interferenceEvent?.type, gameState.interferenceEvent?.isActive, isMusicOn, previousFallingObjectsCount]);
+
+  // 计算4个温度区域的位置和尺寸
+  const calculateTemperatureZones = () => {
+    // 总宽度724px，减去左右各40px无效区域 = 644px
+    // 644px ÷ 4 = 161px 每个区域
+    const totalWidth = 628;
+    const leftPadding = 40;
+    const rightPadding = 40;
+    const availableWidth = totalWidth - leftPadding - rightPadding; // 644px
+    const zoneWidth = availableWidth / 4; // 161px
+
+    const zones = [];
+    for (let i = 0; i < 4; i++) {
+      zones.push({
+        left: scale(leftPadding + (i * zoneWidth)), // 40 + i*161
+        width: scale(zoneWidth), // 161
+        centerX: scale(leftPadding + (i * zoneWidth) + (zoneWidth / 2)), // 区域中心X坐标
+        temperatureImage: [`/18°C.png`, `/28°C.png`, `/38°C.png`, `/48°C.png`][i]
+      });
+    }
+
+    return zones;
+  };
+
+  const temperatureZones = calculateTemperatureZones();
 
   // 干扰事件类型到图片文件名的映射
   const getInterferenceImageSrc = (interferenceType: string): string => {
     const interferenceImageMap: { [key: string]: string } = {
       'bubble_time': '/Bubble_Time!.png',
-      'cold_wind': '/Cold_wind.png',
       'controls_reversed': '/Controls_reversed.png',
       'electric_leakage': '/Electric_leakage.png',
-      'surprise_drop': '/Surprise_Drop!.png'
+      'surprise_drop': '/Surprise_Drop!.png',
+      'cold_wind': '/Cold_wind.png'
     };
     return interferenceImageMap[interferenceType] || '/Bubble_Time!.png';
   };
@@ -206,23 +310,7 @@ const PixelGameInterface: React.FC<{
   };
 
   // 蓝色填充区域计算 - 精确按照用户规格
-  const calculateBlueZone = () => {
-    // 总宽度628px，左右各40px边距，内容区548px
-    // 分为5个等分区域，每区109.6px
-    // 第4区域（60%-80%）显示蓝色填充
-    const totalWidth = scale(628);
-    const sidePadding = scale(40);
-    const contentWidth = scale(548); // 628 - 40 - 40
-    const sectionWidth = scale(109.6); // 548 / 5
-    
-    // 第4区域位置：距离左边368.8px
-    const blueZoneLeft = scale(368.8);
-    const blueZoneWidth = scale(109.6);
-    
-    return { left: blueZoneLeft, width: blueZoneWidth };
-  };
-
-  const blueZone = calculateBlueZone();
+  // 移除原来的单区域计算，使用新的4区域系统
   const pointerPosition = calculatePointerPosition();
 
   return (
@@ -297,19 +385,63 @@ const PixelGameInterface: React.FC<{
             borderWidth: `${scale(4)}px`
           }}
         >
-          {/* 蓝色填充区域 - 第4区域（60%-80%） */}
-          <div
-            className="absolute top-0"
-            style={{
-              left: `${blueZone.left}px`,
-              width: `${blueZone.width}px`,
-              height: '100%',
-              backgroundColor: '#728CFF',
-              borderTop: `${scale(4)}px solid #39358e`,
-              borderBottom: `${scale(4)}px solid #39358e`,
-            }}
-          />
+          {/* 4个蓝色填充区域 - 每隔10秒显示一个 */}
+          {temperatureZones.map((zone, index) => (
+            <div
+              key={index}
+              className={`absolute top-0 ${
+                index === currentTemperatureZone ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                left: `${zone.left}px`,
+                width: `${zone.width}px`,
+                height: '100%',
+                backgroundColor: '#728CFF',
+                borderTop: `${scale(4)}px solid #39358e`,
+                borderBottom: `${scale(4)}px solid #39358e`,
+              }}
+            />
+          ))}
         </div>
+
+        {/* 温度图片 - 在各区域正下方18px处显示 */}
+        {temperatureZones.map((zone, index) => (
+          <div
+            key={`temp-image-${index}`}
+            className={`absolute ${
+              index === currentTemperatureZone ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              left: `${zone.centerX - scale(12)}px`, // 图片居中，假设图片宽度约24px
+              top: `${scale(9 + 24 + 18)}px`, // 温度条下方18px处
+              width: 'auto',
+              height: 'auto',
+            }}
+          >
+            <img
+              src={zone.temperatureImage}
+              alt={`Temperature ${index + 1}`}
+              style={{
+                height: `${scale(20)}px`, // 设置图片高度
+                width: 'auto',
+              }}
+              onError={(e) => {
+                // 图片加载失败时的备用方案
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = `<div style="
+                    color: #728CFF; 
+                    font-size: ${scale(12)}px; 
+                    font-weight: bold;
+                    text-align: center;
+                  ">${['18°C', '28°C', '38°C', '48°C'][index]}</div>`;
+                }
+              }}
+            />
+          </div>
+        ))}
 
         {/* 温度指针 - 16px × 40px，向上偏移8px */}
         <div
@@ -422,11 +554,11 @@ const PixelGameInterface: React.FC<{
       {/* 音乐按钮 (Music Button) */}
       <button 
         className="absolute transition-all duration-200 hover:scale-105"
-        style={{ left: `${scale(620)}px`, top: `${scale(24)}px`, width: `${scale(80)}px`, height: `${scale(36)}px` }}
+        style={{ left: `${scale(600)}px`, top: `${scale(24)}px`, width: `${scale(80)}px`, height: `${scale(36)}px` }}
         onClick={onMusicToggle}
       >
         <img 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           alt={isMusicOn ? "Music on" : "Music off"} 
           src={isMusicOn ? "/Button_Music_On.png" : "/Button_Music_Off.png"} 
         />
@@ -437,14 +569,14 @@ const PixelGameInterface: React.FC<{
         <img
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort <= 0.25 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort fail"
-          src="/avatar-bad.png"
+          src="/icon-comfortbar-fail.png"
         />
       </div>
       <div style={{ left: `${scale(648)}px`, top: `${scale(72)}px`, width: `${scale(28)}px`, height: `${scale(28)}px`, position: 'absolute' }}>
         <img
           className={`w-full h-full transition-opacity duration-300 ${gameState.currentComfort >= 0.75 ? 'opacity-100' : 'opacity-30'}`}
           alt="Comfort success"
-          src="/avatar-yellowsmiley.png"
+          src="/icon-comfortbar-succ.png"
         />
       </div>
 
@@ -574,9 +706,48 @@ const PixelGameInterface: React.FC<{
         </div>
       )}
 
-      {/* 冷风效果 - WindEffect组件 */}
-      {gameState.interferenceEvent?.type === 'cold_wind' && gameState.interferenceEvent.isActive && (
-        <WindEffect />
+      {/* 冷风效果 - Cold Wind Effects */}
+      {gameState.windObjects && gameState.windObjects.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none z-10">
+          {gameState.windObjects.map((wind: WindObject) => (
+            <div
+              key={wind.id}
+              className="absolute transition-none"
+              style={{
+                left: `${scale(wind.x)}px`,
+                top: `${scale(wind.y)}px`,
+                width: `${scale(60)}px`,  // 风图标尺寸
+                height: `${scale(40)}px`,
+                opacity: wind.opacity,
+                transform: wind.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)', // 根据方向翻转
+                willChange: 'transform, opacity', // 性能优化
+              }}
+            >
+              <img
+                src="/redom-below.png"
+                alt="Cold wind"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  // 备用方案：使用CSS风效果
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div style="
+                        width: 100%; 
+                        height: 100%; 
+                        background: linear-gradient(90deg, transparent, rgba(173, 216, 230, 0.6), transparent);
+                        border-radius: 10px;
+                        animation: windFlow 0.5s ease-in-out infinite alternate;
+                      "></div>
+                    `;
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -592,9 +763,9 @@ export const GameInterface: React.FC = () => {
   
   const {
     gameState,
-    handleLeftButtonClick,
-    handleRightButtonClick,
-    handleCenterButtonClick,
+    handleLeftButtonClick: gameHandleLeftButtonClick,
+    handleRightButtonClick: gameHandleRightButtonClick,
+    handleCenterButtonClick: gameHandleCenterButtonClick,
     resetGame,
   } = useGameState(GAME_CONFIG);
 
@@ -603,7 +774,19 @@ export const GameInterface: React.FC = () => {
   const [finalGameTime, setFinalGameTime] = useState<number>(0);
   const [userCountryCode] = useState<string>('US');
 
-  const handleMusicToggle = () => setIsMusicOn(prev => !prev);
+  const handleMusicToggle = () => {
+    setIsMusicOn(prev => {
+      const newState = !prev;
+      audioManager.setMuted(!newState);
+      
+      if (newState && gameState.gameStatus === 'playing') {
+        // 重新开始背景音乐
+        audioManager.startBackgroundMusic();
+      }
+      
+      return newState;
+    });
+  };
 
   const handleStartGame = (newPlayerInfo: PlayerInfo) => {
     // 保存玩家信息到localStorage，确保数据持久化
@@ -616,6 +799,14 @@ export const GameInterface: React.FC = () => {
     
     if (typeof window !== 'undefined') {
       localStorage.setItem('catComfortGame_playerInfo', JSON.stringify(playerData));
+    }
+    
+    // 播放游戏开始音效和背景音乐
+    if (isMusicOn) {
+      audioManager.playSound('gameStartAction');
+      setTimeout(() => {
+        audioManager.startBackgroundMusic();
+      }, 1000); // 延迟1秒播放背景音乐，让开始音效先播放
     }
     
     setPlayerInfo(newPlayerInfo);
@@ -644,6 +835,9 @@ export const GameInterface: React.FC = () => {
   };
 
   const handleBackToStart = () => {
+    // 停止所有音频
+    audioManager.stopAllSounds();
+    
     setShowLaunchScreen(true);
     setIsGameStarted(false);
     setPlayerInfo(null);
@@ -655,6 +849,12 @@ export const GameInterface: React.FC = () => {
   // 修复：重新开始游戏，直接重置游戏状态而不退回选择界面
   const handleRestartGame = () => {
     setShowGameCompletion(false);
+    
+    // 重新开始背景音乐
+    if (isMusicOn) {
+      audioManager.startBackgroundMusic();
+    }
+    
     resetGame(); // 直接重置游戏，保持在GameInterface界面
   };
 
@@ -662,6 +862,13 @@ export const GameInterface: React.FC = () => {
     if (gameState.gameStatus === 'failure') {
       const score = Math.floor(gameState.gameTimer);
       setFinalGameTime(score);
+      
+      // 停止背景音乐并播放游戏失败音效
+      audioManager.stopBackgroundMusic();
+      if (isMusicOn) {
+        audioManager.playSound('gameFailure');
+      }
+      
       if (playerInfo) {
         submitScore(
           playerInfo.playerName,
@@ -672,7 +879,29 @@ export const GameInterface: React.FC = () => {
       }
       setTimeout(() => setShowGameCompletion(true), 1000);
     }
-  }, [gameState.gameStatus, gameState.gameTimer, playerInfo, submitScore, userCountryCode]);
+  }, [gameState.gameStatus, gameState.gameTimer, playerInfo, submitScore, userCountryCode, isMusicOn]);
+
+  // 包装按钮点击函数以添加音效
+  const handleLeftButtonClick = useCallback(() => {
+    if (isMusicOn) {
+      audioManager.playSound('tapSound');
+    }
+    gameHandleLeftButtonClick();
+  }, [isMusicOn, gameHandleLeftButtonClick]);
+
+  const handleRightButtonClick = useCallback(() => {
+    if (isMusicOn) {
+      audioManager.playSound('tapSound');
+    }
+    gameHandleRightButtonClick();
+  }, [isMusicOn, gameHandleRightButtonClick]);
+
+  const handleCenterButtonClick = useCallback(() => {
+    if (isMusicOn) {
+      audioManager.playSound('tapSound');
+    }
+    gameHandleCenterButtonClick();
+  }, [isMusicOn, gameHandleCenterButtonClick]);
 
   if (showLaunchScreen) {
     return <GameLaunchScreen 
@@ -683,7 +912,12 @@ export const GameInterface: React.FC = () => {
   }
 
   if (showTutorial) {
-    return <TutorialScreen onSkip={handleTutorialSkip} onComplete={handleTutorialComplete} />;
+    return <TutorialScreen 
+      onSkip={handleTutorialSkip} 
+      onComplete={handleTutorialComplete}
+      isMusicOn={isMusicOn}
+      onMusicToggle={handleMusicToggle}
+    />;
   }
 
   if (showDifficultyScreen) {

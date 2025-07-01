@@ -6,7 +6,7 @@
  */
 
 export type GameStatus = 'playing' | 'success' | 'failure' | 'paused';
-export type InterferenceType = 'bubble_time' | 'cold_wind' | 'controls_reversed' | 'electric_leakage' | 'surprise_drop' | 'none';
+export type InterferenceType = 'bubble_time' | 'controls_reversed' | 'electric_leakage' | 'surprise_drop' | 'cold_wind' | 'none';
 
 export interface InterferenceEvent {
   type: InterferenceType;
@@ -73,7 +73,6 @@ export interface GameState {
   
   // 新增：干扰机制相关状态
   temperatureOffset: number; // 漏电效果：温度指针显示偏移
-  temperatureCoolingMultiplier: number; // 冷风效果：冷却速率倍数
   bubbleTimeState: BubbleTimeState; // 泡泡时间状态
   fallingObjects: FallingObject[]; // 惊喜掉落物品
   windObjects: WindObject[]; // 冷风效果：风效果对象
@@ -81,6 +80,9 @@ export interface GameState {
   // 新增：Tap图标旋转状态
   tapIconRotation: number; // 当前旋转角度
   tapIconAnimationTrigger: number; // 动画触发计数器
+  
+  // 新增：当前温度区域（0-3，每10秒轮换）
+  currentTemperatureZone: number;
 }
 
 export interface GameConfig {

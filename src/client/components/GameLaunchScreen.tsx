@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "./ui/card";
 import { HelpModal } from "./HelpModal";
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { audioManager } from '../services/audioManager';
 
 interface GameLaunchScreenProps {
   onStartGame: () => void;
@@ -32,6 +33,14 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   // 响应式设计hooks
   const { cssVars } = useResponsiveScale();
   const { scale } = useResponsiveSize();
+
+  // 音频初始化效果 - 移除自动播放，改为用户交互时播放
+  useEffect(() => {
+    // 预加载音频文件，但不自动播放
+    if (isMusicEnabled) {
+      audioManager.preloadAudio('backgroundMusic');
+    }
+  }, [isMusicEnabled]);
 
   // Game assets data - 响应式图片尺寸
   const gameAssets: GameAssets = {
@@ -69,13 +78,20 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
 
   // Button click handlers
   const handleButtonClick = (buttonId: string) => {
+    // 用户首次交互时启动背景音乐
+    if (isMusicEnabled) {
+      audioManager.startBackgroundMusic();
+    }
+
     switch (buttonId) {
       case 'start':
-        console.log('Start game clicked!');
+        // 播放按钮点击音效
+        if (isMusicEnabled) {
+          audioManager.playSound('buttonClick');
+        }
         onStartGame();
         break;
       case 'music':
-        console.log('Music toggle clicked!');
         if (onToggleMusic) {
           onToggleMusic();
         }
@@ -86,6 +102,20 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
       default:
         break;
     }
+  };
+
+  // 处理从help页面启动教学的函数
+  const handleStartTutorial = () => {
+    setIsHelpModalOpen(false);
+    // 用户交互时启动背景音乐
+    if (isMusicEnabled) {
+      audioManager.startBackgroundMusic();
+    }
+    // 播放按钮点击音效
+    if (isMusicEnabled) {
+      audioManager.playSound('buttonClick');
+    }
+    onStartGame(); // 与正常开始游戏相同，进入教学页面
   };
 
   return (
@@ -227,7 +257,8 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
       {/* Help Modal */}
       <HelpModal 
         isOpen={isHelpModalOpen} 
-        onClose={() => setIsHelpModalOpen(false)} 
+        onClose={() => setIsHelpModalOpen(false)}
+        onStartTutorial={handleStartTutorial}
       />
     </>
   );

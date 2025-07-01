@@ -5,7 +5,7 @@
  * @author 开发者A - 游戏核心逻辑负责人
  */
 
-import { InterferenceEvent, InterferenceType, GameConfig, FallingObject, BubbleTimeState, Bubble } from '../types/GameTypes';
+import { InterferenceEvent, InterferenceType, GameConfig, FallingObject, BubbleTimeState, Bubble, WindObject } from '../types/GameTypes';
 
 export class InterferenceSystem {
   private config: GameConfig;
@@ -31,10 +31,10 @@ export class InterferenceSystem {
   getRandomInterferenceType(): InterferenceType {
     const types: InterferenceType[] = [
       'bubble_time',
-      'cold_wind', 
       'controls_reversed', 
       'electric_leakage',
-      'surprise_drop'
+      'surprise_drop',
+      'cold_wind'
     ];
     const randomIndex = Math.floor(Math.random() * types.length);
     const selectedType = types[randomIndex] || 'controls_reversed'; // Fallback to ensure valid type
@@ -97,15 +97,6 @@ export class InterferenceSystem {
   generateElectricLeakageOffset(): number {
     // 生成 -0.1 到 +0.1 之间的随机偏移值
     return (Math.random() - 0.5) * 0.2;
-  }
-
-  /**
-   * 获取冷风效果的冷却倍数
-   * Get cooling multiplier for cold wind effect
-   */
-  getColdWindCoolingMultiplier(): number {
-    // 冷风效果：将冷却速率增加到2-3倍
-    return 2 + Math.random(); // 2.0 到 3.0 倍
   }
 
   /**
@@ -309,13 +300,6 @@ export class InterferenceSystem {
           description: 'Bubbles are everywhere!',
           bgColor: 'bg-blue-500',
         };
-      case 'cold_wind':
-        return {
-          icon: '🌨️',
-          title: 'Cold Wind Incoming!',
-          description: 'A cold wind is affecting the temperature!',
-          bgColor: 'bg-cyan-500',
-        };
       case 'controls_reversed':
         return {
           icon: '🔄',
@@ -363,7 +347,116 @@ export class InterferenceSystem {
    * Check if interference can be cleared by clicking center button
    */
   canBeClearedByClick(type: InterferenceType): boolean {
-    // 'bubble_time' and 'surprise_drop' and 'cold_wind' should not be cleared by a generic click.
+    // 'bubble_time' and 'surprise_drop' should not be cleared by a generic click.
     return type === 'controls_reversed' || type === 'electric_leakage';
+  }
+
+  /**
+   * 创建冷风状态 - 生成随机移动的风图标
+   * Create cold wind state - Generate randomly moving wind icons
+   */
+  createColdWindState(): WindObject[] {
+    const windObjects: WindObject[] = [];
+    
+    // 立即生成1-2个初始风对象
+    const initialCount = 1 + Math.floor(Math.random() * 2);
+    
+    for (let i = 0; i < initialCount; i++) {
+      windObjects.push(this.generateWindObject());
+    }
+    
+    return windObjects;
+  }
+
+  /**
+   * 生成单个风对象
+   * Generate single wind object  
+   */
+  generateWindObject(): WindObject {
+    const gameHeight = 584;
+    const gameWidth = 724;
+    
+    // 随机方向：左右双向
+    const direction = Math.random() > 0.5 ? 'left' : 'right';
+    
+    // 出现位置：游戏画面高度的10%-70%随机
+    const yRange = gameHeight * 0.6; // 70% - 10% = 60%
+    const yMin = gameHeight * 0.1;   // 10%
+    const y = yMin + Math.random() * yRange;
+    
+    // X位置：根据方向决定起始位置
+    const x = direction === 'left' ? gameWidth + 50 : -50; // 从屏幕外开始
+    
+    // 动画速度：3-8秒穿越整个屏幕
+    const duration = 3 + Math.random() * 5; // 3-8秒
+    const speed = (gameWidth + 100) / (duration * 60); // 像素/帧 (60fps)
+    
+    return {
+      id: Math.random(),
+      x,
+      y,
+      direction,
+      speed,
+      opacity: 0 // 开始时透明，淡入效果
+    };
+  }
+
+  /**
+   * 更新风对象位置和透明度
+   * Update wind objects position and opacity
+   */
+  updateWindObjects(windObjects: WindObject[]): WindObject[] {
+    const gameWidth = 724;
+    const fadeDistance = 100; // 淡入淡出距离
+    
+    return windObjects.map(wind => {
+      // 更新位置
+      const newX = wind.direction === 'left' 
+        ? wind.x - wind.speed 
+        : wind.x + wind.speed;
+      
+      // 计算透明度（淡入淡出效果）
+      let opacity = 1;
+      
+      if (wind.direction === 'left') {
+        // 从右到左移动
+        if (wind.x > gameWidth) {
+          // 淡入阶段
+          opacity = Math.min(1, (gameWidth + fadeDistance - wind.x) / fadeDistance);
+        } else if (newX < 0) {
+          // 淡出阶段  
+          opacity = Math.max(0, (newX + fadeDistance) / fadeDistance);
+        }
+      } else {
+        // 从左到右移动
+        if (wind.x < 0) {
+          // 淡入阶段
+          opacity = Math.min(1, (wind.x + fadeDistance) / fadeDistance);
+        } else if (newX > gameWidth) {
+          // 淡出阶段
+          opacity = Math.max(0, (gameWidth + fadeDistance - newX) / fadeDistance);
+        }
+      }
+      
+      return {
+        ...wind,
+        x: newX,
+        opacity
+      };
+    }).filter(wind => {
+      // 移除完全离开屏幕的风对象
+      return wind.direction === 'left' 
+        ? wind.x > -200 
+        : wind.x < gameWidth + 200;
+    });
+  }
+
+  /**
+   * 生成新风对象的时机检查
+   * Check timing for generating new wind objects
+   */
+  shouldGenerateNewWind(lastGenerateTime: number, currentTime: number): boolean {
+    const interval = 3 + Math.random() * 5; // 3-8秒随机间隔
+    return (currentTime - lastGenerateTime) >= interval * 1000;
   }
 }

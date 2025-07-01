@@ -41,11 +41,11 @@ export class ComfortSystem {
    */
   getComfortAvatar(comfortLevel: number): string {
     if (comfortLevel >= 0.8) {
-      return "/avatar-yellowsmiley.png";
+      return "/icon-comfortbar-succ.png";
     } else if (comfortLevel <= 0.3) {
-      return "/avatar-bad.png";
+      return "/icon-comfortbar-fail.png";
     } else {
-      return "/avatar-yellowsmiley.png";
+      return "/icon-comfortbar-succ.png";
     }
   }
 

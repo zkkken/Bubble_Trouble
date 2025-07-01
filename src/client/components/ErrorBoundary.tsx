@@ -96,7 +96,7 @@ export const SimpleErrorDisplay: React.FC<{ error: Error | string }> = ({ error 
       <div className="flex items-center">
         <div className="text-red-500 mr-3">⚠️</div>
         <div>
-          <h3 className="text-red-800 font-semibold">出现错误</h3>
+                          <h3 className="text-red-800 font-semibold">Error Occurred</h3>
           <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
         </div>
       </div>

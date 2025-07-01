@@ -101,3 +101,8 @@ jspm_packages/
 
 # Devvit specific
 .initialized
+
+# Project configuration files
+README.md
+package.json
+devvit.yaml

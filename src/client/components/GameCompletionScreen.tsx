@@ -14,6 +14,7 @@ import { LeaderboardRankingScreen } from './LeaderboardRankingScreen';
 import { SuccessToast } from './SuccessToast';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 import { shareResultToClipboard, getGameBackground } from '../utils/shareUtils';
+import { audioManager } from '../services/audioManager';
 
 interface GameCompletionScreenProps {
   onPlayAgain: () => void;
@@ -72,6 +73,11 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
   // 使用统一的背景管理系统，确保与游戏界面背景一致
   const [selectedBackground] = useState(() => getGameBackground());
 
+  // 播放结算页面音效
+  React.useEffect(() => {
+          audioManager.playSound('gameCompletion');
+  }, []);
+
   // 获取洲排名（实际从API获取）
   const [continentRank, setContinentRank] = React.useState<number>(1);
   const [playerRank, setPlayerRank] = React.useState<number>(1);
@@ -118,7 +124,7 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
           enduranceDuration: gameStats.enduranceDuration
         };
 
-        const submitResponse = await fetch('/api/leaderboard/submit', {
+        const submitResponse = await fetch('/api/submit-score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(playerData)
@@ -159,107 +165,84 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
 
   // 根据玩家数生成猫咪动画（最少6个最多20个）- 优化防堆叠逻辑，包括主猫咪保护
   const generateRandomCats = (playerCount: number = 10) => {
-    const catCount = Math.max(6, Math.min(20, playerCount));
+    const catCount = Math.max(6, Math.min(16, playerCount));
     const cats: Array<{src: string; size: number; top: number; left: number; flipped: boolean}> = [];
     const catImages = ['/Cat_1.png', '/Cat_2.png', '/Cat_3.png', '/Cat_4.png', '/Cat_5.png', '/Cat_6.png', '/Cat_7.png'];
+    
+    // 随机猫咪尺寸（50px到90px）
+    const getRandomSize = () => Math.floor(Math.random() * (90 - 50 + 1)) + 50;
+    const spacing = scale(10);
     
     // 猫咪框架尺寸（自适应缩放）
     const frameWidth = scale(336);
     const frameHeight = scale(228);
     
-    // 主猫咪位置（在框架顶部中央，避免被遮挡）- 更精确的保护区域
+    // 主猫咪位置（在框架顶部中央，避免被遮挡）
     const mainCatCenterX = frameWidth / 2; 
-    const mainCatCenterY = scale(80); // 主猫咪中心位置（名牌+猫咪的中心）
-    const mainCatRadius = scale(100); // 增大主猫咪保护区域半径，确保不被遮挡
+    const mainCatCenterY = scale(80);
+    const mainCatRadius = scale(90);
     
-    // 检查两个圆形区域是否重叠
-    const isOverlapping = (x: number, y: number, size: number, centerX: number, centerY: number, radius: number): boolean => {
-      const distance = Math.sqrt(Math.pow(x + size/2 - centerX, 2) + Math.pow(y + size/2 - centerY, 2));
-      const minDistance = size/2 + radius + scale(20); // 额外20px间距防止紧贴
+    // 检查位置是否与主猫咪区域重叠
+    const isNearMainCat = (x: number, y: number, catSize: number): boolean => {
+      const catCenterX = x + catSize / 2;
+      const catCenterY = y + catSize / 2;
+      const distance = Math.sqrt(
+        Math.pow(catCenterX - mainCatCenterX, 2) + 
+        Math.pow(catCenterY - mainCatCenterY, 2)
+      );
+      return distance < (mainCatRadius + catSize / 2 + spacing);
+    };
+    
+    // 检查两只猫咪是否重叠
+    const isOverlapping = (x1: number, y1: number, size1: number, x2: number, y2: number, size2: number): boolean => {
+      const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+      const minDistance = (size1 + size2) / 2 + spacing;
       return distance < minDistance;
     };
     
-    // 检查与已有猫咪的重叠
-    const checkCatOverlap = (x: number, y: number, size: number, existingCats: typeof cats): boolean => {
-      for (const cat of existingCats) {
-        const distance = Math.sqrt(
-          Math.pow(x + size/2 - (cat.left + cat.size/2), 2) + 
-          Math.pow(y + size/2 - (cat.top + cat.size/2), 2)
-        );
-        const minDistance = (size + cat.size) / 2 + scale(15); // 15px间距
-        if (distance < minDistance) {
-          return true; // 重叠
-        }
-      }
-      return false; // 不重叠
-    };
-    
+    // 随机生成猫咪位置，避免重叠
+    const maxAttempts = 1000; // 防止无限循环
     for (let i = 0; i < catCount; i++) {
       let attempts = 0;
       let validPosition = false;
-      let catData;
       
-      while (!validPosition && attempts < 150) { // 增加尝试次数
-        // 在框架内随机分布，但避开主猫咪区域
-        const size = Math.random() * scale(45) + scale(45); // 45-90px随机大小
-        const x = Math.random() * (frameWidth - size);
-        const y = Math.random() * (frameHeight - size);
+      while (!validPosition && attempts < maxAttempts) {
+        const catSize = getRandomSize();
+        const x = Math.random() * (frameWidth - catSize);
+        const y = Math.random() * (frameHeight - catSize);
         
-        // 检查是否与主猫咪区域重叠
-        if (!isOverlapping(x, y, size, mainCatCenterX, mainCatCenterY, mainCatRadius)) {
-          // 检查是否与已有猫咪重叠
-          if (!checkCatOverlap(x, y, size, cats)) {
-            validPosition = true;
-            catData = {
-              src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
-              size,
-              top: y,
-              left: x,
-              flipped: Math.random() > 0.5 // 随机左右翻转
-            };
+        // 检查是否与主猫咪重叠
+        if (isNearMainCat(x, y, catSize)) {
+          attempts++;
+          continue;
+        }
+        
+        // 检查是否与已生成的猫咪重叠
+        let overlapping = false;
+        for (const existingCat of cats) {
+          if (isOverlapping(x, y, catSize, existingCat.left, existingCat.top, existingCat.size)) {
+            overlapping = true;
+            break;
           }
         }
+        
+        if (!overlapping) {
+          const catData = {
+            src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
+            size: catSize,
+            top: y,
+            left: x,
+            flipped: Math.random() > 0.5 // 随机左右翻转
+          };
+          cats.push(catData);
+          validPosition = true;
+        }
+        
         attempts++;
-      }
-      
-      // 如果找不到合适位置，使用网格布局（避开主猫咪区域）
-      if (!validPosition) {
-        const cols = 4;
-        const rows = 3;
-        const gridIndex = i % (cols * rows);
-        const col = gridIndex % cols;
-        const row = Math.floor(gridIndex / cols);
-        
-        // 计算网格位置，但跳过主猫咪区域
-        let gridX = col * (frameWidth / cols) + scale(15);
-        let gridY = row * (frameHeight / rows) + scale(15);
-        
-        // 如果网格位置与主猫咪重叠，移动到边缘
-        if (isOverlapping(gridX, gridY, scale(25), mainCatCenterX, mainCatCenterY, mainCatRadius)) {
-          // 移动到框架边缘
-          if (col < cols / 2) {
-            gridX = scale(10); // 左边缘
-          } else {
-            gridX = frameWidth - scale(35); // 右边缘
-          }
-          gridY = frameHeight - scale(35); // 底部
-        }
-        
-        catData = {
-          src: catImages[Math.floor(Math.random() * catImages.length)] || '/Cat_1.png',
-          size: scale(45), // 网格布局时使用最小尺寸
-          top: gridY,
-          left: gridX,
-          flipped: Math.random() > 0.5
-        };
-      }
-      
-      if (catData) {
-        cats.push(catData);
       }
     }
     
-    console.log(`✅ 成功生成 ${cats.length}/${catCount} 只不重叠的猫咪（主猫咪保护区域已避开）`);
+    console.log(`✅ Successfully generated ${cats.length}/${catCount} non-overlapping cats (main cat area avoided)`);
     return cats;
   };
 
@@ -275,15 +258,15 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
       
       const success = await shareResultToClipboard(gameData);
       if (success) {
-        setSuccessMessage('分享文本已复制到剪贴板！');
+        setSuccessMessage('Share text copied to clipboard!');
         setShowSuccessToast(true);
       } else {
-        setSuccessMessage('复制失败，请手动复制分享内容');
+        setSuccessMessage('Copy failed, please manually copy share content');
         setShowSuccessToast(true);
       }
     } catch (error) {
       console.error('分享失败:', error);
-      setSuccessMessage('分享失败，请稍后再试');
+      setSuccessMessage('Share failed, please try again later');
       setShowSuccessToast(true);
     }
   };
@@ -445,8 +428,8 @@ export const GameCompletionScreen: React.FC<GameCompletionScreenProps> = ({
                 <div 
                   className="absolute flex flex-col items-center animate-float z-20"
                   style={{ 
-                    top: `${scale(20)}px`,
-                    left: '50%',
+                    top: `${scale(0)}px`,
+                    left: '25%',
                     transform: 'translateX(-50%)'
                   }}
                 >

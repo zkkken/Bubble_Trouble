@@ -194,3 +194,26 @@
 .falling-item {
   animation: itemRotate 2s linear infinite;
 }
+
+/* 冷风效果的摆动动画 */
+@keyframes windFlow {
+  0% { 
+    transform: translateX(-10px) scaleX(0.8); 
+  }
+  100% { 
+    transform: translateX(10px) scaleX(1.2); 
+  }
+}
+
+/* Tap图标旋转动画 */
+@keyframes tapRotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(90deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(180deg) scale(1);
+  }
+}

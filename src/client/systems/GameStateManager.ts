@@ -7,6 +7,7 @@
 
 import { GameState, GameConfig, BubbleTimeState } from '../types/GameTypes';
 import { InterferenceSystem } from './InterferenceSystem';
+import { audioManager } from '../services/audioManager';
 
 // 定义新机制的常量 - 按照用户详细规格
 const TEMP_CLICK_CHANGE = 0.05; // 点击按钮温度变化5%
@@ -23,6 +24,9 @@ const FIXED_COMFORT_ZONE_MAX = 0.8; // 80%
 const TEMP_DROP_INTERVAL = 0.04; // 40ms间隔
 const TEMP_DROP_AMOUNT = 0.006; // 单次减量0.6%
 
+// 难度提升机制常量
+const DIFFICULTY_INCREASE_INTERVAL = 15; // 每15秒增加难度
+
 export class GameStateManager {
   private interferenceSystem: InterferenceSystem;
   private config: GameConfig;
@@ -32,6 +36,10 @@ export class GameStateManager {
   private electricLeakageTimer: number = 0; // 漏电偏移更新计时器
   private fallingObjectSpawnTimer: number = 0; // 掉落物品生成计时器
   private tempDropAccumulator: number = 0; // 温度掉落计时器 (40ms间隔)
+  private temperatureZoneTimer: number = 0; // 温度区域轮换计时器 (10秒间隔)
+  private difficultyTimer: number = 0; // 难度提升计时器（纯净游戏时间）
+  private coldWindCoolingMultiplier: number = 1; // 冷风冷却速率倍数
+  private lastWindGenerateTime: number = 0; // 冷风生成计时器
 
   constructor(config: GameConfig) {
     this.config = config;
@@ -50,6 +58,7 @@ export class GameStateManager {
     this.electricLeakageTimer = 0;
     this.fallingObjectSpawnTimer = 0;
     this.tempDropAccumulator = 0;
+    this.difficultyTimer = 0;
     
     const initialBubbleState: BubbleTimeState = {
       isActive: false,
@@ -58,9 +67,13 @@ export class GameStateManager {
       rhythmClickCount: 0,
     };
 
+    // 初始温度区域设为1（25-50%区域），初始温度设为37.5%（在该区域中心）
+    const initialTemperatureZone = 1;
+    const initialTemperature = 0.375; // 37.5%，在区域1（25-50%）的中心位置
+
     return {
       // 温度和舒适度
-      currentTemperature: 0.5, // 初始温度50%
+      currentTemperature: initialTemperature, // 设置在对应温度区域内
       currentComfort: 0.5, // 初始舒适度50%
       
       // 游戏状态
@@ -81,7 +94,6 @@ export class GameStateManager {
 
       // 新增：干扰机制相关状态
       temperatureOffset: 0, // 漏电效果：温度指针显示偏移
-      temperatureCoolingMultiplier: 1, // 冷风效果：冷却速率倍数
       bubbleTimeState: initialBubbleState, // 泡泡时间状态
       fallingObjects: [], // 惊喜掉落物品
       windObjects: [], // 冷风效果：风效果对象
@@ -89,6 +101,9 @@ export class GameStateManager {
       // 新增：Tap图标旋转状态
       tapIconRotation: 0, // 当前旋转角度
       tapIconAnimationTrigger: 0, // 动画触发计数器
+      
+      // 新增：当前温度区域（初始设为1，对应25-50%区域）
+      currentTemperatureZone: initialTemperatureZone
     };
   }
 
@@ -112,33 +127,72 @@ export class GameStateManager {
     this.timeAccumulator += deltaTime;
     this.comfortUpdateAccumulator += deltaTime;
     this.tempDropAccumulator += deltaTime;
+    this.temperatureZoneTimer += deltaTime;
 
     // 1. 更新正向计时器
     newState.gameTimer += deltaTime;
     newState.interferenceTimer -= deltaTime; // 干扰计时器倒计时
 
-    // 2. 新增：温度指针掉落机制 - 40ms间隔，0.6%减量 = 15%/秒
+    // 1.5. 难度提升计时器（只在没有干扰事件时累计）
+    if (!newState.interferenceEvent.isActive) {
+      this.difficultyTimer += deltaTime;
+      
+      // 每15秒触发难度提升
+      if (this.difficultyTimer >= DIFFICULTY_INCREASE_INTERVAL) {
+        this.difficultyTimer = 0;
+        
+        // 播放难度提升音效
+        if (!audioManager.isMutedState()) {
+          audioManager.playSound('difficultyUp');
+        }
+        
+        // 这里可以添加具体的难度提升逻辑，比如：
+        // - 增加干扰事件频率
+        // - 增加温度下降速度
+        // - 减少舒适区域宽度等
+        console.log('🔥 Difficulty increased! Time survived:', Math.floor(newState.gameTimer));
+      }
+    }
+
+    // 2. 新增：温度指针掉落机制 - 40ms间隔，0.6%减量 = 15%/秒，应用冷风倍数
     if (this.tempDropAccumulator >= TEMP_DROP_INTERVAL) {
       this.tempDropAccumulator -= TEMP_DROP_INTERVAL;
       
-      // 应用冷风效果的冷却倍数
-      const dropAmount = TEMP_DROP_AMOUNT * newState.temperatureCoolingMultiplier;
+      // 固定温度下降量，应用冷风冷却倍数
+      const dropAmount = TEMP_DROP_AMOUNT * this.coldWindCoolingMultiplier;
       newState.currentTemperature = Math.max(0, newState.currentTemperature - dropAmount);
     }
 
-    // 3. 每80ms更新舒适度 - 按照用户规格
+    // 2.5. 新增：温度区域轮换机制 - 每10秒轮换一次（0-3）
+    if (this.temperatureZoneTimer >= 10) {
+      this.temperatureZoneTimer -= 10;
+      newState.currentTemperatureZone = (newState.currentTemperatureZone + 1) % 4;
+    }
+
+    // 3. 每80ms更新舒适度 - 基于当前显示的温度区域
     if (this.comfortUpdateAccumulator >= COMFORT_UPDATE_INTERVAL) {
       this.comfortUpdateAccumulator -= COMFORT_UPDATE_INTERVAL;
 
-      // 3a. 基于固定60%-80%区域更新舒适度
+      // 3a. 基于当前显示的温度区域更新舒适度
       const currentTemp = newState.currentTemperature;
-      const isInFixedComfortZone = currentTemp >= FIXED_COMFORT_ZONE_MIN && currentTemp <= FIXED_COMFORT_ZONE_MAX;
+      const currentZone = newState.currentTemperatureZone;
       
-      if (isInFixedComfortZone) {
-        // 在60%-80%区域内，每80ms +1.2% (15%/秒)
+      // 定义4个温度区域的范围（每个区域占25%）
+      const temperatureZones = [
+        { min: 0.0, max: 0.25 },  // 区域0: 0-25%
+        { min: 0.25, max: 0.5 },  // 区域1: 25-50%
+        { min: 0.5, max: 0.75 },  // 区域2: 50-75%
+        { min: 0.75, max: 1.0 }   // 区域3: 75-100%
+      ];
+      
+      const activeZone = temperatureZones[currentZone];
+      const isInActiveZone = activeZone && currentTemp >= activeZone.min && currentTemp <= activeZone.max;
+      
+      if (isInActiveZone) {
+        // 在当前显示的温度区域内，每80ms +1.2% (15%/秒)
         newState.currentComfort += COMFORT_CHANGE_PER_SECOND * COMFORT_UPDATE_INTERVAL;
       } else {
-        // 在60%-80%区域外，每80ms -1.2% (15%/秒)
+        // 在当前显示的温度区域外，每80ms -1.2% (15%/秒)
         newState.currentComfort -= COMFORT_CHANGE_PER_SECOND * COMFORT_UPDATE_INTERVAL;
       }
     }
@@ -213,10 +267,43 @@ export class GameStateManager {
         const newObject = this.interferenceSystem.generateFallingObject();
         state.fallingObjects.push(newObject);
         this.fallingObjectSpawnTimer = 0;
+        
+        // 播放礼物掉落音效
+        if (!audioManager.isMutedState()) {
+          audioManager.playSound('giftDrop');
+        }
       }
 
       // 更新所有掉落物品的位置
       state.fallingObjects = this.interferenceSystem.updateFallingObjects(state.fallingObjects, deltaTime);
+    }
+
+    // 处理冷风效果：增强自然冷却速率并更新风对象
+    if (state.interferenceEvent.type === 'cold_wind' && state.interferenceEvent.isActive) {
+      // 增强自然冷却速率
+      this.coldWindCoolingMultiplier = 3.0; // 冷却速率提升3倍
+      
+      // 更新风对象
+      if (!this.lastWindGenerateTime) {
+        this.lastWindGenerateTime = Date.now();
+        state.windObjects = this.interferenceSystem.createColdWindState();
+      }
+      
+      // 更新现有风对象
+      state.windObjects = this.interferenceSystem.updateWindObjects(state.windObjects);
+      
+      // 检查是否需要生成新风对象
+      const currentTime = Date.now();
+      if (this.interferenceSystem.shouldGenerateNewWind(this.lastWindGenerateTime, currentTime)) {
+        // 确保同时最多5个风对象
+        if (state.windObjects.length < 5) {
+          state.windObjects.push(this.interferenceSystem.generateWindObject());
+        }
+        this.lastWindGenerateTime = currentTime;
+      }
+    } else {
+      // 重置冷风冷却倍数
+      this.coldWindCoolingMultiplier = 1;
     }
   }
 
@@ -232,15 +319,17 @@ export class GameStateManager {
         state.temperatureOffset = this.interferenceSystem.generateElectricLeakageOffset();
         this.electricLeakageTimer = 0;
         break;
-      case 'cold_wind':
-        state.temperatureCoolingMultiplier = this.interferenceSystem.getColdWindCoolingMultiplier();
-        break;
       case 'bubble_time':
         state.bubbleTimeState = this.interferenceSystem.createBubbleTimeState();
         break;
       case 'surprise_drop':
         state.fallingObjects = [];
         this.fallingObjectSpawnTimer = 0;
+        break;
+      case 'cold_wind':
+        state.windObjects = this.interferenceSystem.createColdWindState();
+        this.lastWindGenerateTime = Date.now();
+        this.coldWindCoolingMultiplier = 3.0;
         break;
     }
     return state;
@@ -252,7 +341,6 @@ export class GameStateManager {
   private clearInterferenceEffects(state: GameState): GameState {
     state.isControlsReversed = false;
     state.temperatureOffset = 0;
-    state.temperatureCoolingMultiplier = 1;
     state.bubbleTimeState = {
       isActive: false,
       bubbles: [],
@@ -261,6 +349,8 @@ export class GameStateManager {
     };
     state.fallingObjects = [];
     state.windObjects = [];
+    this.coldWindCoolingMultiplier = 1; // 重置冷风冷却倍数
+    this.lastWindGenerateTime = 0; // 重置冷风生成计时器
     return state;
   }
 
@@ -326,9 +416,20 @@ export class GameStateManager {
       );
 
       if (caughtObjects.length > 0) {
-        // 应用接住物品的效果
+        // 应用接住物品的效果并播放相应音效
         caughtObjects.forEach(obj => {
           newState.currentComfort += obj.comfortEffect;
+          
+          // 根据物品效果播放音效
+          if (!audioManager.isMutedState()) {
+            if (obj.comfortEffect > 0) {
+              // 正面效果物品：橡皮鸭、鱼
+              audioManager.playSound('giftCaught');
+            } else {
+              // 负面效果物品：梳子、水垢怪、闹钟
+              audioManager.playSound('giftMissed');
+            }
+          }
         });
 
         // 移除已接住的物品

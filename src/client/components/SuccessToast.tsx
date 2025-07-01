@@ -49,15 +49,15 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
       />
       
       {/* 半透明覆盖层 */}
-      <div className="absolute inset-0 bg-black bg-opacity-50" />
+      <div className="absolute inset-0 bg-[#545454] opacity-50" />
       
       {/* 主内容容器 - 点击整个区域关闭 */}
       <div 
         className="relative cursor-pointer z-10"
         onClick={onClose}
         style={{
-          width: `${scale(286)}px`,
-          height: `${scale(179)}px`,
+          width: `${scale(429)}px`,
+          height: `${scale(268.5)}px`,
         }}
       >
         {/* 主卡片内容 - share_result.png */}
@@ -66,8 +66,8 @@ export const SuccessToast: React.FC<SuccessToastProps> = ({
           alt="Share Result"
           className="w-full h-full object-contain"
           style={{
-            width: `${scale(286)}px`,
-            height: `${scale(179)}px`,
+            width: `100%`,
+            height: `100%`,
           }}
           onError={(e) => {
             // 如果share_result.png加载失败，显示备用内容

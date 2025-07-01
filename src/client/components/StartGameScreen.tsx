@@ -13,6 +13,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { audioManager } from '../services/audioManager';
 
 interface StartGameScreenProps {
   onStartGame: (playerInfo: {
@@ -135,6 +136,11 @@ const CONTINENTS = getContinentsWithScale((size: number) => size);
     e.preventDefault();
     const element = e.currentTarget as HTMLDivElement;
     element.style.cursor = 'grabbing';
+    
+    // 播放猫咪选择音效（只在音乐开启时且选择了新猫咪时播放）
+    if (!audioManager.isMutedState() && (!selectedCat || selectedCat.id !== cat.id)) {
+      audioManager.playSound('catMeow');
+    }
     
     // 如果选择了新的猫咪，重置大洲选择
     if (!fromMap && selectedCat?.id !== cat.id) {

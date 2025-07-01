@@ -132,11 +132,11 @@ class ComfortSystem {
 
   getComfortAvatar(comfortLevel: number): string {
     if (comfortLevel >= 0.8) {
-      return "/avatar-yellowsmiley.png";
+      return "/icon-comfortbar-succ.png";
     } else if (comfortLevel <= 0.3) {
-      return "/avatar-bad.png";
+      return "/icon-comfortbar-fail.png";
     } else {
-      return "/avatar-yellowsmiley.png";
+      return "/icon-comfortbar-succ.png";
     }
   }
 }
@@ -648,7 +648,7 @@ export const ConsolidatedCatComfortGame: React.FC = () => {
             <img
               className="absolute object-cover transition-all duration-300"
               alt="Bad cat avatar"
-              src="/avatar-bad.png"
+              src="/icon-comfortbar-fail.png"
               style={{
                 width: '35.5px',
                 height: '36px',
@@ -660,7 +660,7 @@ export const ConsolidatedCatComfortGame: React.FC = () => {
             <img
               className="absolute object-cover transition-all duration-300"
               alt="Happy cat avatar"
-              src="/avatar-yellowsmiley.png"
+              src="/icon-comfortbar-succ.png"
               style={{
                 width: '35.5px',
                 height: '36px',

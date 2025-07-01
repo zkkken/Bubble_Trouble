@@ -5,9 +5,10 @@ import { getGameBackground } from '../utils/shareUtils';
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onStartTutorial?: () => void;
 }
 
-export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
+export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onStartTutorial }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   
   // 响应式设计hooks
@@ -37,6 +38,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
 
   const handleStartClick = () => {
     handleClose(); // Close modal when start is clicked
+    // 如果提供了onStartTutorial回调，则调用它
+    if (onStartTutorial) {
+      onStartTutorial();
+    }
   };
 
   // Handle ESC key
@@ -106,7 +111,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             
             {/* 半透明遮罩层 */}
             <div 
-              className="absolute inset-0 bg-black bg-opacity-30"
+              className="absolute inset-0 bg-[#545454] opacity-50"
             />
           </div>
           {/* 使用原始div而不是Card组件，完全匹配参考HTML */}

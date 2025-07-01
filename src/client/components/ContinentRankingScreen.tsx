@@ -26,13 +26,13 @@ const getPlayerInfo = () => {
       try {
         const parsed = JSON.parse(stored);
         return {
-          playerName: parsed.playerName || '默认玩家',
+          playerName: parsed.playerName || 'Default Player',
           continentId: parsed.continentId || 'AS',
           catAvatarId: parsed.catAvatarId || '1'
         };
       } catch (error) {
         return {
-          playerName: '默认玩家',
+          playerName: 'Default Player',
           continentId: 'AS',
           catAvatarId: '1'
         };
@@ -98,7 +98,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
         }));
         
         setPlayers(transformedPlayers);
-
+        
       } catch (error) {
         // 出错时返回空数据
         setPlayers([]);
@@ -344,7 +344,7 @@ export const ContinentRankingScreen: React.FC<ContinentRankingScreenProps> = ({
                         fontSize: `${scale(18)}px`
                       }}
                     >
-                      加载{continentName}排行榜中...
+                      Loading {continentName}...
                     </div>
                   </div>
                 ) : (

@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ContinentRankingScreen } from "./ContinentRankingScreen";
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
 import { getGameBackground } from '../utils/shareUtils';
+import { audioManager } from '../services/audioManager';
 
 interface LeaderboardRankingScreenProps {
   onBack: () => void;
@@ -148,9 +149,9 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
     }
     
     // 计算应该生成的猫咪数量：基数 + 比例增长
-    const baseCount = Math.min(3, actualPlayerCount); // 基础3只
-    const extraCount = Math.floor((actualPlayerCount - 3) * 0.3); // 超出部分按30%增长
-    const numCats = Math.min(15, Math.max(1, baseCount + extraCount)); // 最多15只，最少1只
+    const baseCount = Math.min(5, actualPlayerCount); // 基础5只
+    const extraCount = Math.floor((actualPlayerCount - 5) * 0.5); // 超出部分按50%增长
+    const numCats = Math.min(20, Math.max(5, baseCount + extraCount)); // 最多20只，最少5只
     
     const cats: CatData[] = [];
     const frameWidth = 313; // 猫咪框架宽度
@@ -195,7 +196,7 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
       let cat: CatData | null = null;
       
       while (attempts < 100 && !cat) {
-        const size = 20 + Math.random() * 30; // 20-50px 大小
+        const size = 50 + Math.random() * 30; // 20-50px 大小
         const x = Math.random() * (frameWidth - size);
         const y = Math.random() * (frameHeight - size);
         
@@ -232,8 +233,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
         if (data.status === 'success') {
           setContinentStats(data.data);
           
-
-          
           // 按平均耐久时间排序洲际（降序 - 时间长的排名靠前）
           // 没有玩家的洲际平均时间为0，会排在最后
           const sortedStats = [...data.data].sort((a, b) => {
@@ -243,8 +242,6 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
             if (b.playerCount === 0) return -1;
             return b.averageTime - a.averageTime;
           });
-          
-
           
           const generatedRankings: ContinentRanking[] = sortedStats.map((stat, index) => {
             const cats = generateCatsForContinent(stat.playerCount, stat.continentId);
@@ -258,14 +255,15 @@ export const LeaderboardRankingScreen: React.FC<LeaderboardRankingScreenProps> =
               cats
             };
             
-
-            
             return ranking;
           });
 
-
-
           setRankings(generatedRankings);
+          
+          // 播放排行榜音效
+          if (!audioManager.isMutedState()) {
+            audioManager.playSound('leaderboard');
+          }
         } else {
           // 获取洲际统计失败
         }

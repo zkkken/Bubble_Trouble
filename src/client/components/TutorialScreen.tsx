@@ -5,13 +5,16 @@ import { TutorialTemperatureBar } from "./TutorialTemperatureBar";
 import { TutorialComfortBar } from "./TutorialComfortBar";
 import { useTutorialGameLogic } from "../hooks/useTutorialGameLogic";
 import { useResponsiveScale, useResponsiveSize } from '../hooks/useResponsiveScale';
+import { audioManager } from '../services/audioManager';
 
 interface TutorialScreenProps {
   onSkip?: () => void;
   onComplete?: () => void;
+  isMusicOn?: boolean;
+  onMusicToggle?: () => void;
 }
 
-export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComplete }) => {
+export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComplete, isMusicOn, onMusicToggle }) => {
   // 添加响应式缩放
   const { cssVars, containerWidth, maxWidth } = useResponsiveScale();
   const { scale, scaleImage, createStyles } = useResponsiveSize();
@@ -177,11 +180,37 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
 
   // 处理完成（显示对话框-5时）
   const handleCompleteClick = () => {
+    // 播放引导结束音效
+    if (!audioManager.isMutedState()) {
+      audioManager.playSound('tutorialComplete');
+    }
     onComplete?.();
   };
 
   // 检查是否显示跳过按钮 - 当显示dialog-5时隐藏跳过按钮
   const shouldShowSkipButton = !gameState.hasReachedFillMiddleFromRight;
+
+  // 动态计算舒适度条图标尺寸
+  const getComfortIconSize = (iconType: 'fail' | 'succ') => {
+    if (iconType === 'fail') {
+      // icon-comfortbar-fail 逻辑：
+      // 初始: 28px
+      // 舒适度达到80%时: 48px
+      // 显示对话框-5时: 缩减到28px
+      if (gameState.hasReachedComfort80 && !gameState.hasReachedFillMiddleFromRight) {
+        return 48;
+      }
+      return 28;
+    } else {
+      // icon-comfortbar-succ 逻辑：
+      // 初始: 28px
+      // 指针进入温度条填充区域时: 48px（任何时候进入都放大）
+      if (gameState.isInTempBarFill) {
+        return 48;
+      }
+      return 28;
+    }
+  };
 
   // 游戏界面数据（响应式缩放）
   const gameElements = {
@@ -264,18 +293,19 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
             {/* 音乐切换按钮 */}
             <Button
               variant="ghost"
-              className="absolute p-0"
+              className="absolute p-0 hover:scale-105 active:scale-95 transition-transform duration-150"
               style={createStyles({
                 width: 80,
                 height: 36,
                 top: 24,
                 left: 620
               })}
+              onClick={onMusicToggle}
             >
               <img
                 className="w-full h-full"
                 alt="Music toggle"
-                src="/icon-music-on.png"
+                src={isMusicOn ? "/icon-music-on.png" : "/Button_Music_Off.png"}
               />
             </Button>
 
@@ -316,32 +346,47 @@ export const TutorialScreen: React.FC<TutorialScreenProps> = ({ onSkip, onComple
             ))}
 
             {/* 指示器（响应式缩放） */}
-            {gameElements.indicators.map((indicator, index) => (
-              <img
-                key={`indicator-${index}`}
-                className="absolute object-cover"
-                style={indicator.dynamicLeft ? 
-                  createStyles({
-                    top: indicator.src === "/icon-temp.png" ? 180 : 72,
-                    left: indicator.dynamicLeft,
-                    width: indicator.src === "/icon-temp.png" ? 66 : 
-                           indicator.src === "/icon-comfortbar-fail.png" ? 48 : 48,
-                    height: indicator.src === "/icon-temp.png" ? 18 : 
-                            indicator.src === "/icon-comfortbar-fail.png" ? 48 : 48
-                  }) : 
-                  createStyles({
-                    top: indicator.src === "/icon-temp.png" ? 180 : 72,
-                    left: indicator.src === "/icon-comfortbar-fail.png" ? 48 : 648,
-                    width: indicator.src === "/icon-temp.png" ? 66 : 
-                           indicator.src === "/icon-comfortbar-fail.png" ? 48 : 48,
-                    height: indicator.src === "/icon-temp.png" ? 18 : 
-                            indicator.src === "/icon-comfortbar-fail.png" ? 48 : 48
-                  })
-                }
-                alt={indicator.alt}
-                src={indicator.src}
-              />
-            ))}
+            {gameElements.indicators.map((indicator, index) => {
+              // 计算图标的动态属性
+              let iconWidth, iconHeight, iconLeft, iconTop;
+              
+              if (indicator.src === "/icon-temp.png") {
+                // 温度图标
+                iconWidth = 66;
+                iconHeight = 18;
+                iconTop = 180;
+                iconLeft = indicator.dynamicLeft || 0;
+              } else if (indicator.src === "/icon-comfortbar-fail.png") {
+                // 失败图标 - 动态尺寸
+                const size = getComfortIconSize('fail');
+                iconWidth = size;
+                iconHeight = size;
+                iconTop = 72;
+                iconLeft = 48;
+              } else {
+                // 成功图标 - 动态尺寸
+                const size = getComfortIconSize('succ');
+                iconWidth = size;
+                iconHeight = size;
+                iconTop = 72;
+                iconLeft = 648;
+              }
+
+              return (
+                <img
+                  key={`indicator-${index}`}
+                  className="absolute object-cover transition-all duration-300 ease-out"
+                  style={createStyles({
+                    top: iconTop,
+                    left: iconLeft,
+                    width: iconWidth,
+                    height: iconHeight
+                  })}
+                  alt={indicator.alt}
+                  src={indicator.src}
+                />
+              );
+            })}
 
             {/* 手势光标 - 仅在手势-3、手势-4和手势-5未显示时显示 */}
             {!gameState.shouldShowHand3 && !gameState.shouldShowHand4 && !gameState.shouldShowHand5 && (
