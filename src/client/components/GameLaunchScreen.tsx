@@ -121,8 +121,25 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
   // Handle Bolt.new link click to open in new tab
   const handleBoltLinkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Use window.open to open in a new tab
-    window.open("https://bolt.new", "_blank", "noopener,noreferrer");
+    try {
+      // Try to open in a new tab using window.open
+      const newWindow = window.open("https://bolt.new", "_blank");
+      
+      // If window.open is blocked or returns null, fallback to changing location
+      if (!newWindow) {
+        console.log("Popup blocked, trying alternative method");
+        // Alternative approach - this will navigate in the same tab if popup is blocked
+        const link = document.createElement('a');
+        link.href = "https://bolt.new";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.click();
+      }
+    } catch (error) {
+      console.error("Failed to open Bolt.new:", error);
+      // Last resort - just navigate in the same window
+      window.location.href = "https://bolt.new";
+    }
   };
 
   return (
@@ -153,7 +170,8 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
                 src="/bolt.png" 
                 alt="Built with Bolt.new" 
                 style={{
-                  width: `${scale(120)}px`,
+                  width: `${scale(40)}px`,
+                  height: `${scale(40)}px`
                 }}
               />
             </a>
