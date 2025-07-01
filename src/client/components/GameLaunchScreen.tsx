@@ -165,29 +165,6 @@ export const GameLaunchScreen: React.FC<GameLaunchScreenProps> = ({
             </a>
           </div>
 
-          {/* Hackathon Badge - Below Bolt Badge */}
-          <div 
-            className="absolute z-50"
-            style={{
-              top: `${scale(56)}px`,
-              left: `${scale(16)}px`
-            }}
-          >
-            <a 
-              href="https://worldshackathon.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-red-600 text-white text-xs font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border border-white/20"
-              style={{
-                fontSize: `${scale(10)}px`,
-                padding: `${scale(4)}px ${scale(8)}px`,
-                borderRadius: `${scale(12)}px`
-              }}
-            >
-              <span className="mr-1">🌎</span>
-              World's Largest Hackathon
-            </a>
-          </div>
 
           <CardContent className="p-0 relative h-full bg-[url(/Bg_Main.png)] bg-cover bg-[50%_50%] flex flex-col items-center">
             {/* Game title */}
