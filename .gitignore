@@ -101,7 +101,3 @@ jspm_packages/
 
 # Devvit specific
 .initialized
-
-# Project configuration files
-package.json
-devvit.yaml
