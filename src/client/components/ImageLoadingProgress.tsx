@@ -78,7 +78,7 @@ export const ImageLoadingProgress: React.FC<ImageLoadingProgressProps> = ({
             fontSize: `${scale(16)}px`,
           }}
         >
-          {progress < 100 ? `${Math.round(progress)}%` : '即将完成...'}
+          {progress < 100 ? `${Math.round(progress)}}
         </div>
 
         {/* 加载动画小图标 */}
@@ -100,7 +100,6 @@ export const ImageLoadingProgress: React.FC<ImageLoadingProgressProps> = ({
             fontSize: `${scale(14)}px`,
           }}
         >
-          请稍候，我们正在为您准备最佳的游戏体验
         </p>
       </div>
     </div>
