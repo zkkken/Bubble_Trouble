@@ -103,6 +103,5 @@ jspm_packages/
 .initialized
 
 # Project configuration files
-README.md
 package.json
 devvit.yaml
